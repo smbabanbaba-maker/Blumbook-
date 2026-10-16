@@ -176,6 +176,13 @@ export default function BlumbookApp() {
     finally { setLoadingCloud(false); }
   }, []);
   useEffect(() => {
+    const linkedId = new URLSearchParams(window.location.search).get("post");
+    if (linkedId && posts.some((post) => post.id === linkedId)) {
+      setThreadId(linkedId);
+      setView("thread");
+    }
+  }, [posts]);
+  useEffect(() => {
     if (!supabase) return;
     void loadCloud();
     const { data: { subscription } } = supabase.auth.onAuthStateChange(() => { window.setTimeout(() => void loadCloud(), 0); });
