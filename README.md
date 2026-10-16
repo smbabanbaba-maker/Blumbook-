@@ -1,15 +1,17 @@
 # Blumbook
 
-**Talk. Share. Bloom.** A responsive, dark-mode social platform inspired by familiar microblogging navigation, with an original Blumbook identity.
+**Talk. Share. Bloom.** A premium, mobile-first social platform with a monochrome identity, familiar microblogging navigation, and a persistent dark/light appearance switch.
 
 ![Blumbook logo](public/logo.svg)
 
 ## What works in this first build
 
+- Premium black-and-white responsive design; X-inspired mobile drawer with account, Profile, Premium, Communities, Bookmarks, Lists, Spaces, Creator Studio, Settings, Help Center, and a Dark/Light theme toggle saved on your device.
 - Mobile-first home feed with For you, Following, and Communities.
 - Create a post (up to 500 characters), attach an image, like, repost, bookmark and reply.
 - Explore/search, trending topics, profiles, follow/unfollow, saved posts, and profile editing.
-- Notification, direct-message, and community UI previews (see limitations below).
+- Notification, direct-message, and community UI previews, with clear future-release labeling (see limitations below).
+- A local-only list organizer, starter Creator Studio statistics, Help Center, and preview pages for Premium and audio Spaces.
 - Sign up, login, shared posts, follows, likes, reposts, comments, bookmarks, profile updates, and image uploads **when Supabase is configured**.
 - Without Supabase credentials it runs as a **clearly identified interactive demo** with sample content. Demo edits are browser-session-only.
 
@@ -45,4 +47,4 @@ Next.js 15 · React 19 · TypeScript · Tailwind CSS · Lucide icons · Supabase
 
 ## Branding
 
-The vector app icon is derived from the user-approved **Blumbook logo direction #4**: white letter B, rising orbit and sparkle on a midnight-blue rounded square. It is an original SVG approximation intended for further refinement into production-ready design files.
+The vector app icon follows the user-approved **Blumbook logo direction #4**, translated into monochrome: white letter B, rising orbit and sparkle on a near-black rounded square. It is an original SVG interpretation pending final production design approval.
