@@ -1,6 +1,7 @@
 export type Profile = {
   id: string; username: string; display_name: string; bio: string;
   verified?: boolean; avatar_url?: string | null; location?: string;
+  headline?: string; skills?: string[]; portfolio_url?: string;
 };
 export type Post = {
   id: string; author_id: string; body: string; image_url: string | null;

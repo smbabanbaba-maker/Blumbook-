@@ -100,6 +100,7 @@ function Modal({ children, close }: { children: ReactNode; close: () => void }) 
 
 export default function BlumbookApp() {
   const [view, setView] = useState<View>("home");
+  const [welcomeHidden,setWelcomeHidden]=useState(true);
   const [language,setLanguage] = useState<AppLanguage>("en");
   const tr=(key:Parameters<typeof translate>[0])=>translate(key,language);
   const [theme, setTheme] = useState<Theme>("dark");
@@ -112,6 +113,7 @@ export default function BlumbookApp() {
   const [listName, setListName] = useState("");
   useEffect(() => {
     if(window.localStorage.getItem("blumbook-language")==="ha")setLanguage("ha");
+    setWelcomeHidden(window.localStorage.getItem("blumbook-onboarded")==="yes");
     const saved = window.localStorage.getItem("blumbook-theme");
     if (saved === "light") setTheme("light");
     const savedPrefs = window.localStorage.getItem("blumbook-notification-prefs");
@@ -161,6 +163,9 @@ export default function BlumbookApp() {
   const [editProfile, setEditProfile] = useState(false);
   const [editName, setEditName] = useState("");
   const [editBio, setEditBio] = useState("");
+  const [editHeadline,setEditHeadline]=useState("");
+  const [editSkills,setEditSkills]=useState("");
+  const [editPortfolio,setEditPortfolio]=useState("");
   const [toast, setToast] = useState("");
   const [busy, setBusy] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -193,7 +198,9 @@ export default function BlumbookApp() {
         client.from("comments").select("post_id").limit(2000),
       ]);
       setCloudUserId(user?.id || null);
-      const cleanProfiles: Profile[] = (profilesData || []).map((p) => ({ id:p.id, username:p.username, display_name:p.display_name, bio:p.bio || "", avatar_url:p.avatar_url, verified:p.verified, location:p.location }));
+      const {data:extrasData}=await client.from("profile_extras").select("user_id,headline,skills,portfolio_url").limit(100);
+      const extras=new Map((extrasData||[]).map(x=>[x.user_id,x]));
+      const cleanProfiles: Profile[] = (profilesData || []).map((p) => ({ id:p.id, username:p.username, display_name:p.display_name, bio:p.bio || "", avatar_url:p.avatar_url, verified:p.verified, location:p.location,headline:extras.get(p.id)?.headline||"",skills:extras.get(p.id)?.skills||[],portfolio_url:extras.get(p.id)?.portfolio_url||"" }));
       setPeople(cleanProfiles);
       const mine = cleanProfiles.find((p) => p.id === user?.id);
       setMember(user ? (mine || { id:user.id, username:(user.email || "member").split("@")[0], display_name:user.user_metadata?.full_name || "Blumbook member", bio:"" }) : null);
@@ -335,16 +342,21 @@ export default function BlumbookApp() {
     if (action.error) notify(action.error.message);
     else { setAuthOpen(false); notify(signUp ? "Account created. Check your email if confirmation is enabled." : "Welcome back!"); void loadCloud(); }
   };
-  const openEdit = () => { setEditName(me.display_name); setEditBio(me.bio); setEditProfile(true); };
+  const openEdit = () => { setEditName(me.display_name); setEditBio(me.bio);setEditHeadline(me.headline||"");setEditSkills((me.skills||[]).join(", "));setEditPortfolio(me.portfolio_url||"");setEditProfile(true); };
   const saveProfile = async (e: FormEvent) => {
     e.preventDefault();
     if (!requireAccount()) return;
     setBusy(true);
+    const skills=editSkills.split(",").map(s=>s.trim()).filter(Boolean).slice(0,12);
+    const portfolio=editPortfolio.trim();
+    if(portfolio && !/^https:\/\/[a-z0-9.-]+(?:[:/]|$)/i.test(portfolio)){notify("Use a valid https:// portfolio URL.");setBusy(false);return;}
     if (supabase && cloudUserId) {
       const { error } = await supabase.from("profiles").update({ display_name:editName.trim(), bio:editBio.trim() }).eq("id", cloudUserId);
       if (error) { notify(error.message); setBusy(false); return; }
+      const {error:ex}=await supabase.from("profile_extras").upsert({user_id:cloudUserId,headline:editHeadline.trim(),skills,portfolio_url:portfolio});
+      if(ex)notify("Professional profile fields need the Phase 2 migration.");
       await loadCloud();
-    } else setMember({ ...me, display_name:editName.trim(), bio:editBio.trim() });
+    } else setMember({ ...me, display_name:editName.trim(), bio:editBio.trim(),headline:editHeadline.trim(),skills,portfolio_url:portfolio });
     setBusy(false); setEditProfile(false); notify("Profile updated");
   };
   const openProfile = (id: string) => { setSelectedProfile(id); navigate("profile"); };
@@ -452,6 +464,7 @@ export default function BlumbookApp() {
         </div>
         {tab === "communities" ? <BloomCircles userId={cloudUserId} requestAuth={()=>setAuthOpen(true)} language={language}/> :
         <>
+          {!welcomeHidden&&<section className="onboard-card"><div><span className="feature-overline">WELCOME TO BLUMBOOK</span><h2>Ideas grow better together.</h2><p>Explore stories, discover a Bloom Circle, and introduce yourself. This is an early interactive preview.</p><div><button onClick={()=>navigate("communities")}>Explore Bloom Circles <ArrowRight size={16}/></button><button onClick={()=>{setWelcomeHidden(true);window.localStorage.setItem("blumbook-onboarded","yes");}}>Got it</button></div></div><button className="icon-button" aria-label="Dismiss welcome" onClick={()=>{setWelcomeHidden(true);window.localStorage.setItem("blumbook-onboarded","yes");}}><X size={20}/></button></section>}
           <div className="compose-inline"><Avatar profile={me}/><button onClick={() => { if (requireAccount()) setCompose(true); }}>What&apos;s happening?</button><button className="primary-btn" onClick={() => { if (requireAccount()) setCompose(true); }}>Post</button></div>
           {loadingCloud && <div className="center-message">Loading your feed...</div>}
           {!loadingCloud && filteredPosts.length === 0 && <div className="empty-state"><Sparkles size={34}/><h3>{tab === "following" ? "Your feed starts here" : "Be the first to post"}</h3><p>{tab === "following" ? "Follow people in Explore to see what they share." : "Share a thought and start a conversation."}</p><button className="outline-btn" onClick={()=>navigate("explore")}>Discover people</button></div>}
@@ -507,7 +520,10 @@ export default function BlumbookApp() {
         <div className="profile-summary">
           <div className="profile-top"><Avatar profile={activeProfile} size="large"/>{activeProfile.id===me.id?<button className="outline-btn" onClick={openEdit}>Edit profile</button>:<button className={"outline-btn "+(followed.includes(activeProfile.id)?"outline-active":"")} onClick={()=>toggleFollow(activeProfile.id)}>{followed.includes(activeProfile.id)?"Following":"Follow"}</button>}</div>
           <h2><Name profile={activeProfile}/></h2><span className="profile-handle">@{activeProfile.username}</span>
+          {activeProfile.headline&&<p className="profile-headline">{activeProfile.headline}</p>}
           <p className="profile-bio">{activeProfile.bio || "Here to share, learn, and connect."}</p>
+          {Boolean(activeProfile.skills?.length)&&<div className="profile-skills">{activeProfile.skills?.map(s=><span key={s}>{s}</span>)}</div>}
+          {activeProfile.portfolio_url?.startsWith("https://")&&<a className="profile-portfolio" href={activeProfile.portfolio_url} target="_blank" rel="noopener noreferrer">View portfolio ↗</a>}
           <div className="profile-extra"><Compass size={15}/>{activeProfile.location || "Blumbook community"}</div>
           <div className="follow-stats"><span><b>{activeProfile.id===me.id?followed.length:156}</b> Following</span><span><b>{activeProfile.id===me.id?0:shortCount(2840)}</b> Followers</span></div>
         </div>
@@ -601,6 +617,7 @@ export default function BlumbookApp() {
       {view === "creator" && <div className="feature-page">
         <PanelTitle>Creator Studio</PanelTitle><div className="creator-heading"><div><span className="feature-overline">YOUR CREATOR OVERVIEW</span><h2>Create with purpose.</h2><p>See your posts and community interactions at a glance.</p></div><ChartNoAxesCombined size={30}/></div>
         <div className="metric-grid"><div><span>Total posts</span><strong>{posts.filter(p=>p.author_id===me.id).length}</strong></div><div><span>Post likes</span><strong>{shortCount(posts.filter(p=>p.author_id===me.id).reduce((n,p)=>n+p.likes,0))}</strong></div><div><span>Replies</span><strong>{shortCount(posts.filter(p=>p.author_id===me.id).reduce((n,p)=>n+p.replies,0))}</strong></div><div><span>Following</span><strong>{followed.length}</strong></div></div>
+        <div className="creator-activity"><div><strong>Posting activity</strong><small>Last 7 days · Based on posts loaded in this feed</small></div><div className="creator-bars">{Array.from({length:7},(_,i)=>{const date=new Date();date.setDate(date.getDate()-(6-i));const key=date.toLocaleDateString("en-CA");const total=posts.filter(p=>p.author_id===me.id && new Date(p.created_at).toLocaleDateString("en-CA")===key).length;return <div key={key} title={key+": "+total+" posts"}><span style={{height:(total?Math.min(85,total*24+14):4)+"px"}}/><small>{date.toLocaleDateString("en",{weekday:"short"})}</small></div>;})}</div></div>
         <button className="creator-compose" onClick={()=>requireAccount()&&setCompose(true)}><Feather size={21}/><span><strong>Share something new</strong><small>Ideas are better when shared</small></span><ArrowRight size={21}/></button>
         <div className="hint-strip">These figures reflect the current feed. Advanced analytics and monetization are not yet enabled.</div>
       </div>}
@@ -644,7 +661,7 @@ export default function BlumbookApp() {
       <button className="auth-switch" onClick={()=>setSignUp(!signUp)}>{signUp?"Already have an account? Log in":"New to Blumbook? Sign up"}</button></div>
     </Modal>}
 
-    {editProfile&&<Modal close={()=>setEditProfile(false)}><div className="dialog-head"><button className="icon-button" onClick={()=>setEditProfile(false)}><X size={22}/></button><strong>Edit profile</strong><button form="edit-profile-form" className="primary-btn" disabled={busy}>Save</button></div><form id="edit-profile-form" onSubmit={saveProfile} className="edit-form"><div className="edit-banner"/><Avatar profile={me} size="large"/><label>Name<input required maxLength={50} value={editName} onChange={(e)=>setEditName(e.target.value)}/></label><label>Bio<textarea maxLength={160} rows={3} value={editBio} onChange={(e)=>setEditBio(e.target.value)}/></label></form></Modal>}
+    {editProfile&&<Modal close={()=>setEditProfile(false)}><div className="dialog-head"><button className="icon-button" onClick={()=>setEditProfile(false)}><X size={22}/></button><strong>Edit profile</strong><button form="edit-profile-form" className="primary-btn" disabled={busy}>Save</button></div><form id="edit-profile-form" onSubmit={saveProfile} className="edit-form"><div className="edit-banner"/><Avatar profile={me} size="large"/><label>Name<input required maxLength={50} value={editName} onChange={(e)=>setEditName(e.target.value)}/></label><label>Bio<textarea maxLength={160} rows={3} value={editBio} onChange={(e)=>setEditBio(e.target.value)}/></label><label>Professional headline<input maxLength={90} placeholder="Designer · Entrepreneur · Educator" value={editHeadline} onChange={e=>setEditHeadline(e.target.value)}/></label><label>Skills (comma separated)<input maxLength={230} placeholder="Product design, Robotics, Content creation" value={editSkills} onChange={e=>setEditSkills(e.target.value)}/></label><label>Portfolio link (https://)<input maxLength={300} inputMode="url" value={editPortfolio} onChange={e=>setEditPortfolio(e.target.value)}/></label></form></Modal>}
   </div>;
 
   function personRow(p: Profile) {
