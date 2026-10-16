@@ -1,0 +1,17 @@
+{
+  "name": "Blumbook",
+  "short_name": "Blumbook",
+  "description": "Talk. Share. Bloom.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#080d17",
+  "theme_color": "#080d17",
+  "icons": [
+    {
+      "src": "/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Blumbook">
+ <defs><linearGradient id="bg" x1="0" x2="1" y2="1"><stop stop-color="#183778"/><stop offset="1" stop-color="#050c24"/></linearGradient><linearGradient id="orbit" x1="0" x2="1" y2="1"><stop stop-color="#fff"/><stop offset=".46" stop-color="#169bff"/><stop offset="1" stop-color="#9af2ff"/></linearGradient></defs>
+ <rect width="128" height="128" rx="29" fill="url(#bg)"/>
+ <path fill="#fff" d="M40 25h32c20 0 29 23 13 34 22 8 19 43-12 43H40V25zm19 17v13h11c12 0 12-13 0-13H59zm0 30v14h14c13 0 13-14 0-14H59z"/>
+ <path d="M18 101C52 70 84 75 109 30 95 66 67 76 36 99" fill="none" stroke="url(#orbit)" stroke-width="7" stroke-linecap="round"/>
+ <path d="m106 16 3.7 8.7 9.3 3.2-9.3 3.2-3.7 8.9-3.6-8.9-9.4-3.2 9.4-3.2Z" fill="#efffff"/>
+</svg>
