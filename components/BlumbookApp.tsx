@@ -374,7 +374,7 @@ export default function BlumbookApp() {
     navigate("home"); notify("Signed out");
   };
 
-  return <div className="app-shell">
+  return <div className={"app-shell "+(compactText?"large-type":"")}>
     <aside className={"sidebar " + (menuOpen ? "sidebar-open" : "")} aria-label="Blumbook navigation">
       <div className="desktop-sidebar">
         <button className="brand-button" onClick={() => navigate("home")} aria-label="Blumbook home"><Brand /></button>

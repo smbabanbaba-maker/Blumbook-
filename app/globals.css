@@ -570,3 +570,21 @@ button.settings-detail-row:hover { background:var(--hover); }
 @media (prefers-reduced-motion:reduce) {
   .settings-switch-track,.settings-switch-track::before { transition:none; }
 }
+
+
+/* Accessible local text size option in settings and navigation. */
+.app-shell.large-type .drawer-link { font-size:20px; }
+.app-shell.large-type .drawer-utility { font-size:17px; }
+.app-shell.large-type .drawer-name { font-size:25px; }
+.app-shell.large-type .drawer-handle,.app-shell.large-type .drawer-stats { font-size:16px; }
+.app-shell.large-type .settings-directory-copy strong { font-size:19px; }
+.app-shell.large-type .settings-directory-copy small { font-size:15.5px; }
+.app-shell.large-type .settings-detail-row strong,
+.app-shell.large-type .settings-switch-row strong { font-size:17px; }
+.app-shell.large-type .settings-detail-row small,
+.app-shell.large-type .settings-switch-row small { font-size:15px; }
+.app-shell.large-type .settings-search-wrap input { font-size:18px; }
+.app-shell.large-type .settings-directory-row { min-height:125px; }
+@media (max-width:700px) {
+  .app-shell.large-type .settings-directory-row { min-height:132px; }
+}
