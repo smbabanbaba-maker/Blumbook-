@@ -60,12 +60,14 @@ function Brand({ compact = false }: { compact?: boolean }) {
   return <span className={"brand " + (compact ? "brand-compact" : "")}><img src="/logo.svg" alt="" /><strong>Blumbook</strong></span>;
 }
 function PostCard({
-  post, author, onLike, onRepost, onBookmark, onReply, onProfile, onShare,
+  post, author, onLike, onRepost, onBookmark, onReply, onProfile, onShare, onMute, onReport,
 }: {
   post: Post; author: Profile; onLike: (post: Post) => void; onRepost: (post: Post) => void;
   onBookmark: (post: Post) => void; onReply: (post: Post) => void;
   onProfile: (id: string) => void; onShare: (post: Post) => void;
+  onMute:(id:string)=>void;onReport:(post:Post,reason:string)=>void;
 }) {
+  const [options,setOptions]=useState(false);
   return <article className="post-card">
     <div className="post-avatar"><Avatar profile={author} /></div>
     <div className="post-main">
@@ -73,7 +75,13 @@ function PostCard({
         <button className="post-user" onClick={() => onProfile(author.id)}>
           <Name profile={author} /><span className="post-handle">@{author.username}</span><span className="post-handle">· {timeAgo(post.created_at)}</span>
         </button>
-        <button className="icon-button icon-muted" aria-label="More post options" onClick={() => onShare(post)}><MoreHorizontal size={20}/></button>
+        <div className="post-option-wrap"><button className="icon-button icon-muted" aria-expanded={options} aria-label="More post options" onClick={() => setOptions(x=>!x)}><MoreHorizontal size={20}/></button>
+          {options&&<div className="post-popover" role="group" aria-label="Post actions">
+            <button onClick={()=>{onShare(post);setOptions(false);}}>Copy post link</button>
+            <button onClick={()=>{onMute(author.id);setOptions(false);}}>Mute @{author.username}</button>
+            <button onClick={()=>{onReport(post,"Spam");setOptions(false);}}>Report spam (beta)</button>
+            <button onClick={()=>{onReport(post,"Harassment");setOptions(false);}}>Report harassment (beta)</button>
+          </div>}</div>
       </div>
       <div className="post-body">{post.body}</div>
       {post.image_url && <button className="post-image-wrap" aria-label="View post" onClick={() => onReply(post)}><img className="post-image" src={post.image_url} alt="Image shared in post" loading="lazy" /></button>}
@@ -101,6 +109,7 @@ function Modal({ children, close }: { children: ReactNode; close: () => void }) 
 export default function BlumbookApp() {
   const [view, setView] = useState<View>("home");
   const [welcomeHidden,setWelcomeHidden]=useState(true);
+  const [mutedAuthors,setMutedAuthors]=useState<string[]>([]);
   const [language,setLanguage] = useState<AppLanguage>("en");
   const tr=(key:Parameters<typeof translate>[0])=>translate(key,language);
   const [theme, setTheme] = useState<Theme>("dark");
@@ -114,6 +123,7 @@ export default function BlumbookApp() {
   useEffect(() => {
     if(window.localStorage.getItem("blumbook-language")==="ha")setLanguage("ha");
     setWelcomeHidden(window.localStorage.getItem("blumbook-onboarded")==="yes");
+    try{const m=JSON.parse(window.localStorage.getItem("blumbook-muted")||"[]");if(Array.isArray(m))setMutedAuthors(m.filter(x=>typeof x==="string"));}catch{}
     const saved = window.localStorage.getItem("blumbook-theme");
     if (saved === "light") setTheme("light");
     const savedPrefs = window.localStorage.getItem("blumbook-notification-prefs");
@@ -367,10 +377,17 @@ export default function BlumbookApp() {
   };
   const activeProfile = lookup(selectedProfile === "demo-me" ? me.id : selectedProfile);
   const selectedPost = posts.find((p) => p.id === threadId);
-  const filteredPosts = posts.filter((p) => tab !== "following" || p.author_id === me.id || followed.includes(p.author_id));
-  const searchPosts = posts.filter((p) => p.body.toLowerCase().includes(query.toLowerCase()) || lookup(p.author_id).display_name.toLowerCase().includes(query.toLowerCase()));
+  const filteredPosts = posts.filter((p) => !mutedAuthors.includes(p.author_id) && (tab !== "following" || p.author_id === me.id || followed.includes(p.author_id)));
+  const searchPosts = posts.filter((p) => !mutedAuthors.includes(p.author_id) && (p.body.toLowerCase().includes(query.toLowerCase()) || lookup(p.author_id).display_name.toLowerCase().includes(query.toLowerCase())));
   const searchProfiles = people.filter((p) => p.display_name.toLowerCase().includes(query.toLowerCase()) || p.username.toLowerCase().includes(query.toLowerCase()));
-  const postProps = (p: Post) => ({ key:p.id, post:p, author:lookup(p.author_id), onLike:toggleLike, onRepost:toggleRepost, onBookmark:toggleBookmark, onReply:openThread, onProfile:openProfile, onShare:share });
+  const mute=(id:string)=>{if(id===me.id){notify("Cannot mute yourself.");return;}const next=[...new Set([...mutedAuthors,id])];setMutedAuthors(next);window.localStorage.setItem("blumbook-muted",JSON.stringify(next));notify("Muted in this browser. You can undo in Settings.");};
+  const report=async(p:Post,reason:string)=>{
+    if(!supabase || !cloudUserId){notify("Reporting is not enabled in the public demo.");return;}
+    const {error}=await supabase.from("content_reports").insert({reporter_id:cloudUserId,post_id:p.id,reason});
+    if(error)notify(error.code==="23505"?"Already reported.":error.message);
+    else notify("Report stored. Staff review is not operational yet.");
+  };
+  const postProps = (p: Post) => ({ key:p.id, post:p, author:lookup(p.author_id), onLike:toggleLike, onRepost:toggleRepost, onBookmark:toggleBookmark, onReply:openThread, onProfile:openProfile, onShare:share,onMute:mute,onReport:report });
   const pickImage = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (!f) return;
@@ -564,6 +581,7 @@ export default function BlumbookApp() {
               <h2>Privacy and safety</h2><p className="settings-description">Decide what you share and how you participate.</p>
               <div className="settings-detail-row settings-static-row"><UserRound size={22}/><span><strong>Post visibility</strong><small>Posts are public in this preview. Private accounts are planned.</small></span></div>
               <div className="settings-detail-row settings-static-row"><ShieldCheck size={22}/><span><strong>Block and report</strong><small>User blocking and content reporting are not available yet. These are required before public launch.</small></span></div>
+              {mutedAuthors.length>0&&<div className="muted-accounts"><strong>Muted on this device</strong>{mutedAuthors.map(id=><div key={id}><span>{lookup(id).display_name}</span><button onClick={()=>{const v=mutedAuthors.filter(x=>x!==id);setMutedAuthors(v);window.localStorage.setItem("blumbook-muted",JSON.stringify(v));}}>Unmute</button></div>)}</div>}
               <div className="settings-info-card"><strong>Your privacy matters.</strong><p>Do not publish sensitive information while Blumbook is being tested. Privacy policies and moderation controls must be in place before public registration.</p></div>
             </>}
             {settingsPanel==="notifications"&&<>
