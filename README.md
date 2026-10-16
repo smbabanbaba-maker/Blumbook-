@@ -7,6 +7,7 @@
 ## What works in this first build
 
 - Premium black-and-white responsive design; X-inspired mobile drawer with account, Profile, Premium, Communities, Bookmarks, Lists, Spaces, Creator Studio, Settings, Help Center, and a Dark/Light theme toggle saved on your device.
+- Settings directory with searchable categories and dedicated account, security, privacy, notifications, appearance/accessibility and resources pages; working device-level preferences.
 - Mobile-first home feed with For you, Following, and Communities.
 - Create a post (up to 500 characters), attach an image, like, repost, bookmark and reply.
 - Explore/search, trending topics, profiles, follow/unfollow, saved posts, and profile editing.
@@ -48,3 +49,7 @@ Next.js 15 · React 19 · TypeScript · Tailwind CSS · Lucide icons · Supabase
 ## Branding
 
 The vector app icon follows the user-approved **Blumbook logo direction #4**, translated into monochrome: white letter B, rising orbit and sparkle on a near-black rounded square. It is an original SVG interpretation pending final production design approval.
+
+## Design reference
+
+Read the [Premium UI Design System](docs/DESIGN_SYSTEM.md) for global color tokens, layout rules, Settings architecture, accessibility, and launch quality gates.

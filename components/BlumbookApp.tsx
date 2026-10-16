@@ -5,7 +5,7 @@ import {
   ArrowLeft, ArrowRight, Bell, Bookmark, Check, CheckCircle2, ChevronDown, Compass, Ellipsis,
   Feather, Heart, Home, ImagePlus, LogIn, LogOut, Mail, Menu, MessageCircle, MoreHorizontal,
   Plus, Repeat2, Search, Send, Settings, Share2, ShieldCheck, Smile, Sparkles, Sun, Moon, Crown, List, Radio, ChartNoAxesCombined, CircleHelp, UserRound,
-  UserRoundPlus, UsersRound, X, type LucideIcon
+  UserRoundPlus, UsersRound, Accessibility, Link2, LockKeyhole, Languages, Download, Type, X, type LucideIcon
 } from "lucide-react";
 import { supabase, isCloudEnabled } from "@/lib/supabase";
 import {
@@ -15,6 +15,7 @@ import {
 
 type View = "home" | "explore" | "notifications" | "messages" | "profile" | "communities" | "bookmarks" | "settings" | "thread" | "premium" | "lists" | "spaces" | "creator" | "help";
 type Theme = "dark" | "light";
+type SettingsPanel = "account" | "security" | "privacy" | "notifications" | "accessibility" | "resources";
 type Tab = "for-you" | "following" | "communities";
 type Comment = { id: string; post_id: string; author_id: string; body: string; created_at: string };
 type ChatMessage = { id: string; sender: "me" | "them"; text: string; time: string };
@@ -98,18 +99,33 @@ function Modal({ children, close }: { children: ReactNode; close: () => void }) 
 export default function BlumbookApp() {
   const [view, setView] = useState<View>("home");
   const [theme, setTheme] = useState<Theme>("dark");
+  const [themeLoaded, setThemeLoaded] = useState(false);
+  const [settingsPanel, setSettingsPanel] = useState<SettingsPanel | null>(null);
+  const [settingsSearch, setSettingsSearch] = useState("");
+  const [compactText, setCompactText] = useState(false);
+  const [notifyPrefs, setNotifyPrefs] = useState({ likes: true, follows: true, replies: true });
   const [lists, setLists] = useState<string[]>([]);
   const [listName, setListName] = useState("");
   useEffect(() => {
     const saved = window.localStorage.getItem("blumbook-theme");
     if (saved === "light") setTheme("light");
+    const savedPrefs = window.localStorage.getItem("blumbook-notification-prefs");
+    if (savedPrefs) { try { const p = JSON.parse(savedPrefs); setNotifyPrefs({likes:p.likes!==false,follows:p.follows!==false,replies:p.replies!==false}); } catch {} }
+    setCompactText(window.localStorage.getItem("blumbook-compact-text") === "true");
+    setThemeLoaded(true);
     const savedLists = window.localStorage.getItem("blumbook-lists");
     if (savedLists) { try { const values = JSON.parse(savedLists); if (Array.isArray(values)) setLists(values.filter((v): v is string => typeof v === "string")); } catch {} }
   }, []);
   useEffect(() => {
+    if (!themeLoaded) return;
     document.documentElement.dataset.theme = theme;
     window.localStorage.setItem("blumbook-theme", theme);
-  }, [theme]);
+  }, [theme, themeLoaded]);
+  useEffect(() => {
+    if (!themeLoaded) return;
+    window.localStorage.setItem("blumbook-notification-prefs", JSON.stringify(notifyPrefs));
+    window.localStorage.setItem("blumbook-compact-text", String(compactText));
+  }, [notifyPrefs, compactText, themeLoaded]);
   const [tab, setTab] = useState<Tab>("for-you");
   const [query, setQuery] = useState("");
   const [posts, setPosts] = useState<Post[]>(DEMO_POSTS);
@@ -148,7 +164,7 @@ export default function BlumbookApp() {
   const lookup = useCallback((id: string) => allPeople.find((p) => p.id === id) || { id, display_name:"Blumbook member", username:"member", bio:"" }, [allPeople]);
   const isMember = !isCloudEnabled || Boolean(cloudUserId);
   const notify = (message: string) => { setToast(message); window.setTimeout(() => setToast(""), 3400); };
-  const navigate = (target: View) => { setView(target); setMenuOpen(false); setChatWith(null); window.scrollTo({ top: 0, behavior:"smooth" }); };
+  const navigate = (target: View) => { setView(target); if (target === "settings") { setSettingsPanel(null); setSettingsSearch(""); } setMenuOpen(false); setChatWith(null); window.scrollTo({ top: 0, behavior:"smooth" }); };
   const requireAccount = () => {
     if (!isMember) { setAuthOpen(true); notify("Sign in to interact with the community."); return false; }
     return true;
@@ -342,6 +358,16 @@ export default function BlumbookApp() {
     if (!f.type.startsWith("image/") || f.size > 5 * 1024 * 1024) { notify("Choose an image under 5 MB"); return; }
     setImageFile(f); setImagePreview(URL.createObjectURL(f));
   };
+  const settingsConfig: {id:SettingsPanel;title:string;description:string;Icon:LucideIcon}[] = [
+    {id:"account",title:"Your account",description:"See your account information, manage your profile, and learn about data controls.",Icon:UserRound},
+    {id:"security",title:"Security and account access",description:"Manage your sign-in, account protection, and connected devices.",Icon:LockKeyhole},
+    {id:"privacy",title:"Privacy and safety",description:"Choose how you share, interact, and control your experience.",Icon:ShieldCheck},
+    {id:"notifications",title:"Notifications",description:"Choose which updates you want to receive about your activity.",Icon:Bell},
+    {id:"accessibility",title:"Accessibility, display, and languages",description:"Customize the way Blumbook looks and feels.",Icon:Accessibility},
+    {id:"resources",title:"Additional resources",description:"Find help, product information, and useful resources.",Icon:Link2}
+  ];
+  const filteredSettings = settingsConfig.filter(item => (item.title + " " + item.description).toLowerCase().includes(settingsSearch.toLowerCase()));
+  const backFromSettings = () => { setSettingsPanel(null); window.scrollTo({top:0,behavior:"smooth"}); };
   const logOut = async () => {
     if (supabase) { await supabase.auth.signOut(); await loadCloud(); }
     else { setDemoSignedIn(false); setMember(null); }
@@ -390,7 +416,7 @@ export default function BlumbookApp() {
           <button className="drawer-utility" onClick={() => navigate("settings")}><Settings size={22}/><span>Settings and privacy</span><ArrowRight size={17}/></button>
           <button className="drawer-utility" onClick={() => navigate("help")}><CircleHelp size={22}/><span>Help Center</span><ArrowRight size={17}/></button>
           <div className="drawer-appearance">
-            <div className="drawer-appearance-label"><span>Appearance</span><span>{theme === "dark" ? "Dark" : "Light"}</span></div>
+            <div className="drawer-appearance-label"><span>Appearance</span><button className="drawer-appearance-open" onClick={() => {navigate("settings"); setSettingsPanel("accessibility");}}>All display settings <ArrowRight size={14}/></button></div>
             <div className="appearance-toggle" role="group" aria-label="Choose appearance">
               <button aria-pressed={theme === "dark"} className={theme === "dark" ? "selected" : ""} onClick={() => setTheme("dark")}><Moon size={17}/> Dark</button>
               <button aria-pressed={theme === "light"} className={theme === "light" ? "selected" : ""} onClick={() => setTheme("light")}><Sun size={17}/> Light</button>
@@ -402,10 +428,15 @@ export default function BlumbookApp() {
     </aside>
 
     <main className="main-column">
-      <div className="mobile-topbar">
-        <button className="avatar-action" onClick={() => setMenuOpen(!menuOpen)} aria-label="Open menu"><Avatar profile={me} size="small"/></button>
-        <button onClick={() => navigate("home")} className="mobile-brand"><img src="/logo.svg" alt="Blumbook"/><strong>Blumbook</strong></button>
-        <button aria-label="New post" className="icon-button" onClick={() => { if (requireAccount()) setCompose(true); }}><Plus size={25}/></button>
+      <div className={"mobile-topbar " + (view === "settings" ? "mobile-topbar-settings" : "")}>
+        {view === "settings" ? <>
+          <button className="icon-button" onClick={() => settingsPanel ? setSettingsPanel(null) : navigate("home")} aria-label="Back"><ArrowLeft size={25}/></button>
+          <div className="mobile-settings-heading"><strong>{settingsPanel ? settingsConfig.find(s => s.id === settingsPanel)?.title : "Settings"}</strong><small>@{me.username}</small></div>
+        </> : <>
+          <button className="avatar-action" onClick={() => setMenuOpen(!menuOpen)} aria-label="Open menu"><Avatar profile={me} size="small"/></button>
+          <button onClick={() => navigate("home")} className="mobile-brand"><img src="/logo.svg" alt="Blumbook"/><strong>Blumbook</strong></button>
+          <button aria-label="New post" className="icon-button" onClick={() => { if (requireAccount()) setCompose(true); }}><Plus size={25}/></button>
+        </>}
       </div>
 
       {view === "home" && <>
@@ -441,7 +472,7 @@ export default function BlumbookApp() {
       {view === "notifications" && <>
         <PanelTitle extra={<button className="icon-button" onClick={()=>navigate("settings")} aria-label="Notification settings"><Settings size={19}/></button>}>Notifications</PanelTitle>
         <div className="feed-tabs">{["All","Mentions","Likes","Follows"].map((name)=><button key={name} className={noticeFilter===name?"selected":""} onClick={()=>setNoticeFilter(name)}>{name}</button>)}</div>
-        {(DEMO_NOTICES.filter((n)=>noticeFilter==="All" || (noticeFilter==="Likes"&&n.kind==="like") || (noticeFilter==="Follows"&&n.kind==="follow") || (noticeFilter==="Mentions"&&n.kind==="reply"))).map((n: Notice)=>
+        {(DEMO_NOTICES.filter((n)=>notifyPrefs[n.kind==="like"?"likes":n.kind==="follow"?"follows":"replies"] && (noticeFilter==="All" || (noticeFilter==="Likes"&&n.kind==="like") || (noticeFilter==="Follows"&&n.kind==="follow") || (noticeFilter==="Mentions"&&n.kind==="reply")))).map((n: Notice)=>
           <div className="notice-row" key={n.id}><span className={"notice-mark notice-"+n.kind}>{n.kind==="like"?<Heart size={21} fill="currentColor"/>:n.kind==="follow"?<UserRoundPlus size={21}/>:n.kind==="repost"?<Repeat2 size={21}/>:<MessageCircle size={21}/>}</span><div><strong>{n.person}</strong> {n.text}<small>{n.time} ago</small></div></div>
         )}
         {isCloudEnabled && <div className="hint-strip">Live notifications will appear here in the next release; the items above are sample activity.</div>}
@@ -483,36 +514,63 @@ export default function BlumbookApp() {
         {(comments[selectedPost.id]||[]).map((c)=><div className="reply-row" key={c.id}><Avatar profile={lookup(c.author_id)} size="small"/><div><strong>{lookup(c.author_id).display_name}</strong><small>@{lookup(c.author_id).username} · {timeAgo(c.created_at)}</small><p>{c.body}</p></div></div>)}
       </>}
 
-      {view === "settings" && <>
-        <PanelTitle>Settings & privacy</PanelTitle>
-        <div className="settings-section-title">APPEARANCE</div>
-        <div className="appearance-settings">
-          <div className="appearance-settings-heading"><div className="appearance-icon"><Moon size={21}/></div><div><strong>Choose your experience</strong><p>Blumbook is yours. Use a clean white or deep black interface.</p></div></div>
-          <div className="theme-choice-grid">
-            <button aria-pressed={theme === "dark"} className={"theme-choice "+(theme === "dark" ? "selected" : "")} onClick={()=>setTheme("dark")}>
-              <div className="mini-theme-preview mini-dark"><i/><i/><i/><i/></div>
-              <span><Moon size={17}/> Dark {theme === "dark" && <Check size={17}/>}</span>
-            </button>
-            <button aria-pressed={theme === "light"} className={"theme-choice "+(theme === "light" ? "selected" : "")} onClick={()=>setTheme("light")}>
-              <div className="mini-theme-preview mini-light"><i/><i/><i/><i/></div>
-              <span><Sun size={17}/> Light {theme === "light" && <Check size={17}/>}</span>
-            </button>
+      {view === "settings" && <section className={"settings-page "+(compactText?"settings-compact":"")}>
+        <div className="settings-desktop-heading"><button className="settings-back" onClick={() => settingsPanel ? backFromSettings() : navigate("home")} aria-label="Go back"><ArrowLeft size={23}/></button><div><h1>{settingsPanel ? settingsConfig.find(s=>s.id===settingsPanel)?.title : "Settings"}</h1><span>@{me.username}</span></div></div>
+        {!settingsPanel ? <>
+          <div className="settings-search-wrap"><Search size={24}/><input aria-label="Search settings" value={settingsSearch} onChange={e=>setSettingsSearch(e.target.value)} placeholder="Search settings"/>{settingsSearch&&<button aria-label="Clear search" onClick={()=>setSettingsSearch("")}><X size={18}/></button>}</div>
+          <div className="settings-menu-list">
+            {filteredSettings.map(({id,title,description,Icon})=><button className="settings-directory-row" key={id} onClick={()=>{setSettingsPanel(id);window.scrollTo({top:0,behavior:"smooth"});}}><span className="settings-directory-icon"><Icon size={25} strokeWidth={1.85}/></span><span className="settings-directory-copy"><strong>{title}</strong><small>{description}</small></span><ArrowRight className="settings-chevron" size={17}/></button>)}
+            {filteredSettings.length===0&&<div className="settings-search-empty"><Search size={26}/><strong>No matching settings</strong><small>Try searching for account, display, privacy or notifications.</small></div>}
           </div>
-          <p className="theme-helper">Your appearance preference is saved on this device.</p>
-        </div>
-        <div className="settings-section-title">YOUR ACCOUNT</div>
-        <div className="settings-group">
-          {([
-            ["Your account","Name, profile and personal information",UserRound, "profile"],
-            ["Security and account access","Sign-in and account protection",ShieldCheck, "security"],
-            ["Privacy and safety","Control your audience and safety",Bookmark, "privacy"],
-            ["Notifications","How you want to be notified",Bell, "notifications"],
-          ] as [string,string,LucideIcon,string][]).map(([name,desc,Icon,dest])=><button key={name} className="settings-item" onClick={()=>dest==="profile"?openEdit():notify("More account controls will be added before public launch.")}><Icon size={23}/><span><strong>{name}</strong><small>{desc}</small></span><ArrowRight size={18}/></button>)}
-          <button className="settings-item" onClick={()=>navigate("help")}><CircleHelp size={23}/><span><strong>Help Center</strong><small>Guides, contact and product information</small></span><ArrowRight size={18}/></button>
-          <button className="settings-item danger-item" onClick={()=>isCloudEnabled&&!cloudUserId?setAuthOpen(true):logOut()}><LogOut size={22}/><span><strong>{isCloudEnabled&&!cloudUserId?"Log in":"Log out"}</strong><small>Manage your session</small></span><ArrowRight size={18}/></button>
-        </div>
-        {!isCloudEnabled && <div className="hint-strip">Preview mode. Connect Supabase to enable real accounts and shared posts.</div>}
-      </>}
+          <div className="settings-bottom"><span>Blumbook Preview · Version 0.1.0</span><small>Talk. Share. Bloom.</small></div>
+        </> : <>
+          <div className="settings-detail">
+            {settingsPanel==="account"&&<>
+              <h2>Account information</h2><p className="settings-description">Keep your Blumbook identity the way you want it.</p>
+              <button className="settings-detail-row" onClick={openEdit}><UserRound size={22}/><span><strong>Edit your profile</strong><small>Change your name and bio</small></span><ArrowRight size={18}/></button>
+              <button className="settings-detail-row" onClick={()=>openProfile(me.id)}><UsersRound size={22}/><span><strong>View your profile</strong><small>See your posts and public identity</small></span><ArrowRight size={18}/></button>
+              <div className="settings-info-card"><strong>More data controls are being developed.</strong><p>Account archive downloads and deactivation require a secure account backend, so these actions are not available in this preview.</p></div>
+            </>}
+            {settingsPanel==="security"&&<>
+              <h2>Security and account access</h2><p className="settings-description">Your account safety comes first.</p>
+              <div className="settings-detail-row settings-static-row"><LockKeyhole size={22}/><span><strong>Authentication</strong><small>{isCloudEnabled?"Supabase authentication is connected.":"Real login is not enabled in demo mode."}</small></span></div>
+              <div className="settings-detail-row settings-static-row"><ShieldCheck size={22}/><span><strong>Account protection</strong><small>Multi-factor authentication and active sessions will be managed when the security backend is ready.</small></span></div>
+              <button className="settings-detail-row" onClick={()=>isCloudEnabled&&!cloudUserId?setAuthOpen(true):logOut()}><LogOut size={22}/><span><strong>{isCloudEnabled&&!cloudUserId?"Log in":"Log out"}</strong><small>Manage your current session</small></span><ArrowRight size={18}/></button>
+            </>}
+            {settingsPanel==="privacy"&&<>
+              <h2>Privacy and safety</h2><p className="settings-description">Decide what you share and how you participate.</p>
+              <div className="settings-detail-row settings-static-row"><UserRound size={22}/><span><strong>Post visibility</strong><small>Posts are public in this preview. Private accounts are planned.</small></span></div>
+              <div className="settings-detail-row settings-static-row"><ShieldCheck size={22}/><span><strong>Block and report</strong><small>User blocking and content reporting are not available yet. These are required before public launch.</small></span></div>
+              <div className="settings-info-card"><strong>Your privacy matters.</strong><p>Do not publish sensitive information while Blumbook is being tested. Privacy policies and moderation controls must be in place before public registration.</p></div>
+            </>}
+            {settingsPanel==="notifications"&&<>
+              <h2>Notification preferences</h2><p className="settings-description">Personalize your in-app activity feed. These preferences are saved on this device.</p>
+              {([["likes","Likes","When someone likes your post"],["follows","New followers","When someone starts following you"],["replies","Replies","When someone replies to your post"]] as [keyof typeof notifyPrefs,string,string][]).map(([key,title,description])=>
+                <label className="settings-switch-row" key={key}><span><strong>{title}</strong><small>{description}</small></span><input type="checkbox" checked={notifyPrefs[key]} onChange={e=>setNotifyPrefs(p=>({...p,[key]:e.target.checked}))}/><span className="settings-switch-track" aria-hidden="true"/></label>
+              )}
+              <div className="settings-info-card"><strong>Preview mode</strong><p>These switches control sample notification categories only. Push notifications and email alerts are not enabled yet.</p></div>
+            </>}
+            {settingsPanel==="accessibility"&&<>
+              <h2>Display</h2><p className="settings-description">Choose the appearance that feels right to you.</p>
+              <div className="theme-choice-grid settings-theme-grid">
+                <button aria-pressed={theme==="dark"} className={"theme-choice "+(theme==="dark"?"selected":"")} onClick={()=>setTheme("dark")}><div className="mini-theme-preview mini-dark"><i/><i/><i/><i/></div><span><Moon size={18}/> Dark {theme==="dark"&&<Check size={18}/>}</span></button>
+                <button aria-pressed={theme==="light"} className={"theme-choice "+(theme==="light"?"selected":"")} onClick={()=>setTheme("light")}><div className="mini-theme-preview mini-light"><i/><i/><i/><i/></div><span><Sun size={18}/> Light {theme==="light"&&<Check size={18}/>}</span></button>
+              </div>
+              <p className="theme-helper">Your choice is remembered on this device.</p>
+              <h2 className="settings-section-heading">Accessibility</h2>
+              <label className="settings-switch-row"><span><strong>Larger interface text</strong><small>Increase readability in menus and settings</small></span><input type="checkbox" checked={compactText} onChange={e=>setCompactText(e.target.checked)}/><span className="settings-switch-track" aria-hidden="true"/></label>
+              <div className="settings-detail-row settings-static-row"><Languages size={22}/><span><strong>Language</strong><small>English · Hausa and other languages are planned.</small></span></div>
+            </>}
+            {settingsPanel==="resources"&&<>
+              <h2>Additional resources</h2><p className="settings-description">Helpful information about Blumbook.</p>
+              <button className="settings-detail-row" onClick={()=>navigate("help")}><CircleHelp size={22}/><span><strong>Help Center</strong><small>Frequently asked questions and guidance</small></span><ArrowRight size={18}/></button>
+              <div className="settings-detail-row settings-static-row"><Link2 size={22}/><span><strong>About Blumbook</strong><small>Talk. Share. Bloom. · Preview 0.1.0</small></span></div>
+              <div className="settings-info-card"><strong>Building with care</strong><p>This is an early-stage platform. Terms, privacy documentation and support processes will be published before public launch.</p></div>
+            </>}
+          </div>
+          <div className="settings-bottom"><span>Blumbook Preview · Version 0.1.0</span><button onClick={backFromSettings}>Back to all settings</button></div>
+        </>}
+      </section>}
 
       {view === "premium" && <div className="feature-page">
         <PanelTitle>Blumbook Premium</PanelTitle>
@@ -560,10 +618,10 @@ export default function BlumbookApp() {
       <footer className="right-footer">About · Privacy · Terms · Accessibility<br/>© {new Date().getFullYear()} Blumbook. Talk. Share. Bloom.</footer>
     </aside>
 
-    <nav className="mobile-bottom" aria-label="Main navigation">
+    <nav className={"mobile-bottom "+(view==="settings"?"mobile-bottom-hidden":"")} aria-label="Main navigation">
       {NAV.filter((n)=>["home","explore","communities","notifications","messages"].includes(n.id)).map(({id,label,Icon})=><button aria-label={label} key={id} className={view===id?"active":""} onClick={()=>navigate(id)}><Icon size={25} strokeWidth={view===id?2.7:1.9}/>{id==="notifications"&&<span className="nav-dot"/>}</button>)}
     </nav>
-    <button aria-label="Create post" className="floating-compose" onClick={()=>{if(requireAccount())setCompose(true);}}><Plus size={28}/></button>
+    <button aria-label="Create post" className={"floating-compose "+(view==="settings"?"floating-compose-hidden":"")} onClick={()=>{if(requireAccount())setCompose(true);}}><Plus size={28}/></button>
     {menuOpen && <button aria-label="Close menu" className="menu-shade" onClick={()=>setMenuOpen(false)}/>}
     {toast && <div role="status" className="toast">{toast}</div>}
 
