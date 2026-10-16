@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNo
 import {
   ArrowLeft, ArrowRight, Bell, Bookmark, Check, CheckCircle2, ChevronDown, Compass, Ellipsis,
   Feather, Heart, Home, ImagePlus, LogIn, LogOut, Mail, Menu, MessageCircle, MoreHorizontal,
-  Plus, Repeat2, Search, Send, Settings, Share2, ShieldCheck, Smile, Sparkles, UserRound,
+  Plus, Repeat2, Search, Send, Settings, Share2, ShieldCheck, Smile, Sparkles, Sun, Moon, Crown, List, Radio, ChartNoAxesCombined, CircleHelp, UserRound,
   UserRoundPlus, UsersRound, X, type LucideIcon
 } from "lucide-react";
 import { supabase, isCloudEnabled } from "@/lib/supabase";
@@ -13,7 +13,8 @@ import {
   shortCount, timeAgo, type Post, type Profile, type Notice,
 } from "@/lib/demo";
 
-type View = "home" | "explore" | "notifications" | "messages" | "profile" | "communities" | "bookmarks" | "settings" | "thread";
+type View = "home" | "explore" | "notifications" | "messages" | "profile" | "communities" | "bookmarks" | "settings" | "thread" | "premium" | "lists" | "spaces" | "creator" | "help";
+type Theme = "dark" | "light";
 type Tab = "for-you" | "following" | "communities";
 type Comment = { id: string; post_id: string; author_id: string; body: string; created_at: string };
 type ChatMessage = { id: string; sender: "me" | "them"; text: string; time: string };
@@ -96,6 +97,19 @@ function Modal({ children, close }: { children: ReactNode; close: () => void }) 
 
 export default function BlumbookApp() {
   const [view, setView] = useState<View>("home");
+  const [theme, setTheme] = useState<Theme>("dark");
+  const [lists, setLists] = useState<string[]>([]);
+  const [listName, setListName] = useState("");
+  useEffect(() => {
+    const saved = window.localStorage.getItem("blumbook-theme");
+    if (saved === "light") setTheme("light");
+    const savedLists = window.localStorage.getItem("blumbook-lists");
+    if (savedLists) { try { const values = JSON.parse(savedLists); if (Array.isArray(values)) setLists(values.filter((v): v is string => typeof v === "string")); } catch {} }
+  }, []);
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    window.localStorage.setItem("blumbook-theme", theme);
+  }, [theme]);
   const [tab, setTab] = useState<Tab>("for-you");
   const [query, setQuery] = useState("");
   const [posts, setPosts] = useState<Post[]>(DEMO_POSTS);
@@ -335,13 +349,56 @@ export default function BlumbookApp() {
   };
 
   return <div className="app-shell">
-    <aside className={"sidebar " + (menuOpen ? "sidebar-open" : "")}>
-      <button className="brand-button" onClick={() => navigate("home")} aria-label="Blumbook home"><Brand /></button>
-      <nav className="side-nav">{NAV.map(({ id, label, Icon }) => <button key={id} className={"side-link " + (view === id ? "active" : "")} onClick={() => navigate(id)}><Icon size={25} strokeWidth={view === id ? 2.6 : 1.9}/><span>{label}</span>{id === "notifications" && <i className="notification-pip"/>}</button>)}</nav>
-      <button className="primary-btn side-post" onClick={() => { if (requireAccount()) setCompose(true); }}><Feather size={19}/><span>Post</span></button>
-      <button className="side-account" onClick={() => isCloudEnabled && !cloudUserId ? setAuthOpen(true) : openProfile(me.id)}>
-        <Avatar profile={me}/><span><strong>{me.display_name}</strong><small>@{me.username}</small></span><Ellipsis size={20}/>
-      </button>
+    <aside className={"sidebar " + (menuOpen ? "sidebar-open" : "")} aria-label="Blumbook navigation">
+      <div className="desktop-sidebar">
+        <button className="brand-button" onClick={() => navigate("home")} aria-label="Blumbook home"><Brand /></button>
+        <nav className="side-nav">{NAV.map(({ id, label, Icon }) => <button key={id} className={"side-link " + (view === id ? "active" : "")} onClick={() => navigate(id)}><Icon size={25} strokeWidth={view === id ? 2.6 : 1.9}/><span>{label}</span>{id === "notifications" && <i className="notification-pip"/>}</button>)}</nav>
+        <button className="primary-btn side-post" onClick={() => { if (requireAccount()) setCompose(true); }}><Feather size={19}/><span>Post</span></button>
+        <button className="side-account" onClick={() => isCloudEnabled && !cloudUserId ? setAuthOpen(true) : openProfile(me.id)}>
+          <Avatar profile={me}/><span><strong>{me.display_name}</strong><small>@{me.username}</small></span><Ellipsis size={20}/>
+        </button>
+      </div>
+      <div className="mobile-drawer-content">
+        <div className="drawer-top-row">
+          <span className="drawer-kicker">BLUMBOOK</span>
+          <button className="icon-button drawer-close" aria-label="Close menu" onClick={() => setMenuOpen(false)}><X size={23}/></button>
+        </div>
+        <div className="drawer-persona">
+          <button className="drawer-avatar-button" onClick={() => openProfile(me.id)} aria-label="Go to your profile"><Avatar profile={me} /></button>
+          <button className="drawer-account-add" aria-label="Login or manage account" onClick={() => { setMenuOpen(false); setAuthOpen(true); }}><UserRoundPlus size={24}/></button>
+          <button className="drawer-name" onClick={() => openProfile(me.id)}>{me.display_name}</button>
+          <p className="drawer-handle">@{me.username}</p>
+          <div className="drawer-stats"><span><b>{followed.length}</b> Following</span><span><b>{isCloudEnabled ? "—" : "33"}</b> Followers</span></div>
+        </div>
+        <div className="drawer-main-links">
+          {([
+            ["profile", "Profile", UserRound],
+            ["premium", "Premium", Crown],
+            ["communities", "Communities", UsersRound],
+            ["bookmarks", "Bookmarks", Bookmark],
+            ["lists", "Lists", List],
+            ["spaces", "Spaces", Radio],
+            ["creator", "Creator Studio", ChartNoAxesCombined],
+          ] as [View,string,LucideIcon][]).map(([dest,label,Icon]) =>
+            <button key={dest} className={"drawer-link " + (view === dest ? "drawer-link-active" : "")} onClick={() => dest==="profile" ? openProfile(me.id) : navigate(dest)}>
+              <Icon size={25} strokeWidth={1.85}/><span>{label}</span>
+              {["premium","lists","spaces","creator"].includes(dest) && <span className="drawer-preview-dot" title="Preview feature" />}
+            </button>
+          )}
+        </div>
+        <div className="drawer-bottom-links">
+          <button className="drawer-utility" onClick={() => navigate("settings")}><Settings size={22}/><span>Settings and privacy</span><ArrowRight size={17}/></button>
+          <button className="drawer-utility" onClick={() => navigate("help")}><CircleHelp size={22}/><span>Help Center</span><ArrowRight size={17}/></button>
+          <div className="drawer-appearance">
+            <div className="drawer-appearance-label"><span>Appearance</span><span>{theme === "dark" ? "Dark" : "Light"}</span></div>
+            <div className="appearance-toggle" role="group" aria-label="Choose appearance">
+              <button aria-pressed={theme === "dark"} className={theme === "dark" ? "selected" : ""} onClick={() => setTheme("dark")}><Moon size={17}/> Dark</button>
+              <button aria-pressed={theme === "light"} className={theme === "light" ? "selected" : ""} onClick={() => setTheme("light")}><Sun size={17}/> Light</button>
+            </div>
+          </div>
+          <p className="drawer-signature">Talk. Share. Bloom. <span>© Blumbook</span></p>
+        </div>
+      </div>
     </aside>
 
     <main className="main-column">
@@ -427,18 +484,72 @@ export default function BlumbookApp() {
       </>}
 
       {view === "settings" && <>
-        <PanelTitle>Settings & privacy</PanelTitle><div className="settings-group">
-          {[
-            ["Your account","Manage your profile and account details",UserRound],
-            ["Security and account access","Passwords, login and account safety",ShieldCheck],
-            ["Privacy and safety","Manage who can see your content",Bookmark],
-            ["Notifications","Choose what you want to hear about",Bell],
-            ["Appearance","Dark mode is enabled",Sparkles],
-          ].map(([name,desc,Icon],i)=>{const ItemIcon=Icon as LucideIcon;return <button key={i} className="settings-item" onClick={()=>i===0?openEdit():notify("Additional settings are planned for the next release.")}><ItemIcon size={22}/><span><strong>{name as string}</strong><small>{desc as string}</small></span><ArrowRight size={18}/></button>;})}
-          <button className="settings-item" onClick={()=>isCloudEnabled&&!cloudUserId?setAuthOpen(true):logOut()}><LogOut size={22}/><span><strong>{isCloudEnabled&&!cloudUserId?"Log in":"Log out"}</strong><small>Manage your session</small></span><ArrowRight size={18}/></button>
+        <PanelTitle>Settings & privacy</PanelTitle>
+        <div className="settings-section-title">APPEARANCE</div>
+        <div className="appearance-settings">
+          <div className="appearance-settings-heading"><div className="appearance-icon"><Moon size={21}/></div><div><strong>Choose your experience</strong><p>Blumbook is yours. Use a clean white or deep black interface.</p></div></div>
+          <div className="theme-choice-grid">
+            <button aria-pressed={theme === "dark"} className={"theme-choice "+(theme === "dark" ? "selected" : "")} onClick={()=>setTheme("dark")}>
+              <div className="mini-theme-preview mini-dark"><i/><i/><i/><i/></div>
+              <span><Moon size={17}/> Dark {theme === "dark" && <Check size={17}/>}</span>
+            </button>
+            <button aria-pressed={theme === "light"} className={"theme-choice "+(theme === "light" ? "selected" : "")} onClick={()=>setTheme("light")}>
+              <div className="mini-theme-preview mini-light"><i/><i/><i/><i/></div>
+              <span><Sun size={17}/> Light {theme === "light" && <Check size={17}/>}</span>
+            </button>
+          </div>
+          <p className="theme-helper">Your appearance preference is saved on this device.</p>
         </div>
-        {!isCloudEnabled && <div className="hint-strip">Demo mode is active. Configure Supabase to enable real accounts and shared posts.</div>}
+        <div className="settings-section-title">YOUR ACCOUNT</div>
+        <div className="settings-group">
+          {([
+            ["Your account","Name, profile and personal information",UserRound, "profile"],
+            ["Security and account access","Sign-in and account protection",ShieldCheck, "security"],
+            ["Privacy and safety","Control your audience and safety",Bookmark, "privacy"],
+            ["Notifications","How you want to be notified",Bell, "notifications"],
+          ] as [string,string,LucideIcon,string][]).map(([name,desc,Icon,dest])=><button key={name} className="settings-item" onClick={()=>dest==="profile"?openEdit():notify("More account controls will be added before public launch.")}><Icon size={23}/><span><strong>{name}</strong><small>{desc}</small></span><ArrowRight size={18}/></button>)}
+          <button className="settings-item" onClick={()=>navigate("help")}><CircleHelp size={23}/><span><strong>Help Center</strong><small>Guides, contact and product information</small></span><ArrowRight size={18}/></button>
+          <button className="settings-item danger-item" onClick={()=>isCloudEnabled&&!cloudUserId?setAuthOpen(true):logOut()}><LogOut size={22}/><span><strong>{isCloudEnabled&&!cloudUserId?"Log in":"Log out"}</strong><small>Manage your session</small></span><ArrowRight size={18}/></button>
+        </div>
+        {!isCloudEnabled && <div className="hint-strip">Preview mode. Connect Supabase to enable real accounts and shared posts.</div>}
       </>}
+
+      {view === "premium" && <div className="feature-page">
+        <PanelTitle>Blumbook Premium</PanelTitle>
+        <div className="feature-hero"><Crown size={33}/><span className="feature-overline">SOMETHING EXCEPTIONAL</span><h2>More room for your<br/>best ideas.</h2><p>Premium is being designed for people who want to create, connect and grow with more possibilities.</p><span className="feature-status">Coming in a future release</span></div>
+        <div className="feature-rows"><div><Sparkles size={22}/><span><strong>A refined creator experience</strong><small>More ways to publish and manage content</small></span></div><div><UsersRound size={22}/><span><strong>Stronger communities</strong><small>Build meaningful connections</small></span></div><div><ChartNoAxesCombined size={22}/><span><strong>Deeper insights</strong><small>Understand how your stories perform</small></span></div></div>
+      </div>}
+
+      {view === "lists" && <div className="feature-page">
+        <PanelTitle>Lists</PanelTitle><div className="feature-intro"><div className="feature-icon"><List size={28}/></div><h2>Make space for what matters.</h2><p>Organize the people and conversations you care about. Your lists are private on this device for now.</p></div>
+        <form className="simple-create" onSubmit={(e)=>{e.preventDefault();const name=listName.trim();if(!name||lists.includes(name))return;const next=[name,...lists];setLists(next);window.localStorage.setItem("blumbook-lists",JSON.stringify(next));setListName("");notify("List created on this device.");}}>
+          <input aria-label="New list name" placeholder="Name your new list" maxLength={36} value={listName} onChange={(e)=>setListName(e.target.value)}/><button className="primary-btn" disabled={!listName.trim()}>Create</button>
+        </form>
+        {lists.length ? lists.map((item)=><div className="list-preview-row" key={item}><List size={22}/><div><strong>{item}</strong><small>Private list · Saved on this device</small></div><button className="icon-button" aria-label={"Delete "+item} onClick={()=>{const next=lists.filter(x=>x!==item);setLists(next);window.localStorage.setItem("blumbook-lists",JSON.stringify(next));}}><X size={17}/></button></div>) : <div className="feature-empty">Your lists will appear here when you create one.</div>}
+      </div>}
+
+      {view === "spaces" && <div className="feature-page">
+        <PanelTitle>Spaces</PanelTitle><div className="feature-hero"><Radio size={34}/><span className="feature-overline">LIVE CONVERSATIONS</span><h2>Great conversations<br/>bring us closer.</h2><p>Imagine your own live audio room, conversations with creators, and real-time community talks.</p><span className="feature-status">Live audio is coming soon</span></div>
+        <div className="feature-rows"><div><UsersRound size={22}/><span><strong>Community talks</strong><small>Meet around shared interests</small></span></div><div><Sparkles size={22}/><span><strong>Creator conversations</strong><small>Speak, listen and share ideas</small></span></div></div>
+      </div>}
+
+      {view === "creator" && <div className="feature-page">
+        <PanelTitle>Creator Studio</PanelTitle><div className="creator-heading"><div><span className="feature-overline">YOUR CREATOR OVERVIEW</span><h2>Create with purpose.</h2><p>See your posts and community interactions at a glance.</p></div><ChartNoAxesCombined size={30}/></div>
+        <div className="metric-grid"><div><span>Total posts</span><strong>{posts.filter(p=>p.author_id===me.id).length}</strong></div><div><span>Post likes</span><strong>{shortCount(posts.filter(p=>p.author_id===me.id).reduce((n,p)=>n+p.likes,0))}</strong></div><div><span>Replies</span><strong>{shortCount(posts.filter(p=>p.author_id===me.id).reduce((n,p)=>n+p.replies,0))}</strong></div><div><span>Following</span><strong>{followed.length}</strong></div></div>
+        <button className="creator-compose" onClick={()=>requireAccount()&&setCompose(true)}><Feather size={21}/><span><strong>Share something new</strong><small>Ideas are better when shared</small></span><ArrowRight size={21}/></button>
+        <div className="hint-strip">These figures reflect the current feed. Advanced analytics and monetization are not yet enabled.</div>
+      </div>}
+
+      {view === "help" && <div className="feature-page">
+        <PanelTitle>Help Center</PanelTitle><div className="feature-intro"><div className="feature-icon"><CircleHelp size={28}/></div><h2>How can we help?</h2><p>Everything you need to get comfortable on Blumbook.</p></div>
+        <div className="faq-list">
+          <details><summary>How do I switch between Dark and Light Mode?</summary><p>Open your profile menu, find Appearance, and tap Dark or Light. Your choice is saved on this device.</p></details>
+          <details><summary>How do I create a post?</summary><p>Tap the plus button or the Post button. Write your thought and add an image if you wish.</p></details>
+          <details><summary>Are my posts saved?</summary><p>In demo mode, posts are temporary. When a Supabase project is connected, signed-in members can save posts to a shared database.</p></details>
+          <details><summary>When will direct messages and Spaces be available?</summary><p>These features are still in development and will be added in future releases.</p></details>
+        </div>
+      </div>}
+
     </main>
 
     <aside className="right-column">
