@@ -588,3 +588,52 @@ button.settings-detail-row:hover { background:var(--hover); }
 @media (max-width:700px) {
   .app-shell.large-type .settings-directory-row { min-height:132px; }
 }
+
+
+/* Bloom Circles — original collaboration-centered UI */
+.bloom-root {min-height:75vh;background:var(--bg);padding-bottom:35px;}
+.bloom-heading {padding:34px 21px 27px;background:var(--surface2);border-bottom:1px solid var(--line);}
+.bloom-heading small {font-size:10px;font-weight:800;letter-spacing:.2em;color:var(--muted);}
+.bloom-heading h2 {font-size:clamp(29px,6vw,37px);letter-spacing:-1.2px;margin:12px 0 6px;line-height:1.12;}
+.bloom-heading h2 span {margin-left:8px;color:var(--text);}
+.bloom-heading p {margin:8px 0;color:var(--muted);font-size:14px;}
+.bloom-search {display:flex;align-items:center;gap:11px;padding:11px 16px;margin:18px;background:var(--surface2);border-radius:28px;color:var(--muted);}
+.bloom-search input {border:0;outline:0;background:transparent;color:var(--text);width:100%;min-height:30px;}
+.bloom-tools {padding:8px 19px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px;}
+.bloom-tools strong {font-size:16px;}
+.bloom-tools button {display:flex;align-items:center;gap:5px;font-size:12px;border:1px solid var(--line);border-radius:22px;padding:10px;white-space:nowrap;}
+.bloom-card {border-top:1px solid var(--line);padding:17px 19px;position:relative;}
+.bloom-card-open {width:100%;display:flex;align-items:center;text-align:left;gap:13px;padding:0;}
+.bloom-card-open>span:nth-child(2){display:flex;flex:1;min-width:0;flex-direction:column;gap:7px;}
+.bloom-card-open>span:nth-child(2)>small{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.1em;}
+.bloom-card-open strong{font-size:17px;}
+.bloom-card-open>span:nth-child(2)>span{color:var(--muted);font-size:13px;line-height:1.5;}
+.bloom-card-open>svg {color:var(--muted);}
+.bloom-symbol {width:52px;height:52px;border-radius:15px;background:var(--text);color:var(--ink);font-size:29px;display:grid;place-items:center;flex-shrink:0;}
+.bloom-join{border:1px solid var(--text);color:var(--text);border-radius:20px;padding:8px 16px;margin:13px 0 0 65px;font-size:12px;font-weight:750;display:inline-flex;align-items:center;gap:5px;}
+.bloom-join:hover{background:var(--hover);}
+.bloom-back{display:flex;align-items:center;gap:9px;padding:18px 19px;color:var(--muted);}
+.bloom-detail{padding:26px 23px;border-block:1px solid var(--line);}
+.bloom-detail .bloom-symbol{margin-bottom:13px;}
+.bloom-detail h3{font-size:25px;margin:9px 0;}
+.bloom-detail small{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.1em;}
+.bloom-detail p{color:var(--muted);line-height:1.6;font-size:14px;}
+.bloom-detail .bloom-join{margin:15px 0 0;}
+.bloom-form{border:1px solid var(--line);margin:15px 18px 19px;padding:17px;border-radius:15px;display:flex;flex-direction:column;gap:12px;}
+.bloom-form h3{margin:0;}
+.bloom-form input,.bloom-form select,.bloom-form textarea{width:100%;border:1px solid var(--line);background:var(--surface2);color:var(--text);padding:13px;border-radius:10px;resize:vertical;}
+.bloom-form .primary-btn{align-self:flex-end;}
+.bloom-kinds{display:flex;gap:9px;flex-wrap:wrap;}
+.bloom-kinds button{font-size:12px;border:1px solid var(--line);border-radius:20px;padding:8px 12px;}
+.bloom-kinds button[aria-pressed="true"]{background:var(--text);color:var(--ink);}
+.bloom-conversations{padding:18px;}
+.bloom-conversations h3{font-size:17px;margin:0 0 15px;}
+.bloom-conversations article{border-top:1px solid var(--line);padding:19px 0;}
+.bloom-conversations article small{color:var(--muted);}
+.bloom-conversations article p{line-height:1.55;font-size:15px;}
+.bloom-footnote,.bloom-empty,.bloom-error{padding:18px;color:var(--muted);font-size:12px;line-height:1.55;}
+.bloom-error{border:1px solid var(--line);margin:12px 18px;border-radius:10px;}
+.settings-language-row{display:flex;align-items:center;gap:13px;padding:18px 8px;border-block:1px solid var(--line);}
+.settings-language-row>span{flex:1;min-width:0;display:flex;flex-direction:column;gap:7px;}
+.settings-language-row small{font-size:12px;color:var(--muted);}
+.settings-language-row select{background:var(--surface2);border:1px solid var(--line);color:var(--text);padding:11px;border-radius:10px;max-width:126px;}

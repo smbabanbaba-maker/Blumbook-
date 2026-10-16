@@ -8,6 +8,8 @@ import {
   UserRoundPlus, UsersRound, Accessibility, Link2, LockKeyhole, Languages, Download, Type, X, type LucideIcon
 } from "lucide-react";
 import { supabase, isCloudEnabled } from "@/lib/supabase";
+import BloomCircles from "@/components/BloomCircles";
+import {translate,type AppLanguage} from "@/lib/locale";
 import {
   COMMUNITIES, DEMO_ME, DEMO_NOTICES, DEMO_PEOPLE, DEMO_POSTS, TRENDS,
   shortCount, timeAgo, type Post, type Profile, type Notice,
@@ -98,6 +100,8 @@ function Modal({ children, close }: { children: ReactNode; close: () => void }) 
 
 export default function BlumbookApp() {
   const [view, setView] = useState<View>("home");
+  const [language,setLanguage] = useState<AppLanguage>("en");
+  const tr=(key:Parameters<typeof translate>[0])=>translate(key,language);
   const [theme, setTheme] = useState<Theme>("dark");
   const [themeLoaded, setThemeLoaded] = useState(false);
   const [settingsPanel, setSettingsPanel] = useState<SettingsPanel | null>(null);
@@ -107,6 +111,7 @@ export default function BlumbookApp() {
   const [lists, setLists] = useState<string[]>([]);
   const [listName, setListName] = useState("");
   useEffect(() => {
+    if(window.localStorage.getItem("blumbook-language")==="ha")setLanguage("ha");
     const saved = window.localStorage.getItem("blumbook-theme");
     if (saved === "light") setTheme("light");
     const savedPrefs = window.localStorage.getItem("blumbook-notification-prefs");
@@ -119,8 +124,10 @@ export default function BlumbookApp() {
   useEffect(() => {
     if (!themeLoaded) return;
     document.documentElement.dataset.theme = theme;
+    document.documentElement.lang=language;
+    window.localStorage.setItem("blumbook-language",language);
     window.localStorage.setItem("blumbook-theme", theme);
-  }, [theme, themeLoaded]);
+  }, [theme, themeLoaded, language]);
   useEffect(() => {
     if (!themeLoaded) return;
     window.localStorage.setItem("blumbook-notification-prefs", JSON.stringify(notifyPrefs));
@@ -378,7 +385,7 @@ export default function BlumbookApp() {
     <aside className={"sidebar " + (menuOpen ? "sidebar-open" : "")} aria-label="Blumbook navigation">
       <div className="desktop-sidebar">
         <button className="brand-button" onClick={() => navigate("home")} aria-label="Blumbook home"><Brand /></button>
-        <nav className="side-nav">{NAV.map(({ id, label, Icon }) => <button key={id} className={"side-link " + (view === id ? "active" : "")} onClick={() => navigate(id)}><Icon size={25} strokeWidth={view === id ? 2.6 : 1.9}/><span>{label}</span>{id === "notifications" && <i className="notification-pip"/>}</button>)}</nav>
+        <nav className="side-nav">{NAV.map(({ id, label, Icon }) => <button key={id} className={"side-link " + (view === id ? "active" : "")} onClick={() => navigate(id)}><Icon size={25} strokeWidth={view === id ? 2.6 : 1.9}/><span>{id==="home"?tr("Home"):id==="explore"?tr("Explore"):id==="notifications"?tr("Notifications"):id==="messages"?tr("Messages"):id==="communities"?tr("Communities"):id==="bookmarks"?tr("Bookmarks"):id==="profile"?tr("Profile"):tr("Settings")}</span>{id === "notifications" && <i className="notification-pip"/>}</button>)}</nav>
         <button className="primary-btn side-post" onClick={() => { if (requireAccount()) setCompose(true); }}><Feather size={19}/><span>Post</span></button>
         <button className="side-account" onClick={() => isCloudEnabled && !cloudUserId ? setAuthOpen(true) : openProfile(me.id)}>
           <Avatar profile={me}/><span><strong>{me.display_name}</strong><small>@{me.username}</small></span><Ellipsis size={20}/>
@@ -407,14 +414,14 @@ export default function BlumbookApp() {
             ["creator", "Creator Studio", ChartNoAxesCombined],
           ] as [View,string,LucideIcon][]).map(([dest,label,Icon]) =>
             <button key={dest} className={"drawer-link " + (view === dest ? "drawer-link-active" : "")} onClick={() => dest==="profile" ? openProfile(me.id) : navigate(dest)}>
-              <Icon size={25} strokeWidth={1.85}/><span>{label}</span>
+              <Icon size={25} strokeWidth={1.85}/><span>{label==="Profile"?tr("Profile"):label==="Communities"?tr("Communities"):label==="Bookmarks"?tr("Bookmarks"):label==="Creator Studio"?tr("Creator Studio"):label}</span>
               {["premium","lists","spaces","creator"].includes(dest) && <span className="drawer-preview-dot" title="Preview feature" />}
             </button>
           )}
         </div>
         <div className="drawer-bottom-links">
-          <button className="drawer-utility" onClick={() => navigate("settings")}><Settings size={22}/><span>Settings and privacy</span><ArrowRight size={17}/></button>
-          <button className="drawer-utility" onClick={() => navigate("help")}><CircleHelp size={22}/><span>Help Center</span><ArrowRight size={17}/></button>
+          <button className="drawer-utility" onClick={() => navigate("settings")}><Settings size={22}/><span>{tr("Settings")}</span><ArrowRight size={17}/></button>
+          <button className="drawer-utility" onClick={() => navigate("help")}><CircleHelp size={22}/><span>{tr("Help Center")}</span><ArrowRight size={17}/></button>
           <div className="drawer-appearance">
             <div className="drawer-appearance-label"><span>Appearance</span><button className="drawer-appearance-open" onClick={() => {navigate("settings"); setSettingsPanel("accessibility");}}>All display settings <ArrowRight size={14}/></button></div>
             <div className="appearance-toggle" role="group" aria-label="Choose appearance">
@@ -441,9 +448,9 @@ export default function BlumbookApp() {
 
       {view === "home" && <>
         <div className="feed-tabs">
-          {([["for-you","For you"],["following","Following"],["communities","Communities"]] as const).map(([id,label])=><button key={id} className={tab === id ? "selected" : ""} onClick={()=>setTab(id)}>{label}</button>)}
+          {([["for-you","For you"],["following","Following"],["communities","Communities"]] as const).map(([id,label])=><button key={id} className={tab === id ? "selected" : ""} onClick={()=>setTab(id)}>{label==="For you"?tr("For you"):label==="Following"?tr("Following"):tr("Communities")}</button>)}
         </div>
-        {tab === "communities" ? <section className="tab-communities"><PanelTitle>Communities</PanelTitle>{communityCards()}</section> :
+        {tab === "communities" ? <BloomCircles userId={cloudUserId} requestAuth={()=>setAuthOpen(true)} language={language}/> :
         <>
           <div className="compose-inline"><Avatar profile={me}/><button onClick={() => { if (requireAccount()) setCompose(true); }}>What&apos;s happening?</button><button className="primary-btn" onClick={() => { if (requireAccount()) setCompose(true); }}>Post</button></div>
           {loadingCloud && <div className="center-message">Loading your feed...</div>}
@@ -490,7 +497,7 @@ export default function BlumbookApp() {
         </>}
       </>}
 
-      {view === "communities" && <><PanelTitle>Communities</PanelTitle><div className="explore-hero community-hero"><span className="eyebrow">FIND YOUR PEOPLE</span><h2>Belong somewhere<br/>amazing.</h2><p>Discover communities that share your passions.</p></div>{communityCards()}</>}
+      {view === "communities" && <BloomCircles userId={cloudUserId} requestAuth={()=>setAuthOpen(true)} language={language}/>}
 
       {view === "bookmarks" && <><PanelTitle>Bookmarks</PanelTitle><p className="muted-intro">@{me.username} · Your saved posts</p>{posts.filter((p)=>p.bookmarked).length===0?<div className="empty-state"><Bookmark size={34}/><h3>Save posts for later</h3><p>Tap the bookmark icon on any post to keep it here.</p></div>:posts.filter((p)=>p.bookmarked).map((p)=><PostCard {...postProps(p)}/>)}</>}
 
@@ -559,7 +566,7 @@ export default function BlumbookApp() {
               <p className="theme-helper">Your choice is remembered on this device.</p>
               <h2 className="settings-section-heading">Accessibility</h2>
               <label className="settings-switch-row"><span><strong>Larger interface text</strong><small>Increase readability in menus and settings</small></span><input type="checkbox" checked={compactText} onChange={e=>setCompactText(e.target.checked)}/><span className="settings-switch-track" aria-hidden="true"/></label>
-              <div className="settings-detail-row settings-static-row"><Languages size={22}/><span><strong>Language</strong><small>English · Hausa and other languages are planned.</small></span></div>
+              <label className="settings-language-row"><Languages size={22}/><span><strong>{tr("Language")}</strong><small>English / Hausa (beta; some screens still use English)</small></span><select aria-label="Language" value={language} onChange={e=>setLanguage(e.target.value as AppLanguage)}><option value="en">English</option><option value="ha">Hausa</option></select></label>
             </>}
             {settingsPanel==="resources"&&<>
               <h2>Additional resources</h2><p className="settings-description">Helpful information about Blumbook.</p>
