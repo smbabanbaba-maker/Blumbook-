@@ -4,7 +4,7 @@ import {BadgeCheck,Check,Clock,ExternalLink,ShieldCheck,Wallet,X} from "lucide-r
 import {supabase,isCloudEnabled} from "@/lib/supabase";
 import type {Profile} from "@/lib/demo";
 type Request={id:string;status:string;created_at:string;category:string};
-export default function CreatorAccess({userId,profile,onSignIn}:{userId:string|null;profile:Profile;onSignIn:()=>void}){
+export default function CreatorAccess({userId,profile,onSignIn,mode="all"}:{userId:string|null;profile:Profile;onSignIn:()=>void;mode?:"all"|"verification"|"earnings"}){
  const [category,setCategory]=useState("creator"),[reason,setReason]=useState(""),[reference,setReference]=useState(""),[request,setRequest]=useState<Request|null>(null),[joined,setJoined]=useState(false),[busy,setBusy]=useState(false),[notice,setNotice]=useState("");
  const load=useCallback(async()=>{
   if(!supabase||!userId)return;
@@ -36,13 +36,13 @@ export default function CreatorAccess({userId,profile,onSignIn}:{userId:string|n
  return <section className="creator-access">
    <div className="creator-access-hero"><ShieldCheck size={28}/><h2>Creator identity & growth</h2><p>Build a credible presence, request verification and follow the future Creator Earnings program.</p></div>
    {notice&&<p className="feature-disclaimer" role="status">{notice}<button onClick={()=>setNotice("")}><X size={16}/></button></p>}
-   <article className="access-card"><div className="access-card-heading"><BadgeCheck size={27}/><div><h3>Verification Center</h3><p>Authenticity, not paid badges.</p></div></div>
+   {mode!=="earnings"&&<article className="access-card"><div className="access-card-heading"><BadgeCheck size={27}/><div><h3>Verification Center</h3><p>Authenticity, not paid badges.</p></div></div>
     {profile.verified?<div className="access-success"><Check size={17}/> This account is verified.</div>:<>
      {request&&<p className="access-state"><Clock size={17}/> Latest request: <strong>{request.status}</strong> · {new Date(request.created_at).toLocaleDateString()}</p>}
      <p>Verification requires supporting public evidence and a manual review. Submitting does not guarantee approval or display a checkmark.</p>
      {!request&&<form className="access-form" onSubmit={submit}><label>Profile type<select value={category} onChange={e=>setCategory(e.target.value)}><option value="creator">Creator</option><option value="organization">Organization</option><option value="public_figure">Public figure</option></select></label><label>Why should this account be verified?<textarea required maxLength={900} minLength={30} rows={4} value={reason} onChange={e=>setReason(e.target.value)} placeholder="Explain your public work, audience and authenticity."/></label><label>Public evidence URL (HTTPS)<input type="url" required placeholder="https://..." value={reference} onChange={e=>setReference(e.target.value)}/></label><button className="primary-btn" disabled={busy}>Request review</button></form>}
     </>}
-   </article>
-   <article className="access-card"><div className="access-card-heading"><Wallet size={27}/><div><h3>Creator Earnings</h3><p>Monetization roadmap</p></div></div><div className="earnings-zero"><small>Available balance</small><strong>Not enabled</strong><span>No earnings, payouts, or payment accounts have been activated.</span></div><h4>Planned eligibility</h4><ul><li>Authentic account and compliant content</li><li>Verified payout identity when payments launch</li><li>Eligible region, age and payment partner</li><li>Engagement and originality checks</li></ul><button onClick={()=>void waitlist()} disabled={joined||busy}>{joined?"Interest registered":"Join interest list"} <ExternalLink size={16}/></button></article>
+   </article>}
+   {mode!=="verification"&&<article className="access-card"><div className="access-card-heading"><Wallet size={27}/><div><h3>Creator Earnings</h3><p>Monetization roadmap</p></div></div><div className="earnings-zero"><small>Available balance</small><strong>Not enabled</strong><span>No earnings, payouts, or payment accounts have been activated.</span></div><h4>Planned eligibility</h4><ul><li>Authentic account and compliant content</li><li>Verified payout identity when payments launch</li><li>Eligible region, age and payment partner</li><li>Engagement and originality checks</li></ul><button onClick={()=>void waitlist()} disabled={joined||busy}>{joined?"Interest registered":"Join interest list"} <ExternalLink size={16}/></button></article>}
  </section>;
 }
