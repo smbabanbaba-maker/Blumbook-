@@ -726,6 +726,23 @@ export default function BlumbookApp({forceDemo=false}:{forceDemo?:boolean}={}) {
     if(error){notify(error.code==="23505"?"You have already reported this account.":"Could not submit report. Check the Phase 3 migration.");return;}
     setProfileReport(null);notify("Report saved for future moderation. A human review queue is not active yet.");
   };
+  const renderComment=(c:Comment,depth=0,children?:ReactNode)=>{
+    const author=lookup(c.author_id);
+    const metric=commentMetrics[c.id]||{likes:0,reposts:0,liked:false,reposted:false,bookmarked:false};
+    const childCount=(comments[c.post_id]||[]).filter(r=>r.parent_comment_id===c.id).length;
+    const sampleViews=!isCloudEnabled&&c.id.startsWith("showcase-")
+      ? 46+c.id.split("").reduce((n,ch)=>n+ch.charCodeAt(0),0)%930
+      : undefined;
+    return <CommentCard key={c.id} comment={c} author={author} depth={depth} childCount={childCount}
+      liked={metric.liked} reposted={metric.reposted} bookmarked={metric.bookmarked}
+      likeCount={metric.likes} repostCount={metric.reposts} viewCount={sampleViews}
+      onProfile={openProfile} onReply={replyToComment}
+      onLike={item=>void commentAction(item,"likes")}
+      onRepost={item=>void commentAction(item,"reposts")}
+      onBookmark={item=>void commentAction(item,"bookmarks")}
+      onShare={item=>void shareComment(item)}
+      onMute={mute}>{children}</CommentCard>;
+  };
   const postProps = (p: Post) => ({ key:p.id, post:p, isDemo:!isCloudEnabled, author:lookup(p.author_id), onLike:toggleLike, onRepost:toggleRepost, onBookmark:toggleBookmark, onReply:openThread, onOpen:openThread, onProfile:openProfile, onShare:share,onMute:mute,onReport:report,onViewMedia:openMedia,onTranslate:(post:Post)=>{setAiSeed(post.body);setAiTask("translate");navigate("ai");} });
   const pickImage = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
@@ -1029,24 +1046,34 @@ export default function BlumbookApp({forceDemo=false}:{forceDemo?:boolean}={}) {
         </div>
         <div className="thread-replies">
           {threadLoading&&<p className="thread-reply-notice" role="status">Loading replies…</p>}
-          {threadError&&<div className="thread-reply-notice" role="alert"><span>{threadError}</span><button onClick={()=>void openThread(selectedPost)}>Retry</button></div>}
-          {!threadLoading&&!threadError&&(comments[selectedPost.id]||[]).length===0&&<p className="thread-reply-notice">No replies loaded yet. Be the first to join the conversation.</p>}
-          {!threadLoading&&!threadError&&[...(comments[selectedPost.id]||[])].sort((a,b)=>replyOrder==="recent"?new Date(b.created_at).getTime()-new Date(a.created_at).getTime():new Date(a.created_at).getTime()-new Date(b.created_at).getTime()).map(c=>{
-            const author=lookup(c.author_id);
-            return <article className="thread-reply" key={c.id}>
-              <button className="thread-reply-avatar" onClick={()=>openProfile(author.id)} aria-label={"View "+author.display_name}><Avatar profile={author} size="small"/></button>
-              <div className="thread-reply-content">
-                <button className="thread-reply-author" onClick={()=>openProfile(author.id)}><strong>{author.display_name}</strong><span>@{author.username} · {timeAgo(c.created_at)}</span></button>
-                <p>{c.body}</p>
-                <button className="thread-reply-shortcut" onClick={()=>{setReplyText("@"+author.username+" ");document.getElementById("thread-reply-input")?.focus();}}><MessageCircle size={15}/> Reply</button>
-              </div>
-            </article>;
-          })}
+          {threadError&&<div className="thread-reply-notice" role="alert"><span>{threadError}</span><button onClick={()=>void loadCommentConversation(selectedPost.id)}>Retry</button></div>}
+          {!threadLoading&&!threadError&&(comments[selectedPost.id]||[]).length===0&&<p className="thread-reply-notice">No replies yet. Start the conversation.</p>}
+          {!threadLoading&&!threadError&&(()=>{
+            const visible=(comments[selectedPost.id]||[]).filter(c=>!blockedAuthors.includes(c.author_id)&&!mutedAuthors.includes(c.author_id));
+            const byId=new Set(visible.map(c=>c.id));
+            const roots=visible.filter(c=>!c.parent_comment_id||!byId.has(c.parent_comment_id)).sort((a,b)=>replyOrder==="recent"?new Date(b.created_at).getTime()-new Date(a.created_at).getTime():new Date(a.created_at).getTime()-new Date(b.created_at).getTime());
+            return roots.map(root=>{
+              const children=visible.filter(c=>c.parent_comment_id===root.id).sort((a,b)=>new Date(a.created_at).getTime()-new Date(b.created_at).getTime());
+              const open=expandedCommentThreads[root.id]||false;
+              return <div className="comment-thread-group" key={root.id}>
+                {renderComment(root)}
+                {children.length>0&&<>
+                  <button className="comment-show-replies" aria-expanded={open} onClick={()=>setExpandedCommentThreads(prev=>({...prev,[root.id]:!open}))}>
+                    {open?"Hide": "Show"} {children.length} {children.length===1?"reply":"replies"} <ChevronDown size={15}/>
+                  </button>
+                  {open&&<div className="comment-nested-list">{children.map(c=>renderComment(c,1))}</div>}
+                </>}
+              </div>;
+            });
+          })()}
         </div>
         <form className="thread-composer" onSubmit={sendReply}>
-          <Avatar profile={me} size="small"/>
-          <textarea id="thread-reply-input" rows={1} aria-label="Write your reply" placeholder="Post your reply" maxLength={500} value={replyText} onChange={e=>setReplyText(e.target.value)} />
-          <button type="submit" aria-label="Send reply" disabled={busy||!replyText.trim()}><Send size={19}/></button>
+          {replyingTo&&<div className="thread-reply-target"><span>Replying to <strong>@{lookup(replyingTo.author_id).username}</strong></span><button type="button" aria-label="Cancel replying to comment" onClick={()=>setReplyingTo(null)}><X size={16}/></button></div>}
+          <div className="thread-compose-row">
+            <Avatar profile={me} size="small"/>
+            <textarea id="thread-reply-input" rows={1} aria-label="Write your reply" placeholder={replyingTo?"Write a reply to this comment":"Post your reply"} maxLength={500} value={replyText} onChange={e=>setReplyText(e.target.value)}/>
+            <button type="submit" aria-label="Send reply" disabled={busy||!replyText.trim()}><Send size={19}/></button>
+          </div>
         </form>
       </section>}
 
