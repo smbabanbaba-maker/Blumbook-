@@ -4,8 +4,18 @@ const app=fs.readFileSync(new URL("../components/BlumbookApp.tsx",import.meta.ur
 const studio=fs.readFileSync(new URL("../components/CreatorStudioPlus.tsx",import.meta.url),"utf8");
 const viewer=fs.readFileSync(new URL("../components/ImmersiveVideoViewer.tsx",import.meta.url),"utf8");
 const clips=fs.readFileSync(new URL("../components/BlumClips.tsx",import.meta.url),"utf8");
+const showcase=fs.readFileSync(new URL("../lib/demo-showcase.ts",import.meta.url),"utf8");
+const stories=fs.readFileSync(new URL("../components/StoriesRail.tsx",import.meta.url),"utf8");
+const demoRoute=fs.readFileSync(new URL("../app/demo/page.tsx",import.meta.url),"utf8");
 const count=(text,regex)=>Array.from(text.matchAll(regex)).length;
 const tests={
+ "Showroom has at least 30 fictional posts":count(showcase,/\\{id:"showcase-\\d+",author_id:/g)>=30,
+ "Showroom has at least 120 seeded real-looking comments":count(showcase,/\\{id:"showcase-\\d+-reply-\\d+"/g)>=120,
+ "Showroom has 8 sample 24h stories":count(showcase,/id:"demo-story-\\d+"/g)===8,
+ "Showroom has playable video and photo content":count(showcase,/video_url:"https:\\/\\//g)>=3&&count(showcase,/image_url:"https:\\/\\/images\\.unsplash\\.com/g)>=12,
+ "Showroom route is noindex and replaces live backend":demoRoute.includes('robots:{index:false,follow:false}')&&demoRoute.includes('<BlumbookApp forceDemo/>')&&app.includes('const supabase=forceDemo?null:configuredSupabase')&&stories.includes('if(!supabase||forceDemo)return'),
+ "Showroom initializes posts, profiles and comments together":app.includes('useState<Post[]>(SHOWCASE_POSTS)')&&app.includes('useState<Profile[]>(SHOWCASE_PEOPLE)')&&app.includes('useState<Record<string, Comment[]>>(SHOWCASE_COMMENTS_BY_POST)'),
+
  "Scroll-aware nav hides on down-scroll and returns on idle":app.includes('setNavHidden(true)')&&app.includes('setNavHidden(false),1100')&&app.includes('auto-hide-nav')&&app.includes('auto-hide-compose'),
  "Video viewer uses dedicated full-screen player":count(app,/<ImmersiveVideoViewer\b/g)===1&&viewer.includes('className="immersive-video"')&&viewer.includes('object-fit')===false,
  "Player supports seek and sound with media action buttons":viewer.includes('aria-label="Seek video"')&&viewer.includes('Mute video')&&viewer.includes('onReply')&&viewer.includes('onBookmark'),
