@@ -169,7 +169,7 @@ export default function ImmersiveVideoViewer({
                 <span>{author.display_name.split(" ").slice(0,2).map(n=>n[0]).join("").toUpperCase()}</span>}
             </button>
             <button className="cinematic-video-identity" onClick={onProfile}>
-              <span className="cinematic-video-displayname">{author.display_name}{author.verified&&<CheckCircle2 size={16} fill="#3b9cf3" color="#fff" aria-label="Verified"/>}</span>
+              <span className="cinematic-video-displayname">{author.display_name}{author.verified&&<CheckCircle2 size={16} fill="var(--verified)" color="#fff" aria-label="Verified"/>}</span>
               <small>@{author.username}</small>
             </button>
             {!isOwnPost&&<button className="cinematic-video-follow" onClick={onFollow} aria-label={isFollowing?"Unfollow user":"Follow user"}>{isFollowing?"Following":"Follow"}</button>}
