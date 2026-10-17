@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNo
 import {
   ArrowLeft, ArrowRight, Bell, Bookmark, Check, CheckCircle2, ChevronDown, Compass, Ellipsis,
   Feather, Heart, Home, ImagePlus, LogIn, LogOut, Mail, Menu, MessageCircle, MoreHorizontal,
-  Plus, Repeat2, Search, Send, Settings, Share2, ShieldCheck, Smile, Sparkles, Sun, Moon, Crown, List, Radio, ChartNoAxesCombined, CircleHelp, UserRound,
+  Plus, Repeat2, Search, Send, Settings, Share2, ShieldCheck, Smile, Sparkles, Sun, Moon, Crown, List, Radio, ChartNoAxesCombined, CircleHelp, CalendarDays, MapPin, Pin, UserRound,
   UserRoundPlus, UsersRound, Accessibility, Link2, LockKeyhole, Languages, Download, Type, Handshake, Ban, Flag, Copy, type LucideIcon, X
 } from "lucide-react";
 import { supabase, isCloudEnabled } from "@/lib/supabase";
@@ -19,6 +19,7 @@ type View = "home" | "explore" | "notifications" | "messages" | "profile" | "com
 type Theme = "dark" | "light";
 type SettingsPanel = "account" | "security" | "privacy" | "notifications" | "accessibility" | "resources";
 type Tab = "for-you" | "following" | "communities";
+type ProfileTab = "posts" | "replies" | "media" | "likes";
 type Comment = { id: string; post_id: string; author_id: string; body: string; created_at: string };
 type ChatMessage = { id: string; sender: "me" | "them"; text: string; time: string };
 const NAV: { id: View; label: string; Icon: LucideIcon }[] = [
@@ -175,6 +176,7 @@ export default function BlumbookApp() {
   const [authEmail, setAuthEmail] = useState("");
   const [authPassword, setAuthPassword] = useState("");
   const [selectedProfile, setSelectedProfile] = useState("demo-me");
+  const [profileTab,setProfileTab] = useState<ProfileTab>("posts");
   const [threadId, setThreadId] = useState<string | null>(null);
   const [comments, setComments] = useState<Record<string, Comment[]>>({});
   const [replyText, setReplyText] = useState("");
@@ -189,6 +191,11 @@ export default function BlumbookApp() {
   const [editSkills,setEditSkills]=useState("");
   const [editPortfolio,setEditPortfolio]=useState("");
   const [editAvailable,setEditAvailable]=useState(false);
+  const [editLocation,setEditLocation]=useState("");
+  const [editAvatarFile,setEditAvatarFile]=useState<File|null>(null);
+  const [editBannerFile,setEditBannerFile]=useState<File|null>(null);
+  const [editAvatarPreview,setEditAvatarPreview]=useState("");
+  const [editBannerPreview,setEditBannerPreview]=useState("");
   const [toast, setToast] = useState("");
   const [busy, setBusy] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -220,13 +227,13 @@ export default function BlumbookApp() {
     try {
       const [{ data: { user } }, { data: profilesData }, { data: postsData }, { data: likesData }, { data: bookmarksData }, { data: followsData }, { data: repostsData }, { data: commentsData }] = await Promise.all([
         client.auth.getUser(),
-        client.from("profiles").select("id, username, display_name, bio, avatar_url, verified, location").limit(100),
+        client.from("profiles").select("id, username, display_name, bio, avatar_url, verified, location, created_at").limit(100),
         client.from("posts").select("id, author_id, body, image_url, created_at").order("created_at", { ascending:false }).limit(60),
         client.from("likes").select("post_id, user_id").limit(1000),
         client.from("bookmarks").select("post_id, user_id").limit(1000),
         client.from("follows").select("follower_id, following_id").limit(1000),
         client.from("reposts").select("post_id, user_id").limit(1000),
-        client.from("comments").select("post_id").limit(2000),
+        client.from("comments").select("id,post_id,author_id,body,created_at").limit(2000),
       ]);
       setCloudUserId(user?.id || null);
       const extraResult=await client.from("profile_extras").select("user_id,headline,skills,portfolio_url,open_to_collab").limit(100);
@@ -234,7 +241,9 @@ export default function BlumbookApp() {
         ? ((await client.from("profile_extras").select("user_id,headline,skills,portfolio_url").limit(100)).data||[]).map(x=>({...x,open_to_collab:false}))
         : extraResult.data;
       const extras=new Map((extrasData||[]).map(x=>[x.user_id,x]));
-      const cleanProfiles: Profile[] = (profilesData || []).map((p) => ({ id:p.id, username:p.username, display_name:p.display_name, bio:p.bio || "", avatar_url:p.avatar_url, verified:p.verified, location:p.location,headline:extras.get(p.id)?.headline||"",skills:extras.get(p.id)?.skills||[],portfolio_url:extras.get(p.id)?.portfolio_url||"",open_to_collab:extras.get(p.id)?.open_to_collab===true }));
+      const extraColumns=await client.from("profiles").select("id,banner_url,pinned_post_id").limit(100);
+      const profileMeta=new Map((extraColumns.data||[]).map(x=>[x.id,x]));
+      const cleanProfiles: Profile[] = (profilesData || []).map((p) => ({ id:p.id, username:p.username, display_name:p.display_name, bio:p.bio || "", avatar_url:p.avatar_url, verified:p.verified, location:p.location,created_at:p.created_at,banner_url:profileMeta.get(p.id)?.banner_url||null,pinned_post_id:profileMeta.get(p.id)?.pinned_post_id||null,headline:extras.get(p.id)?.headline||"",skills:extras.get(p.id)?.skills||[],portfolio_url:extras.get(p.id)?.portfolio_url||"",open_to_collab:extras.get(p.id)?.open_to_collab===true }));
       setPeople(cleanProfiles);
       const mine = cleanProfiles.find((p) => p.id === user?.id);
       setMember(user ? (mine || { id:user.id, username:(user.email || "member").split("@")[0], display_name:user.user_metadata?.full_name || "Blumbook member", bio:"" }) : null);
@@ -250,6 +259,9 @@ export default function BlumbookApp() {
         (rows || []).forEach((r) => { out[r.post_id] = (out[r.post_id] || 0) + 1; }); return out;
       };
       const likesCount = counts(likesData), repostsCount = counts(repostsData), repliesCount = counts(commentsData);
+      const commentIndex:Record<string,Comment[]>={};
+      for(const c of commentsData||[])commentIndex[c.post_id]=[...(commentIndex[c.post_id]||[]),c];
+      setComments(commentIndex);
       setPosts((postsData || []).map((p) => ({
         ...p, likes:likesCount[p.id] || 0, reposts:repostsCount[p.id] || 0, replies:repliesCount[p.id] || 0, views:0,
         liked:(likesData || []).some((l) => l.post_id === p.id && l.user_id === user?.id),
@@ -382,25 +394,70 @@ export default function BlumbookApp() {
     if (action.error) notify(action.error.message);
     else { setAuthOpen(false); notify(signUp ? "Account created. Check your email if confirmation is enabled." : "Welcome back!"); void loadCloud(); }
   };
-  const openEdit = () => { setEditName(me.display_name); setEditBio(me.bio);setEditHeadline(me.headline||"");setEditSkills((me.skills||[]).join(", "));setEditPortfolio(me.portfolio_url||"");setEditAvailable(Boolean(me.open_to_collab));setEditProfile(true); };
+  const openEdit = () => {
+    setMenuOpen(false);setEditName(me.display_name);setEditBio(me.bio);
+    setEditHeadline(me.headline||"");setEditSkills((me.skills||[]).join(", "));
+    setEditPortfolio(me.portfolio_url||"");setEditAvailable(Boolean(me.open_to_collab));
+    setEditLocation(me.location||"");setEditAvatarFile(null);setEditBannerFile(null);
+    setEditAvatarPreview(me.avatar_url||"");setEditBannerPreview(me.banner_url||"");
+    setEditProfile(true);
+  };
+  const pickProfileImage=(e:React.ChangeEvent<HTMLInputElement>,kind:"avatar"|"banner")=>{
+    const file=e.target.files?.[0];if(!file)return;
+    if(!["image/jpeg","image/png","image/webp","image/gif"].includes(file.type)||file.size>5*1024*1024){
+      notify("Choose a JPG, PNG, WebP or GIF image under 5 MB.");return;
+    }
+    const preview=URL.createObjectURL(file);
+    if(kind==="avatar"){setEditAvatarFile(file);setEditAvatarPreview(preview);}
+    else {setEditBannerFile(file);setEditBannerPreview(preview);}
+  };
+  const uploadProfileImage=async(file:File,kind:"avatar"|"banner",userId:string)=>{
+    if(!supabase)return null;
+    const extension=file.type==="image/png"?"png":file.type==="image/webp"?"webp":file.type==="image/gif"?"gif":"jpg";
+    const path=userId+"/profiles/"+kind+"-"+crypto.randomUUID()+"."+extension;
+    const {error}=await supabase.storage.from("post-media").upload(path,file,{contentType:file.type,upsert:false});
+    if(error)throw new Error("Image upload failed: "+error.message);
+    return supabase.storage.from("post-media").getPublicUrl(path).data.publicUrl;
+  };
   const saveProfile = async (e: FormEvent) => {
     e.preventDefault();
-    if (!requireAccount()) return;
-    setBusy(true);
+    if (!requireAccount()||busy) return;
     const skills=editSkills.split(",").map(s=>s.trim()).filter(Boolean).slice(0,12);
     const portfolio=editPortfolio.trim();
-    if(portfolio && !/^https:\/\/[a-z0-9.-]+(?:[:/]|$)/i.test(portfolio)){notify("Use a valid https:// portfolio URL.");setBusy(false);return;}
-    if (supabase && cloudUserId) {
-      const { error } = await supabase.from("profiles").update({ display_name:editName.trim(), bio:editBio.trim() }).eq("id", cloudUserId);
-      if (error) { notify(error.message); setBusy(false); return; }
-      const {error:ex}=await supabase.from("profile_extras").upsert({user_id:cloudUserId,headline:editHeadline.trim(),skills,portfolio_url:portfolio,open_to_collab:editAvailable});
-      if(ex)notify("Professional profile fields need the Phase 2 migration.");
+    if(portfolio && !/^https:\/\/[a-z0-9.-]+(?::\d+)?(?:[/?#]|$)/i.test(portfolio)){notify("Use a valid https:// portfolio URL.");return;}
+    setBusy(true);
+    try {
+      if(supabase&&cloudUserId){
+        const avatarUrl=editAvatarFile?await uploadProfileImage(editAvatarFile,"avatar",cloudUserId):me.avatar_url||null;
+        const bannerUrl=editBannerFile?await uploadProfileImage(editBannerFile,"banner",cloudUserId):me.banner_url||null;
+        const values:Record<string,string|null>={display_name:editName.trim(),bio:editBio.trim(),location:editLocation.trim(),avatar_url:avatarUrl};
+        if(editBannerFile)values.banner_url=bannerUrl;
+        const {error}=await supabase.from("profiles").update(values).eq("id",cloudUserId);
+        if(error)throw new Error(error.message+(editBannerFile?" — apply the Profile migration first.":""));
+        const {error:extrasError}=await supabase.from("profile_extras").upsert({user_id:cloudUserId,headline:editHeadline.trim(),skills,portfolio_url:portfolio,open_to_collab:editAvailable});
+        if(extrasError)notify("Profile saved, but some professional fields need the Phase 3 SQL migration.");
+        await loadCloud();
+      } else {
+        setMember({...me,display_name:editName.trim(),bio:editBio.trim(),location:editLocation.trim(),headline:editHeadline.trim(),skills,
+          portfolio_url:portfolio,open_to_collab:editAvailable,
+          avatar_url:editAvatarPreview||me.avatar_url,banner_url:editBannerPreview||me.banner_url});
+      }
+      setEditProfile(false);notify(isCloudEnabled?"Profile saved.":"Profile updated in preview mode.");
+    }catch(err){notify(err instanceof Error?err.message:"Could not save profile.");}
+    finally{setBusy(false);}
+  };
+  const pinPost=async(post:Post)=>{
+    if(post.author_id!==me.id||!requireAccount())return;
+    const next=me.pinned_post_id===post.id?null:post.id;
+    if(supabase&&cloudUserId){
+      const {error}=await supabase.from("profiles").update({pinned_post_id:next}).eq("id",cloudUserId);
+      if(error){notify("Could not save pin. Apply the profile SQL migration.");return;}
       await loadCloud();
-    } else setMember({ ...me, display_name:editName.trim(), bio:editBio.trim(),headline:editHeadline.trim(),skills,portfolio_url:portfolio,open_to_collab:editAvailable });
-    setBusy(false); setEditProfile(false); notify("Profile updated");
+    }else setMember({...me,pinned_post_id:next});
+    notify(next?"Post pinned to your profile.":"Post unpinned.");
   };
   const openProfile = (id: string) => {
-    const p=lookup(id);setSelectedProfile(id);navigate("profile");
+    const p=lookup(id);setSelectedProfile(id);setProfileTab("posts");navigate("profile");
     const url=new URL(window.location.href);url.searchParams.set("profile",p.username);url.searchParams.delete("post");
     window.history.replaceState({},"",url.pathname+url.search);
   };
@@ -411,6 +468,11 @@ export default function BlumbookApp() {
   };
   const activeProfile = lookup(selectedProfile === "demo-me" ? me.id : selectedProfile);
   const selectedPost = posts.find((p) => p.id === threadId);
+  const profilePosts=posts.filter(p=>p.author_id===activeProfile.id);
+  const sortedProfilePosts=[...profilePosts].sort((a,b)=>Number(b.id===activeProfile.pinned_post_id)-Number(a.id===activeProfile.pinned_post_id));
+  const profileReplies=Object.values(comments).flat().filter(c=>c.author_id===activeProfile.id).sort((a,b)=>new Date(b.created_at).getTime()-new Date(a.created_at).getTime());
+  const profileMedia=profilePosts.filter(p=>Boolean(p.image_url));
+  const profileLikes=activeProfile.id===me.id?posts.filter(p=>p.liked):[];
   useEffect(()=>{
     const slug=new URLSearchParams(window.location.search).get("profile");
     if(!slug)return;
@@ -852,7 +914,27 @@ export default function BlumbookApp() {
         <div className="profile-dialog-controls"><button className="profile-action-secondary" onClick={()=>setBlockTarget(null)}>Cancel</button><button className="primary-btn" onClick={()=>toggleHidden(blockTarget)}>{blockedAuthors.includes(blockTarget.id)?"Unhide":"Hide locally"}</button></div>
       </div>
     </Modal>}
-    {editProfile&&<Modal close={()=>setEditProfile(false)}><div className="dialog-head"><button className="icon-button" onClick={()=>setEditProfile(false)}><X size={22}/></button><strong>Edit profile</strong><button form="edit-profile-form" className="primary-btn" disabled={busy}>Save</button></div><form id="edit-profile-form" onSubmit={saveProfile} className="edit-form"><div className="edit-banner"/><Avatar profile={me} size="large"/><label>Name<input required maxLength={50} value={editName} onChange={(e)=>setEditName(e.target.value)}/></label><label>Bio<textarea maxLength={160} rows={3} value={editBio} onChange={(e)=>setEditBio(e.target.value)}/></label><label>Professional headline<input maxLength={90} placeholder="Designer · Entrepreneur · Educator" value={editHeadline} onChange={e=>setEditHeadline(e.target.value)}/></label><label>Skills (comma separated)<input maxLength={230} placeholder="Product design, Robotics, Content creation" value={editSkills} onChange={e=>setEditSkills(e.target.value)}/></label><label>Portfolio link (https://)<input maxLength={300} inputMode="url" value={editPortfolio} onChange={e=>setEditPortfolio(e.target.value)}/></label><label className="profile-collab-edit"><input type="checkbox" checked={editAvailable} onChange={e=>setEditAvailable(e.target.checked)}/><span><strong>Open to collaboration</strong><small>Allow signed-in members to send you a collaboration request.</small></span></label></form></Modal>}
+    {editProfile&&<Modal close={()=>setEditProfile(false)}>
+      <div className="dialog-head"><button className="icon-button" onClick={()=>setEditProfile(false)} aria-label="Close"><X size={22}/></button><strong>Edit profile</strong><button form="edit-profile-form" className="primary-btn" disabled={busy}>{busy?"Saving...":"Save"}</button></div>
+      <form id="edit-profile-form" onSubmit={saveProfile} className="edit-form full-profile-edit">
+        <div className="edit-banner edit-cover-preview">
+          {editBannerPreview&&<img src={editBannerPreview} alt="Cover preview"/>}
+          <label className="edit-cover-upload"><ImagePlus size={18}/><span>Change cover</span><input type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={e=>pickProfileImage(e,"banner")} hidden/></label>
+        </div>
+        <div className="edit-avatar-options">
+          <Avatar profile={{...me,avatar_url:editAvatarPreview||me.avatar_url}} size="large"/>
+          <label><ImagePlus size={17}/> Change profile photo<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={e=>pickProfileImage(e,"avatar")} hidden/></label>
+        </div>
+        <label>Name<input required maxLength={50} value={editName} onChange={e=>setEditName(e.target.value)}/></label>
+        <label>Bio<textarea maxLength={160} rows={3} value={editBio} onChange={e=>setEditBio(e.target.value)}/></label>
+        <label>Location (optional)<input maxLength={90} placeholder="City, country" value={editLocation} onChange={e=>setEditLocation(e.target.value)}/></label>
+        <label>Professional headline<input maxLength={90} placeholder="Creator · Builder · Entrepreneur" value={editHeadline} onChange={e=>setEditHeadline(e.target.value)}/></label>
+        <label>Skills (comma-separated)<input maxLength={230} value={editSkills} onChange={e=>setEditSkills(e.target.value)}/></label>
+        <label>Website / portfolio (https://)<input maxLength={300} inputMode="url" value={editPortfolio} onChange={e=>setEditPortfolio(e.target.value)}/></label>
+        <label className="profile-collab-edit"><input type="checkbox" checked={editAvailable} onChange={e=>setEditAvailable(e.target.checked)}/><span><strong>Open to collaboration</strong><small>Let other members contact you about opportunities.</small></span></label>
+        <p className="edit-photo-note">Images: JPG, PNG, WebP or GIF, up to 5 MB. Changes in demo mode are temporary.</p>
+      </form>
+    </Modal>}
   </div>;
 
   function personRow(p: Profile) {

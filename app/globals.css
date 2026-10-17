@@ -886,3 +886,14 @@ button.settings-detail-row:hover { background:var(--hover); }
   .mobile-bottom { height:65px; }
 }
 @media (max-width:350px) {.sidebar.sidebar-open{width:min(90vw,310px)}.simple-drawer-body{padding-inline:13px}}
+
+
+/* Complete editable profile photos, with accessible monochrome controls */
+.edit-cover-preview{position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;background:linear-gradient(135deg,var(--tone-1),var(--tone-3));}
+.edit-cover-preview>img{position:absolute;width:100%;height:100%;object-fit:cover;}
+.edit-cover-upload{position:relative;z-index:1;background:#111d!important;color:#fff!important;border:1px solid #aaa8;border-radius:30px;padding:9px 13px;display:flex!important;flex-direction:row!important;align-items:center;gap:8px;cursor:pointer;font-size:12px!important;}
+.edit-avatar-options{display:flex;align-items:center;gap:16px;margin-top:-35px;position:relative;z-index:2;}
+.edit-avatar-options .avatar-large{margin-top:0!important;}
+.edit-avatar-options>label{display:inline-flex!important;flex-direction:row!important;align-items:center;gap:8px!important;cursor:pointer;font-size:12px!important;border:1px solid var(--line);padding:10px 12px;border-radius:30px;background:var(--bg);}
+.edit-photo-note{font-size:12px;color:var(--muted);line-height:1.55;margin:0 0 10px;}
+.full-profile-edit{max-height:72dvh;overflow:auto;scrollbar-width:thin;}
