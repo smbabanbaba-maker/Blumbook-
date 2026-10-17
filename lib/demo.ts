@@ -1,6 +1,7 @@
 export type Profile = {
   id: string; username: string; display_name: string; bio: string;
   verified?: boolean; avatar_url?: string | null; location?: string;
+  created_at?: string; banner_url?: string | null; pinned_post_id?: string | null;
   headline?: string; skills?: string[]; portfolio_url?: string; open_to_collab?: boolean;
 };
 export type Post = {
@@ -12,7 +13,7 @@ export type Notice = { id: string; kind: "like" | "follow" | "reply" | "repost";
 export const DEMO_ME: Profile = {
   id: "demo-me", username: "yourname", display_name: "Your Name",
   bio: "Building meaningful connections, one story at a time. ✨",
-  location: "Your world",
+  location: "",
 };
 export const DEMO_PEOPLE: Profile[] = [
   { id: "amina", username: "aminacreates", display_name: "Amina Yusuf", bio: "Creative storyteller • Art & technology 🎨", verified: true, open_to_collab: true },

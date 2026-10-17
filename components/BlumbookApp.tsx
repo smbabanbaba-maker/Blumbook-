@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNo
 import {
   ArrowLeft, ArrowRight, Bell, Bookmark, Check, CheckCircle2, ChevronDown, Compass, Ellipsis,
   Feather, Heart, Home, ImagePlus, LogIn, LogOut, Mail, Menu, MessageCircle, MoreHorizontal,
-  Plus, Repeat2, Search, Send, Settings, Share2, ShieldCheck, Smile, Sparkles, Sun, Moon, Crown, List, Radio, ChartNoAxesCombined, CircleHelp, UserRound,
+  Plus, Repeat2, Search, Send, Settings, Share2, ShieldCheck, Smile, Sparkles, Sun, Moon, Crown, List, Radio, ChartNoAxesCombined, CircleHelp, CalendarDays, MapPin, Pin, UserRound,
   UserRoundPlus, UsersRound, Accessibility, Link2, LockKeyhole, Languages, Download, Type, Handshake, Ban, Flag, Copy, type LucideIcon, X
 } from "lucide-react";
 import { supabase, isCloudEnabled } from "@/lib/supabase";
@@ -19,6 +19,7 @@ type View = "home" | "explore" | "notifications" | "messages" | "profile" | "com
 type Theme = "dark" | "light";
 type SettingsPanel = "account" | "security" | "privacy" | "notifications" | "accessibility" | "resources";
 type Tab = "for-you" | "following" | "communities";
+type ProfileTab = "posts" | "replies" | "media" | "likes";
 type Comment = { id: string; post_id: string; author_id: string; body: string; created_at: string };
 type ChatMessage = { id: string; sender: "me" | "them"; text: string; time: string };
 const NAV: { id: View; label: string; Icon: LucideIcon }[] = [
@@ -175,6 +176,7 @@ export default function BlumbookApp() {
   const [authEmail, setAuthEmail] = useState("");
   const [authPassword, setAuthPassword] = useState("");
   const [selectedProfile, setSelectedProfile] = useState("demo-me");
+  const [profileTab,setProfileTab] = useState<ProfileTab>("posts");
   const [threadId, setThreadId] = useState<string | null>(null);
   const [comments, setComments] = useState<Record<string, Comment[]>>({});
   const [replyText, setReplyText] = useState("");
@@ -189,6 +191,11 @@ export default function BlumbookApp() {
   const [editSkills,setEditSkills]=useState("");
   const [editPortfolio,setEditPortfolio]=useState("");
   const [editAvailable,setEditAvailable]=useState(false);
+  const [editLocation,setEditLocation]=useState("");
+  const [editAvatarFile,setEditAvatarFile]=useState<File|null>(null);
+  const [editBannerFile,setEditBannerFile]=useState<File|null>(null);
+  const [editAvatarPreview,setEditAvatarPreview]=useState("");
+  const [editBannerPreview,setEditBannerPreview]=useState("");
   const [toast, setToast] = useState("");
   const [busy, setBusy] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -220,13 +227,13 @@ export default function BlumbookApp() {
     try {
       const [{ data: { user } }, { data: profilesData }, { data: postsData }, { data: likesData }, { data: bookmarksData }, { data: followsData }, { data: repostsData }, { data: commentsData }] = await Promise.all([
         client.auth.getUser(),
-        client.from("profiles").select("id, username, display_name, bio, avatar_url, verified, location").limit(100),
+        client.from("profiles").select("id, username, display_name, bio, avatar_url, verified, location, created_at").limit(100),
         client.from("posts").select("id, author_id, body, image_url, created_at").order("created_at", { ascending:false }).limit(60),
         client.from("likes").select("post_id, user_id").limit(1000),
         client.from("bookmarks").select("post_id, user_id").limit(1000),
         client.from("follows").select("follower_id, following_id").limit(1000),
         client.from("reposts").select("post_id, user_id").limit(1000),
-        client.from("comments").select("post_id").limit(2000),
+        client.from("comments").select("id,post_id,author_id,body,created_at").limit(2000),
       ]);
       setCloudUserId(user?.id || null);
       const extraResult=await client.from("profile_extras").select("user_id,headline,skills,portfolio_url,open_to_collab").limit(100);
@@ -234,7 +241,9 @@ export default function BlumbookApp() {
         ? ((await client.from("profile_extras").select("user_id,headline,skills,portfolio_url").limit(100)).data||[]).map(x=>({...x,open_to_collab:false}))
         : extraResult.data;
       const extras=new Map((extrasData||[]).map(x=>[x.user_id,x]));
-      const cleanProfiles: Profile[] = (profilesData || []).map((p) => ({ id:p.id, username:p.username, display_name:p.display_name, bio:p.bio || "", avatar_url:p.avatar_url, verified:p.verified, location:p.location,headline:extras.get(p.id)?.headline||"",skills:extras.get(p.id)?.skills||[],portfolio_url:extras.get(p.id)?.portfolio_url||"",open_to_collab:extras.get(p.id)?.open_to_collab===true }));
+      const extraColumns=await client.from("profiles").select("id,banner_url,pinned_post_id").limit(100);
+      const profileMeta=new Map((extraColumns.data||[]).map(x=>[x.id,x]));
+      const cleanProfiles: Profile[] = (profilesData || []).map((p) => ({ id:p.id, username:p.username, display_name:p.display_name, bio:p.bio || "", avatar_url:p.avatar_url, verified:p.verified, location:p.location,created_at:p.created_at,banner_url:profileMeta.get(p.id)?.banner_url||null,pinned_post_id:profileMeta.get(p.id)?.pinned_post_id||null,headline:extras.get(p.id)?.headline||"",skills:extras.get(p.id)?.skills||[],portfolio_url:extras.get(p.id)?.portfolio_url||"",open_to_collab:extras.get(p.id)?.open_to_collab===true }));
       setPeople(cleanProfiles);
       const mine = cleanProfiles.find((p) => p.id === user?.id);
       setMember(user ? (mine || { id:user.id, username:(user.email || "member").split("@")[0], display_name:user.user_metadata?.full_name || "Blumbook member", bio:"" }) : null);
@@ -250,6 +259,9 @@ export default function BlumbookApp() {
         (rows || []).forEach((r) => { out[r.post_id] = (out[r.post_id] || 0) + 1; }); return out;
       };
       const likesCount = counts(likesData), repostsCount = counts(repostsData), repliesCount = counts(commentsData);
+      const commentIndex:Record<string,Comment[]>={};
+      for(const c of commentsData||[])commentIndex[c.post_id]=[...(commentIndex[c.post_id]||[]),c];
+      setComments(commentIndex);
       setPosts((postsData || []).map((p) => ({
         ...p, likes:likesCount[p.id] || 0, reposts:repostsCount[p.id] || 0, replies:repliesCount[p.id] || 0, views:0,
         liked:(likesData || []).some((l) => l.post_id === p.id && l.user_id === user?.id),
@@ -382,25 +394,70 @@ export default function BlumbookApp() {
     if (action.error) notify(action.error.message);
     else { setAuthOpen(false); notify(signUp ? "Account created. Check your email if confirmation is enabled." : "Welcome back!"); void loadCloud(); }
   };
-  const openEdit = () => { setEditName(me.display_name); setEditBio(me.bio);setEditHeadline(me.headline||"");setEditSkills((me.skills||[]).join(", "));setEditPortfolio(me.portfolio_url||"");setEditAvailable(Boolean(me.open_to_collab));setEditProfile(true); };
+  const openEdit = () => {
+    setMenuOpen(false);setEditName(me.display_name);setEditBio(me.bio);
+    setEditHeadline(me.headline||"");setEditSkills((me.skills||[]).join(", "));
+    setEditPortfolio(me.portfolio_url||"");setEditAvailable(Boolean(me.open_to_collab));
+    setEditLocation(me.location||"");setEditAvatarFile(null);setEditBannerFile(null);
+    setEditAvatarPreview(me.avatar_url||"");setEditBannerPreview(me.banner_url||"");
+    setEditProfile(true);
+  };
+  const pickProfileImage=(e:React.ChangeEvent<HTMLInputElement>,kind:"avatar"|"banner")=>{
+    const file=e.target.files?.[0];if(!file)return;
+    if(!["image/jpeg","image/png","image/webp","image/gif"].includes(file.type)||file.size>5*1024*1024){
+      notify("Choose a JPG, PNG, WebP or GIF image under 5 MB.");return;
+    }
+    const preview=URL.createObjectURL(file);
+    if(kind==="avatar"){setEditAvatarFile(file);setEditAvatarPreview(preview);}
+    else {setEditBannerFile(file);setEditBannerPreview(preview);}
+  };
+  const uploadProfileImage=async(file:File,kind:"avatar"|"banner",userId:string)=>{
+    if(!supabase)return null;
+    const extension=file.type==="image/png"?"png":file.type==="image/webp"?"webp":file.type==="image/gif"?"gif":"jpg";
+    const path=userId+"/profiles/"+kind+"-"+crypto.randomUUID()+"."+extension;
+    const {error}=await supabase.storage.from("post-media").upload(path,file,{contentType:file.type,upsert:false});
+    if(error)throw new Error("Image upload failed: "+error.message);
+    return supabase.storage.from("post-media").getPublicUrl(path).data.publicUrl;
+  };
   const saveProfile = async (e: FormEvent) => {
     e.preventDefault();
-    if (!requireAccount()) return;
-    setBusy(true);
+    if (!requireAccount()||busy) return;
     const skills=editSkills.split(",").map(s=>s.trim()).filter(Boolean).slice(0,12);
     const portfolio=editPortfolio.trim();
-    if(portfolio && !/^https:\/\/[a-z0-9.-]+(?:[:/]|$)/i.test(portfolio)){notify("Use a valid https:// portfolio URL.");setBusy(false);return;}
-    if (supabase && cloudUserId) {
-      const { error } = await supabase.from("profiles").update({ display_name:editName.trim(), bio:editBio.trim() }).eq("id", cloudUserId);
-      if (error) { notify(error.message); setBusy(false); return; }
-      const {error:ex}=await supabase.from("profile_extras").upsert({user_id:cloudUserId,headline:editHeadline.trim(),skills,portfolio_url:portfolio,open_to_collab:editAvailable});
-      if(ex)notify("Professional profile fields need the Phase 2 migration.");
+    if(portfolio && !/^https:\/\/[a-z0-9.-]+(?::\d+)?(?:[/?#]|$)/i.test(portfolio)){notify("Use a valid https:// portfolio URL.");return;}
+    setBusy(true);
+    try {
+      if(supabase&&cloudUserId){
+        const avatarUrl=editAvatarFile?await uploadProfileImage(editAvatarFile,"avatar",cloudUserId):me.avatar_url||null;
+        const bannerUrl=editBannerFile?await uploadProfileImage(editBannerFile,"banner",cloudUserId):me.banner_url||null;
+        const values:Record<string,string|null>={display_name:editName.trim(),bio:editBio.trim(),location:editLocation.trim(),avatar_url:avatarUrl};
+        if(editBannerFile)values.banner_url=bannerUrl;
+        const {error}=await supabase.from("profiles").update(values).eq("id",cloudUserId);
+        if(error)throw new Error(error.message+(editBannerFile?" — apply the Profile migration first.":""));
+        const {error:extrasError}=await supabase.from("profile_extras").upsert({user_id:cloudUserId,headline:editHeadline.trim(),skills,portfolio_url:portfolio,open_to_collab:editAvailable});
+        if(extrasError)notify("Profile saved, but some professional fields need the Phase 3 SQL migration.");
+        await loadCloud();
+      } else {
+        setMember({...me,display_name:editName.trim(),bio:editBio.trim(),location:editLocation.trim(),headline:editHeadline.trim(),skills,
+          portfolio_url:portfolio,open_to_collab:editAvailable,
+          avatar_url:editAvatarPreview||me.avatar_url,banner_url:editBannerPreview||me.banner_url});
+      }
+      setEditProfile(false);notify(isCloudEnabled?"Profile saved.":"Profile updated in preview mode.");
+    }catch(err){notify(err instanceof Error?err.message:"Could not save profile.");}
+    finally{setBusy(false);}
+  };
+  const pinPost=async(post:Post)=>{
+    if(post.author_id!==me.id||!requireAccount())return;
+    const next=me.pinned_post_id===post.id?null:post.id;
+    if(supabase&&cloudUserId){
+      const {error}=await supabase.from("profiles").update({pinned_post_id:next}).eq("id",cloudUserId);
+      if(error){notify("Could not save pin. Apply the profile SQL migration.");return;}
       await loadCloud();
-    } else setMember({ ...me, display_name:editName.trim(), bio:editBio.trim(),headline:editHeadline.trim(),skills,portfolio_url:portfolio,open_to_collab:editAvailable });
-    setBusy(false); setEditProfile(false); notify("Profile updated");
+    }else setMember({...me,pinned_post_id:next});
+    notify(next?"Post pinned to your profile.":"Post unpinned.");
   };
   const openProfile = (id: string) => {
-    const p=lookup(id);setSelectedProfile(id);navigate("profile");
+    const p=lookup(id);setSelectedProfile(id);setProfileTab("posts");navigate("profile");
     const url=new URL(window.location.href);url.searchParams.set("profile",p.username);url.searchParams.delete("post");
     window.history.replaceState({},"",url.pathname+url.search);
   };
@@ -411,6 +468,11 @@ export default function BlumbookApp() {
   };
   const activeProfile = lookup(selectedProfile === "demo-me" ? me.id : selectedProfile);
   const selectedPost = posts.find((p) => p.id === threadId);
+  const profilePosts=posts.filter(p=>p.author_id===activeProfile.id);
+  const sortedProfilePosts=[...profilePosts].sort((a,b)=>Number(b.id===activeProfile.pinned_post_id)-Number(a.id===activeProfile.pinned_post_id));
+  const profileReplies=Object.values(comments).flat().filter(c=>c.author_id===activeProfile.id).sort((a,b)=>new Date(b.created_at).getTime()-new Date(a.created_at).getTime());
+  const profileMedia=profilePosts.filter(p=>Boolean(p.image_url));
+  const profileLikes=activeProfile.id===me.id?posts.filter(p=>p.liked):[];
   useEffect(()=>{
     const slug=new URLSearchParams(window.location.search).get("profile");
     if(!slug)return;
@@ -533,81 +595,38 @@ export default function BlumbookApp() {
           <Avatar profile={me}/><span><strong>{me.display_name}</strong><small>@{me.username}</small></span><Ellipsis size={20}/>
         </button>
       </div>
-      <div className="mobile-drawer-content bb-mobile-drawer">
-        <header className="bb-drawer-header">
-          <button className="bb-drawer-brand" onClick={() => navigate("home")} aria-label="Blumbook home">
-            <span className="bb-drawer-brandmark"><img src="/logo.svg" alt="" /></span>
-            <span className="bb-drawer-brandword"><strong>Blumbook</strong><small>TALK. SHARE. BLOOM.</small></span>
-          </button>
-          <button className="bb-drawer-dismiss" aria-label="Close navigation" onClick={() => setMenuOpen(false)}><X size={21}/></button>
+      <div className="mobile-drawer-content simple-drawer-shell">
+        <header className="simple-drawer-header">
+          <div className="simple-drawer-brand"><img src="/logo.svg" alt=""/><strong>Blumbook</strong></div>
+          <button aria-label="Close menu" className="simple-drawer-close" onClick={()=>setMenuOpen(false)}><X size={23}/></button>
         </header>
-        <div className="bb-drawer-scroll">
-          <section className="bb-account-card" aria-label="Your account">
-            <div className="bb-account-orbit" aria-hidden="true"/>
-            <div className="bb-account-top">
-              <button className="bb-account-avatar" onClick={() => openProfile(me.id)} aria-label="View profile"><Avatar profile={me}/></button>
-              <span className="bb-account-identity">{me.open_to_collab ? <><Handshake size={12}/> OPEN TO COLLABORATE</> : isCloudEnabled && !cloudUserId ? "WELCOME TO BLUMBOOK" : "YOUR SPACE"}</span>
-            </div>
-            <button className="bb-account-name" onClick={() => openProfile(me.id)}>{me.display_name}</button>
-            <p className="bb-account-handle">@{me.username}</p>
-            {me.headline ? <p className="bb-account-bio">{me.headline}</p> : <p className="bb-account-bio">{language==="ha"?"Labarinka. Mutanenka. Damammakinka.":"Your story. Your people. Your possibilities."}</p>}
-            <div className="bb-account-stats">
-              <span><strong>{followCounts[me.id]?.following ?? (cloudUserId ? followed.length : 0)}</strong> {language==="ha"?"Ina bi":"Following"}</span>
-              <span><strong>{followCounts[me.id]?.followers ?? (isCloudEnabled && cloudUserId ? "—" : 0)}</strong> {language==="ha"?"Masu bi":"Followers"}</span>
-            </div>
-            {isCloudEnabled && !cloudUserId ?
-              <button className="bb-account-view" onClick={() => {setMenuOpen(false);setSignUp(true);setAuthOpen(true);}}>{language==="ha"?"Buɗe asusu":"Join Blumbook"}<ArrowRight size={17}/></button> :
-              <div className="bb-account-actions">
-                <button className="bb-account-view" onClick={() => openProfile(me.id)}>{language==="ha"?"Duba profile":"View profile"}<ArrowRight size={17}/></button>
-                <button className="bb-account-edit" onClick={() => {setMenuOpen(false);openEdit();}}>{language==="ha"?"Gyara":"Edit"}<Feather size={15}/></button>
-              </div>
-            }
-          </section>
-
-          <button className="bb-compose-quick" onClick={() => {setMenuOpen(false);if(requireAccount())setCompose(true);}}>
-            <span className="bb-compose-symbol"><Plus size={20}/></span>
-            <span className="bb-compose-copy"><strong>{language==="ha"?"Wallafa wani abu":"Share something new"}</strong><small>{language==="ha"?"Fara da ra'ayi guda":"Start with a single idea"}</small></span>
-            <ArrowRight size={18} className="bb-compose-arrow"/>
+        <div className="simple-drawer-body">
+          <button className="simple-drawer-account" onClick={()=>openProfile(me.id)}>
+            <Avatar profile={me}/>
+            <span><strong>{me.display_name}</strong><small>@{me.username}</small></span>
+            <ArrowRight size={18}/>
           </button>
-
-          <nav className="bb-drawer-groups" aria-label="Menu">
-            <section className="bb-nav-group">
-              <div className="bb-nav-heading"><span>{language==="ha"?"SARARINKA":"YOUR SPACE"}</span></div>
-              <button className={"bb-nav-item "+(view==="profile"?"bb-nav-active":"")} onClick={()=>openProfile(me.id)}><span className="bb-nav-icon"><UserRound size={21}/></span><span>{tr("Profile")}</span><ArrowRight className="bb-nav-chevron" size={17}/></button>
-              <button className={"bb-nav-item "+(view==="bookmarks"?"bb-nav-active":"")} onClick={()=>navigate("bookmarks")}><span className="bb-nav-icon"><Bookmark size={21}/></span><span>{tr("Bookmarks")}</span><ArrowRight className="bb-nav-chevron" size={17}/></button>
-              <button className={"bb-nav-item "+(view==="lists"?"bb-nav-active":"")} onClick={()=>navigate("lists")}><span className="bb-nav-icon"><List size={21}/></span><span>{language==="ha"?"Jerin abubuwa":"My Lists"}</span><small className="bb-nav-stage">Local</small></button>
-            </section>
-            <section className="bb-nav-group">
-              <div className="bb-nav-heading"><span>{language==="ha"?"HAƊUWA":"DISCOVER & CONNECT"}</span></div>
-              <button className={"bb-nav-item bb-nav-featured "+(view==="communities"?"bb-nav-active":"")} onClick={()=>navigate("communities")}><span className="bb-nav-icon"><UsersRound size={21}/></span><span className="bb-featured-copy"><strong>Bloom Circles</strong><small>{language==="ha"?"Ra'ayoyi su zama damammaki":"Turn ideas into opportunities"}</small></span><ArrowRight className="bb-nav-chevron" size={18}/></button>
-              <button className={"bb-nav-item "+(view==="messages"?"bb-nav-active":"")} onClick={()=>navigate("messages")}><span className="bb-nav-icon"><Mail size={21}/></span><span>{tr("Messages")}</span><small className="bb-nav-stage">Preview</small></button>
-              <button className={"bb-nav-item "+(view==="spaces"?"bb-nav-active":"")} onClick={()=>navigate("spaces")}><span className="bb-nav-icon"><Radio size={21}/></span><span>Spaces</span><small className="bb-nav-stage">Soon</small></button>
-            </section>
-            <section className="bb-nav-group">
-              <div className="bb-nav-heading"><span>{language==="ha"?"ƘIRƘIRA DA CI GABA":"CREATE & GROW"}</span></div>
-              <button className={"bb-nav-item "+(view==="creator"?"bb-nav-active":"")} onClick={()=>navigate("creator")}><span className="bb-nav-icon"><ChartNoAxesCombined size={21}/></span><span>{tr("Creator Studio")}</span><small className="bb-nav-stage">Beta</small></button>
-              <button className={"bb-nav-item "+(view==="premium"?"bb-nav-active":"")} onClick={()=>navigate("premium")}><span className="bb-nav-icon"><Crown size={21}/></span><span>Blumbook Premium</span><small className="bb-nav-stage">Soon</small></button>
-            </section>
+          <div className="simple-drawer-stats">
+            <span><b>{followCounts[me.id]?.following??followed.length}</b> Following</span>
+            <span><b>{followCounts[me.id]?.followers??(isCloudEnabled&&cloudUserId?"—":0)}</b> Followers</span>
+          </div>
+          <div className="simple-drawer-divider"/>
+          <nav className="simple-drawer-links" aria-label="More places">
+            <button onClick={()=>openProfile(me.id)}><UserRound size={23}/><span>{tr("Profile")}</span></button>
+            <button onClick={()=>navigate("bookmarks")}><Bookmark size={23}/><span>{tr("Bookmarks")}</span></button>
+            <button onClick={()=>navigate("communities")}><UsersRound size={23}/><span>Bloom Circles</span></button>
+            <button onClick={()=>navigate("creator")}><ChartNoAxesCombined size={23}/><span>{tr("Creator Studio")}</span></button>
+            <button onClick={()=>navigate("settings")}><Settings size={23}/><span>{tr("Settings")}</span></button>
+            <button onClick={()=>navigate("help")}><CircleHelp size={23}/><span>{tr("Help Center")}</span></button>
           </nav>
-
-          <section className="bb-drawer-tools" aria-label="Preferences and support">
-            <div className="bb-nav-heading"><span>{language==="ha"?"SARRAFAWA":"PREFERENCES"}</span></div>
-            <button className="bb-tool-row" onClick={()=>navigate("settings")}><Settings size={20}/><span>{tr("Settings")}</span><ArrowRight size={16}/></button>
-            <button className="bb-tool-row" onClick={()=>navigate("help")}><CircleHelp size={20}/><span>{tr("Help Center")}</span><ArrowRight size={16}/></button>
-            <div className="bb-appearance-row">
-              <div className="bb-setting-caption"><Moon size={19}/><span>{tr("Appearance")}</span></div>
-              <div className="bb-theme-picker" role="group" aria-label="Choose appearance">
-                <button aria-pressed={theme==="dark"} className={theme==="dark"?"is-selected":""} onClick={()=>setTheme("dark")}><Moon size={16}/><span>{tr("Dark")}</span></button>
-                <button aria-pressed={theme==="light"} className={theme==="light"?"is-selected":""} onClick={()=>setTheme("light")}><Sun size={16}/><span>{tr("Light")}</span></button>
-              </div>
+          <section className="simple-drawer-preferences">
+            <div className="simple-drawer-preference-title"><Moon size={19}/><span>{tr("Appearance")}</span></div>
+            <div className="simple-drawer-themes" role="group" aria-label="Appearance">
+              <button aria-pressed={theme==="dark"} className={theme==="dark"?"selected":""} onClick={()=>setTheme("dark")}><Moon size={16}/>{tr("Dark")}</button>
+              <button aria-pressed={theme==="light"} className={theme==="light"?"selected":""} onClick={()=>setTheme("light")}><Sun size={16}/>{tr("Light")}</button>
             </div>
-            <label className="bb-language-row"><Languages size={19}/><span>{tr("Language")}</span><select aria-label="App language" value={language} onChange={e=>setLanguage(e.target.value as AppLanguage)}><option value="en">English</option><option value="ha">Hausa (Beta)</option></select></label>
-            {cloudUserId && <button className="bb-tool-row bb-logout" onClick={()=>{setMenuOpen(false);void logOut();}}><LogOut size={20}/><span>{tr("Log out")}</span><ArrowRight size={16}/></button>}
           </section>
-          <footer className="bb-drawer-footer">
-            <span>BLUMBOOK <strong>•</strong> PREVIEW 0.1</span>
-            <span>{isCloudEnabled?"Talk. Share. Bloom.":"Interactive demo • Not a live social account"}</span>
-          </footer>
+          <p className="simple-drawer-footer">Blumbook · Preview v0.1</p>
         </div>
       </div>
     </aside>
@@ -620,7 +639,7 @@ export default function BlumbookApp() {
         </> : <>
           <button className="avatar-action" onClick={() => setMenuOpen(!menuOpen)} aria-label="Open menu"><Avatar profile={me} size="small"/></button>
           <button onClick={() => navigate("home")} className="mobile-brand"><img src="/logo.svg" alt="Blumbook"/><strong>Blumbook</strong></button>
-          <button aria-label="New post" className="icon-button" onClick={() => { if (requireAccount()) setCompose(true); }}><Plus size={25}/></button>
+          <button aria-label="Open more menu" aria-expanded={menuOpen} className="icon-button top-more-button" onClick={()=>setMenuOpen(true)}><MoreHorizontal size={25}/></button>
         </>}
       </div>
 
@@ -681,55 +700,78 @@ export default function BlumbookApp() {
       {view === "bookmarks" && <><PanelTitle>Bookmarks</PanelTitle><p className="muted-intro">@{me.username} · Your saved posts</p>{posts.filter((p)=>p.bookmarked).length===0?<div className="empty-state"><Bookmark size={34}/><h3>Save posts for later</h3><p>Tap the bookmark icon on any post to keep it here.</p></div>:posts.filter((p)=>p.bookmarked).map((p)=><PostCard {...postProps(p)}/>)}</>}
 
       {view === "profile" && <>
-        <PanelTitle onBack={()=>navigate("home")} extra={<span className="mini-post-count">{posts.filter(p=>p.author_id===activeProfile.id).length} posts</span>}>{activeProfile.display_name}</PanelTitle>
-        <div className="profile-banner"><span className="banner-glow"/></div>
-        <section className="profile-summary">
-          <div className="profile-identity">
+        <PanelTitle onBack={()=>navigate("home")} extra={<span className="mini-post-count">{profilePosts.length} {profilePosts.length===1?"post":"posts"}</span>}>{activeProfile.display_name}</PanelTitle>
+        <div className="full-profile-cover">
+          {activeProfile.banner_url ? <img src={activeProfile.banner_url} alt={activeProfile.display_name+"'s cover photo"}/> : <div className="full-profile-default-cover" aria-hidden="true"><span/><span/><span/></div>}
+          {activeProfile.id===me.id&&<button className="cover-edit-shortcut" aria-label="Edit cover photo" onClick={openEdit}><ImagePlus size={19}/></button>}
+        </div>
+        <section className="full-profile-content">
+          <div className="full-profile-avatar-line">
             <Avatar profile={activeProfile} size="large"/>
-            <div className="profile-identity-name"><h2><Name profile={activeProfile}/></h2><span className="profile-handle">@{activeProfile.username}</span></div>
-          </div>
-          <div className="profile-button-bar">
-            {activeProfile.id===me.id?
-              <><button className="profile-action-primary" onClick={openEdit}><UserRound size={17}/> Edit Profile</button>
-                <button className="profile-action-secondary" onClick={()=>void shareProfile(activeProfile)}><Share2 size={17}/> Share</button>
-                <button className="profile-action-secondary" onClick={openEdit}><Handshake size={17}/> Collaborate</button></>
-              : <>
-                <button className="profile-action-primary" onClick={()=>toggleFollow(activeProfile.id)}><UserRoundPlus size={17}/>{followed.includes(activeProfile.id)?"Following":"Follow"}</button>
-                <button className="profile-action-secondary" onClick={()=>openMessagePreview(activeProfile)}><Mail size={17}/> Message</button>
-                <button className="profile-action-secondary" onClick={()=>openCollab(activeProfile)}><Handshake size={17}/> Collaborate</button>
-                <button className="profile-action-icon" onClick={()=>void shareProfile(activeProfile)} aria-label="Share profile" title="Share profile"><Share2 size={19}/></button></>
-            }
-            <div className="profile-more-wrap">
-              <button className="profile-action-icon" aria-label="More profile options" aria-expanded={profileMore} onClick={()=>setProfileMore(v=>!v)}><MoreHorizontal size={21}/></button>
-              {profileMore&&<div className="profile-more-panel" role="group" aria-label="Profile actions">
-                <button onClick={()=>void shareProfile(activeProfile)}><Share2 size={17}/> Share profile</button>
-                {activeProfile.id===me.id?
-                  <><button onClick={()=>{setProfileMore(false);openEdit();}}><UserRound size={17}/> Edit profile</button>
-                    <button onClick={()=>navigate("settings")}><Settings size={17}/> Settings & privacy</button></>
-                  : <>
-                    <button onClick={()=>toggleProfileAlerts(activeProfile)}><Bell size={17}/>{profileAlerts.includes(activeProfile.id)?"Turn off alerts (preview)":"Post alerts (preview)"}</button>
+            <div className="full-profile-top-actions">
+              {activeProfile.id===me.id
+                ? <><button onClick={()=>void shareProfile(activeProfile)}><Share2 size={17}/> Share</button><button onClick={openEdit}>Edit profile</button></>
+                : <><button onClick={()=>toggleFollow(activeProfile.id)} className="profile-follow-primary">{followed.includes(activeProfile.id)?"Following":"Follow"}</button><button onClick={()=>openMessagePreview(activeProfile)}><Mail size={17}/> Message</button></>}
+              <div className="profile-more-wrap">
+                <button className="profile-action-icon" aria-label="More profile options" aria-expanded={profileMore} onClick={()=>setProfileMore(x=>!x)}><MoreHorizontal size={20}/></button>
+                {profileMore&&<div className="profile-more-panel" role="group" aria-label="Profile options">
+                  <button onClick={()=>void shareProfile(activeProfile)}><Share2 size={17}/> Share profile</button>
+                  {activeProfile.id===me.id
+                  ? <><button onClick={()=>{setProfileMore(false);openEdit();}}><Feather size={17}/> Edit profile</button><button onClick={()=>navigate("settings")}><Settings size={17}/> Settings & privacy</button></>
+                  : <><button onClick={()=>openCollab(activeProfile)}><Handshake size={17}/> Collaborate</button>
+                    <button onClick={()=>toggleProfileAlerts(activeProfile)}><Bell size={17}/> {profileAlerts.includes(activeProfile.id)?"Turn off alerts":"Post alerts (preview)"}</button>
                     <button onClick={()=>{mute(activeProfile.id);setProfileMore(false);}}><Bell size={17}/> Mute @{activeProfile.username}</button>
-                    <button onClick={()=>{setBlockTarget(activeProfile);setProfileMore(false);}}><Ban size={17}/>{blockedAuthors.includes(activeProfile.id)?"Unhide account":"Block (device preview)"}</button>
-                    <button onClick={()=>{setReportReason("Spam");setProfileReport(activeProfile);setProfileMore(false);}}><Flag size={17}/> Report account (beta)</button>
-                  </>
-                }
-              </div>}
+                    <button onClick={()=>{setBlockTarget(activeProfile);setProfileMore(false);}}><Ban size={17}/>{blockedAuthors.includes(activeProfile.id)?"Unhide account":"Hide account (preview)"}</button>
+                    <button onClick={()=>{setReportReason("Spam");setProfileReport(activeProfile);setProfileMore(false);}}><Flag size={17}/> Report account (beta)</button></>}
+                </div>}
+              </div>
             </div>
           </div>
-          {blockedAuthors.includes(activeProfile.id)&&activeProfile.id!==me.id&&<div className="profile-info-note"><Ban size={18}/><span>Hidden on your device only. This is not an account-level block.</span><button onClick={()=>toggleHidden(activeProfile)}>Unhide</button></div>}
-          {activeProfile.open_to_collab&&<div className="profile-collab-status"><Handshake size={17}/> Open to collaboration</div>}
-          {activeProfile.headline&&<p className="profile-headline">{activeProfile.headline}</p>}
-          <p className="profile-bio">{activeProfile.bio || "Here to share, learn, and connect."}</p>
-          {Boolean(activeProfile.skills?.length)&&<div className="profile-skills">{activeProfile.skills?.map(s=><span key={s}>{s}</span>)}</div>}
-          {activeProfile.portfolio_url?.startsWith("https://")&&<a className="profile-portfolio" href={activeProfile.portfolio_url} target="_blank" rel="noopener noreferrer">View portfolio ↗</a>}
-          <div className="profile-extra"><Compass size={15}/>{activeProfile.location || "Blumbook community"}</div>
-          <div className="follow-stats">
-            <span><b>{activeProfile.id===me.id?followed.length:followCounts[activeProfile.id]?.following??0}</b> Following</span>
-            <span><b>{followCounts[activeProfile.id]?.followers??0}</b> Followers</span>
+          <div className="full-profile-name">
+            <h2><Name profile={activeProfile}/></h2>
+            <span>@{activeProfile.username}</span>
           </div>
+          {activeProfile.headline&&<p className="full-profile-headline">{activeProfile.headline}</p>}
+          <p className="full-profile-bio">{activeProfile.bio || (activeProfile.id===me.id?"Add a bio to introduce yourself.":"No bio yet.")}</p>
+          <div className="full-profile-meta">
+            {activeProfile.location&&<span><MapPin size={16}/>{activeProfile.location}</span>}
+            {activeProfile.portfolio_url?.startsWith("https://")&&<a href={activeProfile.portfolio_url} target="_blank" rel="noopener noreferrer"><Link2 size={16}/><span>{(()=>{try{return new URL(activeProfile.portfolio_url as string).hostname}catch{return "Website"}})()}</span></a>}
+            {activeProfile.created_at&&<span><CalendarDays size={16}/>Joined {new Date(activeProfile.created_at).toLocaleDateString("en",{month:"long",year:"numeric"})}</span>}
+          </div>
+          <div className="full-profile-stats">
+            <span><strong>{followCounts[activeProfile.id]?.following ?? (activeProfile.id===me.id?followed.length:0)}</strong> Following</span>
+            <span><strong>{followCounts[activeProfile.id]?.followers ?? 0}</strong> Followers</span>
+          </div>
+          {activeProfile.open_to_collab&&<button className="full-profile-collaboration" onClick={()=>activeProfile.id===me.id?openEdit():openCollab(activeProfile)}><Handshake size={16}/> Open to collaboration <ArrowRight size={15}/></button>}
+          {blockedAuthors.includes(activeProfile.id)&&activeProfile.id!==me.id&&<div className="profile-info-note"><Ban size={17}/><span>Hidden on this device only.</span><button onClick={()=>toggleHidden(activeProfile)}>Unhide</button></div>}
         </section>
-        <div className="feed-tabs"><button className="selected">Posts</button><button onClick={()=>notify("Replies tab is coming soon")}>Replies</button><button onClick={()=>notify("Media tab is coming soon")}>Media</button><button onClick={()=>notify("Project portfolios are being developed")}>Projects</button></div>
-        {posts.filter(p=>p.author_id===activeProfile.id).length===0?<div className="empty-state"><Feather size={30}/><h3>No posts yet</h3><p>When this person posts, it will appear here.</p></div>:posts.filter(p=>p.author_id===activeProfile.id).map(p=><PostCard {...postProps(p)}/>)}
+        <div className="full-profile-tabs" role="tablist" aria-label="Profile content">
+          {(["posts","replies","media","likes"] as ProfileTab[]).map(t=><button key={t} role="tab" aria-selected={profileTab===t} className={profileTab===t?"selected":""} onClick={()=>setProfileTab(t)}>{t[0].toUpperCase()+t.slice(1)}</button>)}
+        </div>
+        {profileTab==="posts" && <>
+          {sortedProfilePosts.length===0?<div className="empty-state"><Feather size={31}/><h3>No posts yet</h3><p>{activeProfile.id===me.id?"Create your first post to start sharing your story.":"Posts from this member will appear here."}</p></div>
+          :sortedProfilePosts.map(p=><div key={p.id}>
+            {activeProfile.pinned_post_id===p.id&&<div className="full-profile-pin-heading"><Pin size={14}/> Pinned</div>}
+            {activeProfile.id===me.id&&<div className="full-profile-pin-actions"><button onClick={()=>void pinPost(p)}><Pin size={13}/>{activeProfile.pinned_post_id===p.id?"Unpin":"Pin to profile"}</button></div>}
+            <PostCard {...postProps(p)}/>
+          </div>)}
+        </>}
+        {profileTab==="replies" && <>
+          {profileReplies.length ? profileReplies.map(reply=><button key={reply.id} className="full-profile-reply" onClick={()=>{const original=posts.find(p=>p.id===reply.post_id);if(original)void openThread(original);else notify("Original post isn't in the loaded feed.");}}>
+              <Avatar profile={activeProfile} size="small"/>
+              <span><strong>{activeProfile.display_name}</strong><small> · {timeAgo(reply.created_at)}</small><p>{reply.body}</p><em>View conversation <ArrowRight size={14}/></em></span>
+            </button>) : <div className="empty-state"><MessageCircle size={30}/><h3>No replies yet</h3><p>Replies to posts will appear here.</p></div>}
+        </>}
+        {profileTab==="media" && <>
+          {profileMedia.length ? <div className="full-profile-media-grid">{profileMedia.map(p=><button key={p.id} onClick={()=>void openThread(p)} aria-label={"View media in post by "+activeProfile.display_name}><img src={p.image_url||""} alt="Shared post media" loading="lazy"/></button>)}</div>
+          : <div className="empty-state"><ImagePlus size={30}/><h3>No photos yet</h3><p>Photos shared in posts will appear here.</p></div>}
+        </>}
+        {profileTab==="likes" && <>
+          {activeProfile.id!==me.id
+            ? <div className="empty-state"><Heart size={30}/><h3>Likes are private</h3><p>Only you can see posts you've liked on Blumbook.</p></div>
+            :profileLikes.length?profileLikes.map(p=><PostCard {...postProps(p)}/>)
+            :<div className="empty-state"><Heart size={30}/><h3>No liked posts yet</h3><p>Posts you like will be collected here.</p></div>}
+        </>}
       </>}
 
       {view === "thread" && selectedPost && <>
@@ -845,7 +887,7 @@ export default function BlumbookApp() {
     </aside>
 
     <nav className={"mobile-bottom "+(view==="settings"?"mobile-bottom-hidden":"")+(menuOpen?" bb-behind-menu":"")} aria-label="Main navigation">
-      {NAV.filter((n)=>["home","explore","communities","notifications","messages"].includes(n.id)).map(({id,label,Icon})=><button aria-label={label} key={id} className={view===id?"active":""} onClick={()=>navigate(id)}><Icon size={25} strokeWidth={view===id?2.7:1.9}/>{id==="notifications"&&<span className="nav-dot"/>}</button>)}
+      {NAV.filter((n)=>["home","explore","notifications","messages","profile"].includes(n.id)).map(({id,label,Icon})=><button aria-label={label} key={id} className={view===id?"active":""} onClick={()=>id==="profile"?openProfile(me.id):navigate(id)}><Icon size={25} strokeWidth={view===id?2.7:1.9}/>{id==="notifications"&&<span className="nav-dot"/>}</button>)}
     </nav>
     <button aria-label="Create post" className={"floating-compose "+(view==="settings"?"floating-compose-hidden":"")+(menuOpen?" bb-behind-menu":"")} onClick={()=>{if(requireAccount())setCompose(true);}}><Plus size={28}/></button>
     {menuOpen && <button aria-label="Close menu" className="menu-shade" onClick={()=>setMenuOpen(false)}/>}
@@ -895,7 +937,27 @@ export default function BlumbookApp() {
         <div className="profile-dialog-controls"><button className="profile-action-secondary" onClick={()=>setBlockTarget(null)}>Cancel</button><button className="primary-btn" onClick={()=>toggleHidden(blockTarget)}>{blockedAuthors.includes(blockTarget.id)?"Unhide":"Hide locally"}</button></div>
       </div>
     </Modal>}
-    {editProfile&&<Modal close={()=>setEditProfile(false)}><div className="dialog-head"><button className="icon-button" onClick={()=>setEditProfile(false)}><X size={22}/></button><strong>Edit profile</strong><button form="edit-profile-form" className="primary-btn" disabled={busy}>Save</button></div><form id="edit-profile-form" onSubmit={saveProfile} className="edit-form"><div className="edit-banner"/><Avatar profile={me} size="large"/><label>Name<input required maxLength={50} value={editName} onChange={(e)=>setEditName(e.target.value)}/></label><label>Bio<textarea maxLength={160} rows={3} value={editBio} onChange={(e)=>setEditBio(e.target.value)}/></label><label>Professional headline<input maxLength={90} placeholder="Designer · Entrepreneur · Educator" value={editHeadline} onChange={e=>setEditHeadline(e.target.value)}/></label><label>Skills (comma separated)<input maxLength={230} placeholder="Product design, Robotics, Content creation" value={editSkills} onChange={e=>setEditSkills(e.target.value)}/></label><label>Portfolio link (https://)<input maxLength={300} inputMode="url" value={editPortfolio} onChange={e=>setEditPortfolio(e.target.value)}/></label><label className="profile-collab-edit"><input type="checkbox" checked={editAvailable} onChange={e=>setEditAvailable(e.target.checked)}/><span><strong>Open to collaboration</strong><small>Allow signed-in members to send you a collaboration request.</small></span></label></form></Modal>}
+    {editProfile&&<Modal close={()=>setEditProfile(false)}>
+      <div className="dialog-head"><button className="icon-button" onClick={()=>setEditProfile(false)} aria-label="Close"><X size={22}/></button><strong>Edit profile</strong><button form="edit-profile-form" className="primary-btn" disabled={busy}>{busy?"Saving...":"Save"}</button></div>
+      <form id="edit-profile-form" onSubmit={saveProfile} className="edit-form full-profile-edit">
+        <div className="edit-banner edit-cover-preview">
+          {editBannerPreview&&<img src={editBannerPreview} alt="Cover preview"/>}
+          <label className="edit-cover-upload"><ImagePlus size={18}/><span>Change cover</span><input type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={e=>pickProfileImage(e,"banner")} hidden/></label>
+        </div>
+        <div className="edit-avatar-options">
+          <Avatar profile={{...me,avatar_url:editAvatarPreview||me.avatar_url}} size="large"/>
+          <label><ImagePlus size={17}/> Change profile photo<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={e=>pickProfileImage(e,"avatar")} hidden/></label>
+        </div>
+        <label>Name<input required maxLength={50} value={editName} onChange={e=>setEditName(e.target.value)}/></label>
+        <label>Bio<textarea maxLength={160} rows={3} value={editBio} onChange={e=>setEditBio(e.target.value)}/></label>
+        <label>Location (optional)<input maxLength={90} placeholder="City, country" value={editLocation} onChange={e=>setEditLocation(e.target.value)}/></label>
+        <label>Professional headline<input maxLength={90} placeholder="Creator · Builder · Entrepreneur" value={editHeadline} onChange={e=>setEditHeadline(e.target.value)}/></label>
+        <label>Skills (comma-separated)<input maxLength={230} value={editSkills} onChange={e=>setEditSkills(e.target.value)}/></label>
+        <label>Website / portfolio (https://)<input maxLength={300} inputMode="url" value={editPortfolio} onChange={e=>setEditPortfolio(e.target.value)}/></label>
+        <label className="profile-collab-edit"><input type="checkbox" checked={editAvailable} onChange={e=>setEditAvailable(e.target.checked)}/><span><strong>Open to collaboration</strong><small>Let other members contact you about opportunities.</small></span></label>
+        <p className="edit-photo-note">Images: JPG, PNG, WebP or GIF, up to 5 MB. Changes in demo mode are temporary.</p>
+      </form>
+    </Modal>}
   </div>;
 
   function personRow(p: Profile) {
