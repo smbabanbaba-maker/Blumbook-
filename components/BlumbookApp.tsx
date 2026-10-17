@@ -55,6 +55,10 @@ const NAV: { id: View; label: string; Icon: LucideIcon }[] = [
   { id: "profile", label: "Profile", Icon: UserRound },
   { id: "settings", label: "Settings", Icon: Settings },
 ];
+// Clearly labeled fictional posts are a temporary UI showroom, never rows in Supabase.
+const SAMPLE_POST_IDS=new Set(SHOWCASE_POSTS.map(post=>post.id));
+const SAMPLE_PROFILE_IDS=new Set(SHOWCASE_PEOPLE.map(profile=>profile.id));
+const SAMPLE_FEED_REAL_POST_THRESHOLD=20;
 const demoThreads = [
   { id: "amina", name: "Amina Yusuf", handle: "aminacreates", last: "That sounds amazing! 💙", time: "2m" },
   { id: "ibrahim", name: "Ibrahim Musa", handle: "ibrahimmusa", last: "Let's work on it together.", time: "1h" },
@@ -188,9 +192,9 @@ export default function BlumbookApp({forceDemo=false}:{forceDemo?:boolean}={}) {
   const [threadLoading,setThreadLoading]=useState(false);
   const [threadError,setThreadError]=useState("");
   const [query, setQuery] = useState("");
-  const [posts, setPosts] = useState<Post[]>(forceDemo?SHOWCASE_POSTS:[]);
+  const [posts, setPosts] = useState<Post[]>(SHOWCASE_POSTS);
   const [feedLimit,setFeedLimit]=useState(18);
-  const [people, setPeople] = useState<Profile[]>(forceDemo?SHOWCASE_PEOPLE:[]);
+  const [people, setPeople] = useState<Profile[]>(forceDemo||!configuredCloudEnabled?SHOWCASE_PEOPLE:[]);
   const [member, setMember] = useState<Profile | null>(null);
   const [cloudUserId, setCloudUserId] = useState<string | null>(null);
   const [demoSignedIn, setDemoSignedIn] = useState(false);
@@ -210,8 +214,8 @@ export default function BlumbookApp({forceDemo=false}:{forceDemo?:boolean}={}) {
   const [selectedProfile, setSelectedProfile] = useState("demo-me");
   const [profileTab,setProfileTab] = useState<ProfileTab>("posts");
   const [threadId, setThreadId] = useState<string | null>(null);
-  const [comments, setComments] = useState<Record<string, Comment[]>>(forceDemo?SHOWCASE_COMMENTS_BY_POST:{});
-  const [commentMetrics,setCommentMetrics]=useState<Record<string,CommentMetric>>(forceDemo?SHOWCASE_COMMENT_METRICS:{});
+  const [comments, setComments] = useState<Record<string, Comment[]>>(SHOWCASE_COMMENTS_BY_POST);
+  const [commentMetrics,setCommentMetrics]=useState<Record<string,CommentMetric>>(SHOWCASE_COMMENT_METRICS);
   const [commentFeaturesReady,setCommentFeaturesReady]=useState(!configuredCloudEnabled||forceDemo);
   const [replyingTo,setReplyingTo]=useState<Comment|null>(null);
   const handledCommentLink=useRef<string|null>(null);
@@ -248,7 +252,10 @@ export default function BlumbookApp({forceDemo=false}:{forceDemo?:boolean}={}) {
   const [noticeFilter, setNoticeFilter] = useState("All");
   const [loadingCloud, setLoadingCloud] = useState(isCloudEnabled);
   const me = member || DEMO_ME;
-  const allPeople = useMemo(() => [me, ...people.filter((p) => p.id !== me.id)], [me, people]);
+  const allPeople = useMemo(() => [
+    me,...people.filter(p=>p.id!==me.id),
+    ...SHOWCASE_PEOPLE.filter(p=>p.id!==me.id&&!people.some(real=>real.id===p.id))
+  ],[me,people]);
   const lookup = useCallback((id: string) => allPeople.find((p) => p.id === id) || { id, display_name:"Blumbook member", username:"member", bio:"" }, [allPeople]);
   const isMember = !isCloudEnabled || Boolean(cloudUserId);
   const notify = (message: string) => { setToast(message); window.setTimeout(() => setToast(""), 3400); };
@@ -351,13 +358,23 @@ export default function BlumbookApp({forceDemo=false}:{forceDemo?:boolean}={}) {
       const likesCount = counts(likesData), repostsCount = counts(repostsData), repliesCount = counts(commentsData);
       const commentIndex:Record<string,Comment[]>={};
       for(const c of commentsData||[])commentIndex[c.post_id]=[...(commentIndex[c.post_id]||[]),c];
-      setComments(commentIndex);
-      setPosts((availablePosts || []).map((p) => ({
-        ...p, likes:likesCount[p.id] || 0, reposts:repostsCount[p.id] || 0, replies:repliesCount[p.id] || 0, views:0,
-        liked:(likesData || []).some((l) => l.post_id === p.id && l.user_id === user?.id),
-        bookmarked:(bookmarksData || []).some((b) => b.post_id === p.id && b.user_id === user?.id),
-        reposted:(repostsData || []).some((r) => r.post_id === p.id && r.user_id === user?.id),
-      })));
+      // Real DB rows stay authoritative. Fixture comments live only in client state.
+      setComments(previous=>({...SHOWCASE_COMMENTS_BY_POST,...commentIndex,
+        ...Object.fromEntries(Object.entries(previous).filter(([postId])=>SAMPLE_POST_IDS.has(postId)))
+      }));
+      const realPosts:Post[]=(availablePosts||[]).map((p)=>({
+        ...p,likes:likesCount[p.id]||0,reposts:repostsCount[p.id]||0,replies:repliesCount[p.id]||0,views:0,
+        liked:(likesData||[]).some(l=>l.post_id===p.id&&l.user_id===user?.id),
+        bookmarked:(bookmarksData||[]).some(b=>b.post_id===p.id&&b.user_id===user?.id),
+        reposted:(repostsData||[]).some(r=>r.post_id===p.id&&r.user_id===user?.id),
+      }));
+      // Display sample media *after* real posts until the genuine feed becomes established.
+      // Do not insert any fictional author/post/comment into Supabase.
+      setPosts(previous=>{
+        if(realPosts.length>=SAMPLE_FEED_REAL_POST_THRESHOLD)return realPosts;
+        const existingSamples=previous.filter(p=>SAMPLE_POST_IDS.has(p.id));
+        return [...realPosts,...(existingSamples.length?existingSamples:SHOWCASE_POSTS)];
+      });
     } catch { notify("Could not load the feed. Check your Supabase setup."); }
     finally { setLoadingCloud(false); }
   }, []);
@@ -376,9 +393,9 @@ export default function BlumbookApp({forceDemo=false}:{forceDemo?:boolean}={}) {
   }, [loadCloud]);
 
   const toggleLike = async (post: Post) => {
-    if (!requireAccount()) return;
+    if (!SAMPLE_POST_IDS.has(post.id) && !requireAccount()) return;
     setPosts((old) => old.map((p) => p.id === post.id ? { ...p, liked:!p.liked, likes:p.likes + (p.liked ? -1 : 1) } : p));
-    if (supabase && cloudUserId) {
+    if (supabase && cloudUserId && !SAMPLE_POST_IDS.has(post.id)) {
       const q = supabase.from("likes");
       const { error } = post.liked
         ? await q.delete().eq("post_id", post.id).eq("user_id", cloudUserId)
@@ -387,9 +404,9 @@ export default function BlumbookApp({forceDemo=false}:{forceDemo?:boolean}={}) {
     }
   };
   const toggleRepost = async (post: Post) => {
-    if (!requireAccount()) return;
+    if (!SAMPLE_POST_IDS.has(post.id) && !requireAccount()) return;
     setPosts((old) => old.map((p) => p.id === post.id ? { ...p, reposted:!p.reposted, reposts:p.reposts + (p.reposted ? -1 : 1) } : p));
-    if (supabase && cloudUserId) {
+    if (supabase && cloudUserId && !SAMPLE_POST_IDS.has(post.id)) {
       const q = supabase.from("reposts");
       const { error } = post.reposted
         ? await q.delete().eq("post_id", post.id).eq("user_id", cloudUserId)
@@ -398,9 +415,9 @@ export default function BlumbookApp({forceDemo=false}:{forceDemo?:boolean}={}) {
     }
   };
   const toggleBookmark = async (post: Post) => {
-    if (!requireAccount()) return;
+    if (!SAMPLE_POST_IDS.has(post.id) && !requireAccount()) return;
     setPosts((old) => old.map((p) => p.id === post.id ? { ...p, bookmarked:!p.bookmarked } : p));
-    if (supabase && cloudUserId) {
+    if (supabase && cloudUserId && !SAMPLE_POST_IDS.has(post.id)) {
       const q = supabase.from("bookmarks");
       const { error } = post.bookmarked
         ? await q.delete().eq("post_id", post.id).eq("user_id", cloudUserId)
@@ -410,10 +427,10 @@ export default function BlumbookApp({forceDemo=false}:{forceDemo?:boolean}={}) {
     notify(post.bookmarked ? "Removed from bookmarks" : "Saved to bookmarks");
   };
   const toggleFollow = async (id: string) => {
-    if (!requireAccount() || id === me.id) return;
+    if (id===me.id || (!SAMPLE_PROFILE_IDS.has(id)&&!requireAccount())) return;
     const exists = followed.includes(id);
     setFollowed((old) => exists ? old.filter((i) => i !== id) : [...old, id]);
-    if (supabase && cloudUserId) {
+    if (supabase && cloudUserId && !SAMPLE_PROFILE_IDS.has(id)) {
       const q = supabase.from("follows");
       const { error } = exists
         ? await q.delete().eq("follower_id", cloudUserId).eq("following_id", id)
@@ -422,7 +439,7 @@ export default function BlumbookApp({forceDemo=false}:{forceDemo?:boolean}={}) {
     }
   };
   const loadCommentConversation = async (postId:string)=>{
-    if(!supabase)return;
+    if(SAMPLE_POST_IDS.has(postId)||!supabase){setThreadError("");setThreadLoading(false);return;}
     setThreadError("");
     setThreadLoading(true);
     try{
@@ -463,14 +480,15 @@ export default function BlumbookApp({forceDemo=false}:{forceDemo?:boolean}={}) {
     window.requestAnimationFrame(()=>document.getElementById("thread-reply-input")?.focus());
   };
   const commentAction=async(comment:Comment,kind:"likes"|"reposts"|"bookmarks")=>{
-    if(!requireAccount())return;
-    if(supabase&&!commentFeaturesReady){notify("Comment reactions need the Supabase comment-interactions migration.");return;}
+    const isSample=SAMPLE_POST_IDS.has(comment.post_id);
+    if(!isSample&&!requireAccount())return;
+    if(!isSample&&supabase&&!commentFeaturesReady){notify("Comment reactions need the Supabase comment-interactions migration.");return;}
     const current=commentMetrics[comment.id]||{likes:0,reposts:0,liked:false,reposted:false,bookmarked:false};
     const flag=kind==="likes"?"liked":kind==="reposts"?"reposted":"bookmarked";
     const undo=current[flag];
     const next={...current,[flag]:!undo,...(kind==="likes"?{likes:Math.max(0,current.likes+(undo?-1:1))}:kind==="reposts"?{reposts:Math.max(0,current.reposts+(undo?-1:1))}:{})};
     setCommentMetrics(prev=>({...prev,[comment.id]:next}));
-    if(supabase&&cloudUserId){
+    if(!isSample&&supabase&&cloudUserId){
       const table=kind==="likes"?"comment_likes":kind==="reposts"?"comment_reposts":"comment_bookmarks";
       const request=undo?supabase.from(table).delete().eq("comment_id",comment.id).eq("user_id",cloudUserId):
        supabase.from(table).insert({comment_id:comment.id,user_id:cloudUserId});
@@ -479,7 +497,7 @@ export default function BlumbookApp({forceDemo=false}:{forceDemo?:boolean}={}) {
     }
   };
   const shareComment=async(comment:Comment)=>{
-    const url=window.location.origin+(forceDemo?"/demo":"/")+"?post="+encodeURIComponent(comment.post_id)+"&comment="+encodeURIComponent(comment.id);
+    const url=window.location.origin+(forceDemo||SAMPLE_POST_IDS.has(comment.post_id)?"/demo":"/")+"?post="+encodeURIComponent(comment.post_id)+"&comment="+encodeURIComponent(comment.id);
     try{
       if(navigator.share){await navigator.share({title:"Blumbook comment",url});return;}
       await navigator.clipboard.writeText(url);notify("Comment link copied.");
@@ -491,13 +509,13 @@ export default function BlumbookApp({forceDemo=false}:{forceDemo?:boolean}={}) {
   };
   const sendReply = async (e: FormEvent) => {
     e.preventDefault();
-    if (!threadId || !replyText.trim() || !requireAccount() || busy) return;
-    if (replyingTo&&supabase&&!commentFeaturesReady){notify("Nested replies need the Supabase comment-interactions migration.");return;}
+    if (!threadId || !replyText.trim() || busy || (!SAMPLE_POST_IDS.has(threadId)&&!requireAccount())) return;
+    if (replyingTo&&supabase&&!SAMPLE_POST_IDS.has(threadId)&&!commentFeaturesReady){notify("Nested replies need the Supabase comment-interactions migration.");return;}
     const body = replyText.trim();
     // MVP supports one nested level: replying to a nested comment attaches to its parent.
     const parent=replyingTo?(replyingTo.parent_comment_id||replyingTo.id):null;
     setBusy(true);
-    if (supabase && cloudUserId) {
+    if (supabase && cloudUserId && !SAMPLE_POST_IDS.has(threadId)) {
       const values={post_id:threadId,author_id:cloudUserId,body,...(parent?{parent_comment_id:parent}:{})};
       const {error}=await supabase.from("comments").insert(values);
       if(error)notify(error.message);
@@ -627,7 +645,7 @@ export default function BlumbookApp({forceDemo=false}:{forceDemo?:boolean}={}) {
     window.history.replaceState({},"",url.pathname+url.search);
   };
   const share = async (post: Post) => {
-    const url = window.location.origin + (forceDemo?"/demo":"/") + "?post=" + encodeURIComponent(post.id);
+    const url = window.location.origin + (forceDemo||SAMPLE_POST_IDS.has(post.id)?"/demo":"/") + "?post=" + encodeURIComponent(post.id);
     try { await navigator.clipboard.writeText(url); notify("Link copied to clipboard"); }
     catch { notify("Share this post: " + url); }
   };
@@ -660,11 +678,14 @@ export default function BlumbookApp({forceDemo=false}:{forceDemo?:boolean}={}) {
     const person=allPeople.find(p=>p.username.toLowerCase()===slug.toLowerCase());
     if(person){setSelectedProfile(person.id);setView("profile");}
   },[allPeople]);
-  const filteredPosts = posts.filter(p=>!blockedAuthors.includes(p.author_id)&&!mutedAuthors.includes(p.author_id)).sort((a,b)=>new Date(b.created_at).getTime()-new Date(a.created_at).getTime());
+  const filteredPosts = posts.filter(p=>!blockedAuthors.includes(p.author_id)&&!mutedAuthors.includes(p.author_id))
+    .sort((a,b)=>Number(SAMPLE_POST_IDS.has(a.id))-Number(SAMPLE_POST_IDS.has(b.id))||
+      new Date(b.created_at).getTime()-new Date(a.created_at).getTime());
   const searchPosts = posts.filter((p) => !blockedAuthors.includes(p.author_id) && !mutedAuthors.includes(p.author_id) && (p.body.toLowerCase().includes(query.toLowerCase()) || lookup(p.author_id).display_name.toLowerCase().includes(query.toLowerCase())));
   const searchProfiles = people.filter((p) => p.display_name.toLowerCase().includes(query.toLowerCase()) || p.username.toLowerCase().includes(query.toLowerCase()));
   const mute=(id:string)=>{if(id===me.id){notify("Cannot mute yourself.");return;}const next=[...new Set([...mutedAuthors,id])];setMutedAuthors(next);window.localStorage.setItem("blumbook-muted",JSON.stringify(next));notify("Muted in this browser. You can undo in Settings.");};
   const report=async(p:Post,reason:string)=>{
+    if(SAMPLE_POST_IDS.has(p.id)){notify("This is a sample post, not a real account.");return;}
     if(!supabase || !cloudUserId){notify("Reporting is not enabled in the public demo.");return;}
     const {error}=await supabase.from("content_reports").insert({reporter_id:cloudUserId,post_id:p.id,reason});
     if(error)notify(error.code==="23505"?"Already reported.":error.message);
@@ -692,12 +713,14 @@ export default function BlumbookApp({forceDemo=false}:{forceDemo?:boolean}={}) {
   };
   const openMessagePreview=(p:Profile)=>{
     setProfileMore(false);
+    if(SAMPLE_PROFILE_IDS.has(p.id)){notify("This is a sample profile. No real messages can be sent.");return;}
     if(!requireAccount())return;
     navigate("messages");setChatWith(p.id);
     if(!isCloudEnabled)notify("Demo only — messages are not sent to other people.");
   };
   const openCollab=(p:Profile)=>{
     setProfileMore(false);
+    if(SAMPLE_PROFILE_IDS.has(p.id)){notify("Sample profile: collaboration requests are not sent.");return;}
     if(!requireAccount())return;
     setCollabTarget(p);setCollabKind("Project");setCollabMessage("");
   };
@@ -734,6 +757,7 @@ export default function BlumbookApp({forceDemo=false}:{forceDemo?:boolean}={}) {
   };
   const submitProfileReport=async(e:FormEvent)=>{
     e.preventDefault();if(!profileReport)return;
+    if(SAMPLE_PROFILE_IDS.has(profileReport.id)){setProfileReport(null);notify("Sample profile: no report is needed.");return;}
     if(!supabase||!cloudUserId){notify("Profile reporting is unavailable in demo mode.");return;}
     setBusy(true);
     const {error}=await supabase.from("profile_reports").insert({
@@ -747,7 +771,7 @@ export default function BlumbookApp({forceDemo=false}:{forceDemo?:boolean}={}) {
     const author=lookup(c.author_id);
     const metric=commentMetrics[c.id]||{likes:0,reposts:0,liked:false,reposted:false,bookmarked:false};
     const childCount=(comments[c.post_id]||[]).filter(r=>r.parent_comment_id===c.id).length;
-    const sampleViews=!isCloudEnabled&&c.id.startsWith("showcase-")
+    const sampleViews=SAMPLE_POST_IDS.has(c.post_id)
       ? 46+c.id.split("").reduce((n,ch)=>n+ch.charCodeAt(0),0)%930
       : undefined;
     return <CommentCard key={c.id} comment={c} author={author} depth={depth} childCount={childCount}
@@ -760,7 +784,7 @@ export default function BlumbookApp({forceDemo=false}:{forceDemo?:boolean}={}) {
       onShare={item=>void shareComment(item)}
       onMute={mute}>{children}</CommentCard>;
   };
-  const postProps = (p: Post) => ({ key:p.id, post:p, isDemo:!isCloudEnabled, author:lookup(p.author_id), onLike:toggleLike, onRepost:toggleRepost, onBookmark:toggleBookmark, onReply:openThread, onOpen:openThread, onProfile:openProfile, onShare:share,onMute:mute,onReport:report,onViewVideo:openVideo,onTranslate:(post:Post)=>{setAiSeed(post.body);setAiTask("translate");navigate("ai");} });
+  const postProps = (p: Post) => ({ key:p.id, post:p, isDemo:!isCloudEnabled||SAMPLE_POST_IDS.has(p.id), author:lookup(p.author_id), onLike:toggleLike, onRepost:toggleRepost, onBookmark:toggleBookmark, onReply:openThread, onOpen:openThread, onProfile:openProfile, onShare:share,onMute:mute,onReport:report,onViewVideo:openVideo,onTranslate:(post:Post)=>{setAiSeed(post.body);setAiTask("translate");navigate("ai");} });
   const pickImage = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (!f) return;
@@ -972,7 +996,7 @@ export default function BlumbookApp({forceDemo=false}:{forceDemo?:boolean}={}) {
             </div>
           </div>
           <div className="full-profile-name">
-            <h2><Name profile={activeProfile}/></h2>
+            <h2><Name profile={activeProfile}/>{SAMPLE_PROFILE_IDS.has(activeProfile.id)&&<span className="post-sample-chip">Sample profile</span>}</h2>
             <span>@{activeProfile.username}</span>
           </div>
           {activeProfile.headline&&<p className="full-profile-headline">{activeProfile.headline}</p>}
@@ -1029,6 +1053,7 @@ export default function BlumbookApp({forceDemo=false}:{forceDemo?:boolean}={}) {
             <button className="thread-author-avatar" aria-label={"View "+lookup(selectedPost.author_id).display_name+" profile"} onClick={()=>openProfile(selectedPost.author_id)}><Avatar profile={lookup(selectedPost.author_id)}/></button>
             <button className="thread-author-info" onClick={()=>openProfile(selectedPost.author_id)}>
               <Name profile={lookup(selectedPost.author_id)}/>
+              {SAMPLE_POST_IDS.has(selectedPost.id)&&<span className="post-sample-chip">Sample</span>}
               <small>@{lookup(selectedPost.author_id).username}</small>
             </button>
             {selectedPost.author_id!==me.id&&<button className="thread-follow" onClick={()=>void toggleFollow(selectedPost.author_id)}>{followed.includes(selectedPost.author_id)?"Following":"Follow"}</button>}
@@ -1038,7 +1063,7 @@ export default function BlumbookApp({forceDemo=false}:{forceDemo?:boolean}={}) {
           {selectedPost.video_url&&<button className="thread-main-video" onClick={()=>openVideo(selectedPost)} aria-label="Play post video"><video src={selectedPost.video_url} preload="metadata" playsInline muted/><span><Play size={22} fill="currentColor"/></span></button>}
           <div className="thread-published">
             <time dateTime={selectedPost.created_at}>{new Date(selectedPost.created_at).toLocaleTimeString(language==="ha"?"ha-NG":"en-US",{hour:"numeric",minute:"2-digit"})} · {new Date(selectedPost.created_at).toLocaleDateString(language==="ha"?"ha-NG":"en-US",{month:"short",day:"numeric",year:"numeric"})}</time>
-            {!isCloudEnabled&&<span> · <strong>{shortCount(selectedPost.views)}</strong> sample views</span>}
+            {(!isCloudEnabled||SAMPLE_POST_IDS.has(selectedPost.id))&&<span> · <strong>{shortCount(selectedPost.views)}</strong> sample views</span>}
           </div>
           <div className="thread-engagement">
             <span><strong>{shortCount(selectedPost.reposts)}</strong> Reposts</span>
