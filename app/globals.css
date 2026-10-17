@@ -1133,3 +1133,12 @@ button.settings-detail-row:hover { background:var(--hover); }
 .opp-applications small {display:block;color:var(--muted);font-size:11px;}
 .opp-applications button {display:inline-flex;align-items:center;gap:6px;padding:9px 13px;border-radius:20px;background:var(--text);color:var(--ink);font-size:12px;font-weight:800;margin:12px 0 0;}
 .opp-applications>p {color:var(--muted);font-size:13px;line-height:1.65;}
+
+@media(max-width:700px) {
+ .menu-extra-trigger>svg:last-child { margin-left:auto; color:var(--muted); transition:transform .2s; }
+ .menu-extra-trigger>svg:last-child.rotated { transform:rotate(180deg); }
+ .menu-extra-items { display:flex; flex-direction:column; margin:0 4px 8px 20px; padding-left:15px; border-left:1px solid var(--line); }
+ .menu-extra-items button { display:flex; align-items:center; gap:12px; padding:12px 7px; min-height:47px; text-align:left; font-size:13px; }
+ .menu-extra-items button span { flex:1; }
+ .menu-extra-items button small { color:var(--muted); font-size:10px; }
+}

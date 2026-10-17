@@ -208,6 +208,7 @@ export default function BlumbookApp() {
   const [toast, setToast] = useState("");
   const [busy, setBusy] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [extraToolsOpen,setExtraToolsOpen]=useState(false);
   const [noticeFilter, setNoticeFilter] = useState("All");
   const [loadingCloud, setLoadingCloud] = useState(isCloudEnabled);
   const me = member || DEMO_ME;
@@ -646,6 +647,12 @@ export default function BlumbookApp() {
             <button onClick={()=>navigate("opportunities")}><Handshake size={23}/><span>Bloom Opportunities</span></button>
             <button onClick={()=>navigate("videos")}><Video size={23}/><span>Videos</span></button>
             <button onClick={()=>navigate("creator")}><ChartNoAxesCombined size={23}/><span>{tr("Creator Studio")}</span></button>
+            <button className="menu-extra-trigger" aria-expanded={extraToolsOpen} onClick={()=>setExtraToolsOpen(v=>!v)}><Plus size={23}/><span>More tools</span><ChevronDown className={extraToolsOpen?"rotated":""} size={18}/></button>
+            {extraToolsOpen&&<div className="menu-extra-items">
+              <button onClick={()=>navigate("premium")}><Crown size={20}/><span>Premium</span><small>Coming soon</small></button>
+              <button onClick={()=>navigate("spaces")}><Radio size={20}/><span>Spaces</span><small>Coming soon</small></button>
+              <button onClick={()=>navigate("lists")}><List size={20}/><span>My Lists</span><small>Device only</small></button>
+            </div>}
             <button onClick={()=>navigate("settings")}><Settings size={23}/><span>{tr("Settings")}</span></button>
             <button onClick={()=>navigate("help")}><CircleHelp size={23}/><span>{tr("Help Center")}</span></button>
           </nav>
