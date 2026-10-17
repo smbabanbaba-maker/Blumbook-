@@ -190,7 +190,6 @@ export default function BlumbookApp({forceDemo=false}:{forceDemo?:boolean}={}) {
   const [query, setQuery] = useState("");
   const [posts, setPosts] = useState<Post[]>(forceDemo?SHOWCASE_POSTS:[]);
   const [feedLimit,setFeedLimit]=useState(18);
-  const feedLoadRef=useRef<HTMLDivElement|null>(null);
   const [people, setPeople] = useState<Profile[]>(forceDemo?SHOWCASE_PEOPLE:[]);
   const [member, setMember] = useState<Profile | null>(null);
   const [cloudUserId, setCloudUserId] = useState<string | null>(null);
@@ -661,21 +660,7 @@ export default function BlumbookApp({forceDemo=false}:{forceDemo?:boolean}={}) {
     const person=allPeople.find(p=>p.username.toLowerCase()===slug.toLowerCase());
     if(person){setSelectedProfile(person.id);setView("profile");}
   },[allPeople]);
-  const filteredPosts = posts.filter(p=>!blockedAuthors.includes(p.author_id)&&!mutedAuthors.includes(p.author_id))
-    .sort((a,b)=>new Date(b.created_at).getTime()-new Date(a.created_at).getTime());
-  // Render long demo timelines progressively; avoid mounting dozens of video players at once.
-  useEffect(()=>{
-    if(view!=="home"||feedLimit>=filteredPosts.length)return;
-    const node=feedLoadRef.current;
-    if(!node||typeof IntersectionObserver==="undefined")return;
-    const observer=new IntersectionObserver(entries=>{
-      if(entries.some(entry=>entry.isIntersecting)){
-        setFeedLimit(n=>Math.min(n+12,filteredPosts.length));
-      }
-    },{rootMargin:"320px 0px"});
-    observer.observe(node);
-    return()=>observer.disconnect();
-  },[view,feedLimit,filteredPosts.length]);
+  const filteredPosts = posts.filter(p=>!blockedAuthors.includes(p.author_id)&&!mutedAuthors.includes(p.author_id)).sort((a,b)=>new Date(b.created_at).getTime()-new Date(a.created_at).getTime());
   const searchPosts = posts.filter((p) => !blockedAuthors.includes(p.author_id) && !mutedAuthors.includes(p.author_id) && (p.body.toLowerCase().includes(query.toLowerCase()) || lookup(p.author_id).display_name.toLowerCase().includes(query.toLowerCase())));
   const searchProfiles = people.filter((p) => p.display_name.toLowerCase().includes(query.toLowerCase()) || p.username.toLowerCase().includes(query.toLowerCase()));
   const mute=(id:string)=>{if(id===me.id){notify("Cannot mute yourself.");return;}const next=[...new Set([...mutedAuthors,id])];setMutedAuthors(next);window.localStorage.setItem("blumbook-muted",JSON.stringify(next));notify("Muted in this browser. You can undo in Settings.");};
@@ -921,9 +906,9 @@ export default function BlumbookApp({forceDemo=false}:{forceDemo?:boolean}={}) {
         {loadingCloud&&<div className="feed-skeleton" role="status" aria-label="Loading posts">{[0,1,2].map(i=><div key={i} className="skeleton-post"><span className="skeleton-avatar"/><div><i/><i/><i/></div></div>)}</div>}
         {!loadingCloud&&filteredPosts.length===0&&<div className="empty-state clean-home-empty"><h3>No posts yet</h3><p>Start a conversation, or discover people in Explore.</p><button className="outline-btn" onClick={()=>navigate("explore")}>Explore people</button></div>}
         {!loadingCloud&&filteredPosts.slice(0,feedLimit).map(post=><PostCard {...postProps(post)}/>)}
-        {!loadingCloud&&filteredPosts.length>feedLimit&&<div ref={feedLoadRef} className="feed-scroll-sentinel">
-          <button onClick={()=>setFeedLimit(n=>Math.min(n+12,filteredPosts.length))}>See more posts</button>
-        </div>}}
+        {!loadingCloud&&filteredPosts.length>feedLimit&&<div className="feed-scroll-sentinel">
+          <button onClick={()=>setFeedLimit(n=>Math.min(n+18,filteredPosts.length))}>See more posts</button>
+        </div>}
       </section>}
 
       {view === "explore" && <>
