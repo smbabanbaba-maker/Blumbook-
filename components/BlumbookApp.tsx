@@ -81,16 +81,16 @@ function Brand({ compact = false }: { compact?: boolean }) {
   return <span className={"brand " + (compact ? "brand-compact" : "")}><img src="/logo.svg" alt="" /><strong>Blumbook</strong></span>;
 }
 function PostCard({
-  post, author, onLike, onRepost, onBookmark, onReply, onProfile, onShare, onMute, onReport, onViewMedia, onTranslate,
+  post, author, onLike, onRepost, onBookmark, onReply, onOpen, onProfile, onShare, onMute, onReport, onViewMedia, onTranslate,
 }: {
   post: Post; author: Profile; onLike: (post: Post) => void; onRepost: (post: Post) => void;
-  onBookmark: (post: Post) => void; onReply: (post: Post) => void;
+  onBookmark: (post: Post) => void; onReply: (post: Post) => void; onOpen:(post:Post)=>void;
   onProfile: (id: string) => void; onShare: (post: Post) => void;
   onMute:(id:string)=>void;onReport:(post:Post,reason:string)=>void;onViewMedia:(post:Post)=>void;onTranslate:(post:Post)=>void;
 }) {
   const [options,setOptions]=useState(false);
-  return <article className="post-card">
-    <div className="post-avatar"><Avatar profile={author} /></div>
+  return <article className="post-card" onClick={e=>{const el=e.target;if(el instanceof Element&&!el.closest("button,a,input,textarea,select"))onOpen(post);}}>
+    <button className="post-avatar" aria-label={"View profile of "+author.display_name} onClick={()=>onProfile(author.id)}><Avatar profile={author}/></button>
     <div className="post-main">
       <div className="post-top">
         <button className="post-user" onClick={() => onProfile(author.id)}>
@@ -104,7 +104,7 @@ function PostCard({
             <button onClick={()=>{onReport(post,"Harassment");setOptions(false);}}>Report harassment (beta)</button>
           </div>}</div>
       </div>
-      <div className="post-body">{post.body}</div><button className="post-translate-link" onClick={()=>onTranslate(post)}><Languages size={14}/> Translate / Blum AI</button>
+      <button className="post-body post-body-open" aria-label="Open post conversation" onClick={()=>onOpen(post)}>{post.body}</button><button className="post-translate-link" onClick={()=>onTranslate(post)}><Languages size={14}/> Translate / Blum AI</button>
       {post.image_url&&<button className="post-image-wrap" aria-label="Open image viewer" onClick={()=>onViewMedia(post)}><img className="post-image" src={post.image_url} alt="Shared image" loading="lazy"/></button>}{post.video_url&&<button className="post-video-preview" aria-label="Watch video" onClick={()=>onViewMedia(post)}><video src={post.video_url} preload="metadata" muted playsInline/><span><Play size={21}/> Watch video</span></button>}
       <div className="post-actions">
         <button aria-label="Reply" onClick={() => onReply(post)}><MessageCircle size={18}/><span>{shortCount(post.replies)}</span></button>
@@ -178,6 +178,10 @@ export default function BlumbookApp() {
     window.localStorage.setItem("blumbook-compact-text", String(compactText));
   }, [notifyPrefs, compactText, themeLoaded]);
   const [tab, setTab] = useState<Tab>("for-you");
+  const [threadReturnView,setThreadReturnView]=useState<View>("home");
+  const [replyOrder,setReplyOrder]=useState<"recent"|"oldest">("recent");
+  const [threadLoading,setThreadLoading]=useState(false);
+  const [threadError,setThreadError]=useState("");
   const [query, setQuery] = useState("");
   const [posts, setPosts] = useState<Post[]>(DEMO_POSTS);
   const [people, setPeople] = useState<Profile[]>(DEMO_PEOPLE);
@@ -407,10 +411,21 @@ export default function BlumbookApp() {
     }
   };
   const openThread = async (post: Post) => {
-    setThreadId(post.id); navigate("thread");
-    if (supabase) {
-      const { data } = await supabase.from("comments").select("id, post_id, author_id, body, created_at").eq("post_id", post.id).order("created_at");
-      if (data) setComments((old) => ({ ...old, [post.id]:data }));
+    if(view!=="thread")setThreadReturnView(view);
+    setThreadId(post.id);
+    setReplyOrder("recent");
+    setReplyText("");
+    setThreadError("");
+    setThreadLoading(Boolean(supabase));
+    navigate("thread");
+    if(supabase){
+      try{
+        const {data,error}=await supabase.from("comments").select("id,post_id,author_id,body,created_at").eq("post_id",post.id).order("created_at");
+        if(error)setThreadError("Replies could not be loaded. Try again.");
+        else setComments(old=>({...old,[post.id]:data||[]}));
+      }catch{
+        setThreadError("Replies could not be loaded. Try again.");
+      }finally{setThreadLoading(false);}
     }
   };
   const sendReply = async (e: FormEvent) => {
@@ -646,7 +661,7 @@ export default function BlumbookApp() {
     if(error){notify(error.code==="23505"?"You have already reported this account.":"Could not submit report. Check the Phase 3 migration.");return;}
     setProfileReport(null);notify("Report saved for future moderation. A human review queue is not active yet.");
   };
-  const postProps = (p: Post) => ({ key:p.id, post:p, author:lookup(p.author_id), onLike:toggleLike, onRepost:toggleRepost, onBookmark:toggleBookmark, onReply:openThread, onProfile:openProfile, onShare:share,onMute:mute,onReport:report,onViewMedia:openMedia,onTranslate:(post:Post)=>{setAiSeed(post.body);setAiTask("translate");navigate("ai");} });
+  const postProps = (p: Post) => ({ key:p.id, post:p, author:lookup(p.author_id), onLike:toggleLike, onRepost:toggleRepost, onBookmark:toggleBookmark, onReply:openThread, onOpen:openThread, onProfile:openProfile, onShare:share,onMute:mute,onReport:report,onViewMedia:openMedia,onTranslate:(post:Post)=>{setAiSeed(post.body);setAiTask("translate");navigate("ai");} });
   const pickImage = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (!f) return;
@@ -774,7 +789,7 @@ export default function BlumbookApp() {
     </aside>
 
     <main className="main-column">
-      <div className={"mobile-topbar " + (view === "settings" ? "mobile-topbar-settings" : "") + (view==="clips" ? " mobile-topbar-clips" : "")}>
+      <div className={"mobile-topbar " + (view === "settings" ? "mobile-topbar-settings" : "") + (view==="clips" ? " mobile-topbar-clips" : "") + (view==="thread" ? " mobile-topbar-thread" : "")}>
         {view === "settings" ? <>
           <button className="icon-button" onClick={() => settingsPanel ? setSettingsPanel(null) : navigate("home")} aria-label="Back"><ArrowLeft size={25}/></button>
           <div className="mobile-settings-heading"><strong>{settingsPanel ? settingsConfig.find(s => s.id === settingsPanel)?.title : "Settings"}</strong><small>@{me.username}</small></div>
@@ -908,11 +923,67 @@ export default function BlumbookApp() {
         </>}
       </>}
 
-      {view === "thread" && selectedPost && <>
-        <PanelTitle onBack={()=>navigate("home")}>Post</PanelTitle><PostCard {...postProps(selectedPost)}/>
-        <form className="reply-form" onSubmit={sendReply}><Avatar profile={me} size="small"/><input aria-label="Post a reply" value={replyText} onChange={(e)=>setReplyText(e.target.value)} placeholder="Post your reply" maxLength={500}/><button className="primary-btn" disabled={busy || !replyText.trim()}>Reply</button></form>
-        {(comments[selectedPost.id]||[]).map((c)=><div className="reply-row" key={c.id}><Avatar profile={lookup(c.author_id)} size="small"/><div><strong>{lookup(c.author_id).display_name}</strong><small>@{lookup(c.author_id).username} · {timeAgo(c.created_at)}</small><p>{c.body}</p></div></div>)}
-      </>}
+      {view==="thread"&&selectedPost&&<section className="thread-detail" aria-label="Post conversation">
+        <header className="thread-detail-header">
+          <button aria-label="Back to previous screen" onClick={()=>navigate(threadReturnView)}><ArrowLeft size={23}/></button>
+          <strong>Post</strong>
+          <button aria-label="Share post" onClick={()=>void share(selectedPost)}><Share2 size={19}/></button>
+        </header>
+        <article className="thread-original">
+          <div className="thread-author-line">
+            <button className="thread-author-avatar" aria-label={"View "+lookup(selectedPost.author_id).display_name+" profile"} onClick={()=>openProfile(selectedPost.author_id)}><Avatar profile={lookup(selectedPost.author_id)}/></button>
+            <button className="thread-author-info" onClick={()=>openProfile(selectedPost.author_id)}>
+              <Name profile={lookup(selectedPost.author_id)}/>
+              <small>@{lookup(selectedPost.author_id).username}</small>
+            </button>
+            {selectedPost.author_id!==me.id&&<button className="thread-follow" onClick={()=>void toggleFollow(selectedPost.author_id)}>{followed.includes(selectedPost.author_id)?"Following":"Follow"}</button>}
+          </div>
+          <p className="thread-original-text">{selectedPost.body}</p>
+          {selectedPost.image_url&&<button className="thread-main-image" onClick={()=>openMedia(selectedPost)} aria-label="View post photo"><img src={selectedPost.image_url} alt="Photo in post" loading="lazy"/></button>}
+          {selectedPost.video_url&&<button className="thread-main-video" onClick={()=>openMedia(selectedPost)} aria-label="Play post video"><video src={selectedPost.video_url} preload="metadata" playsInline muted/><span><Play size={22} fill="currentColor"/></span></button>}
+          <div className="thread-published">
+            <time dateTime={selectedPost.created_at}>{new Date(selectedPost.created_at).toLocaleTimeString(language==="ha"?"ha-NG":"en-US",{hour:"numeric",minute:"2-digit"})} · {new Date(selectedPost.created_at).toLocaleDateString(language==="ha"?"ha-NG":"en-US",{month:"short",day:"numeric",year:"numeric"})}</time>
+            {!isCloudEnabled&&<span> · <strong>{shortCount(selectedPost.views)}</strong> sample views</span>}
+          </div>
+          <div className="thread-engagement">
+            <span><strong>{shortCount(selectedPost.reposts)}</strong> Reposts</span>
+            <span><strong>{shortCount(selectedPost.likes)}</strong> Likes</span>
+            <span><strong>{shortCount(selectedPost.replies)}</strong> Replies</span>
+          </div>
+          <div className="thread-actions" role="group" aria-label="Post actions">
+            <button aria-label="Write a reply" onClick={()=>document.getElementById("thread-reply-input")?.focus()}><MessageCircle size={19}/></button>
+            <button className={selectedPost.reposted?"is-active":""} aria-label="Repost" onClick={()=>void toggleRepost(selectedPost)}><Repeat2 size={19}/></button>
+            <button className={selectedPost.liked?"is-active":""} aria-label={selectedPost.liked?"Unlike post":"Like post"} onClick={()=>void toggleLike(selectedPost)}><Heart size={19} fill={selectedPost.liked?"currentColor":"none"}/></button>
+            <button className={selectedPost.bookmarked?"is-active":""} aria-label="Bookmark" onClick={()=>void toggleBookmark(selectedPost)}><Bookmark size={19} fill={selectedPost.bookmarked?"currentColor":"none"}/></button>
+            <button aria-label="Share" onClick={()=>void share(selectedPost)}><Share2 size={19}/></button>
+          </div>
+        </article>
+        <div className="thread-discussion-bar">
+          <span>Replies</span>
+          <label><span className="visually-hidden">Sort replies</span><select aria-label="Sort replies" value={replyOrder} onChange={e=>setReplyOrder(e.target.value as "recent"|"oldest")}><option value="recent">Latest</option><option value="oldest">Oldest</option></select><ChevronDown size={15}/></label>
+        </div>
+        <div className="thread-replies">
+          {threadLoading&&<p className="thread-reply-notice" role="status">Loading replies…</p>}
+          {threadError&&<div className="thread-reply-notice" role="alert"><span>{threadError}</span><button onClick={()=>void openThread(selectedPost)}>Retry</button></div>}
+          {!threadLoading&&!threadError&&(comments[selectedPost.id]||[]).length===0&&<p className="thread-reply-notice">No replies loaded yet. Be the first to join the conversation.</p>}
+          {!threadLoading&&!threadError&&[...(comments[selectedPost.id]||[])].sort((a,b)=>replyOrder==="recent"?new Date(b.created_at).getTime()-new Date(a.created_at).getTime():new Date(a.created_at).getTime()-new Date(b.created_at).getTime()).map(c=>{
+            const author=lookup(c.author_id);
+            return <article className="thread-reply" key={c.id}>
+              <button className="thread-reply-avatar" onClick={()=>openProfile(author.id)} aria-label={"View "+author.display_name}><Avatar profile={author} size="small"/></button>
+              <div className="thread-reply-content">
+                <button className="thread-reply-author" onClick={()=>openProfile(author.id)}><strong>{author.display_name}</strong><span>@{author.username} · {timeAgo(c.created_at)}</span></button>
+                <p>{c.body}</p>
+                <button className="thread-reply-shortcut" onClick={()=>{setReplyText("@"+author.username+" ");document.getElementById("thread-reply-input")?.focus();}}><MessageCircle size={15}/> Reply</button>
+              </div>
+            </article>;
+          })}
+        </div>
+        <form className="thread-composer" onSubmit={sendReply}>
+          <Avatar profile={me} size="small"/>
+          <textarea id="thread-reply-input" rows={1} aria-label="Write your reply" placeholder="Post your reply" maxLength={500} value={replyText} onChange={e=>setReplyText(e.target.value)} />
+          <button type="submit" aria-label="Send reply" disabled={busy||!replyText.trim()}><Send size={19}/></button>
+        </form>
+      </section>}
 
       {view === "settings" && <section className={"settings-page "+(compactText?"settings-compact":"")}>
         <div className="settings-desktop-heading"><button className="settings-back" onClick={() => settingsPanel ? backFromSettings() : navigate("home")} aria-label="Go back"><ArrowLeft size={23}/></button><div><h1>{settingsPanel ? settingsConfig.find(s=>s.id===settingsPanel)?.title : "Settings"}</h1><span>@{me.username}</span></div></div>
@@ -1011,10 +1082,10 @@ export default function BlumbookApp() {
       <footer className="right-footer">About · Privacy · Terms · Accessibility<br/>© {new Date().getFullYear()} Blumbook. Talk. Share. Bloom.</footer>
     </aside>
 
-    <nav className={"mobile-bottom "+((view==="settings"||view==="clips")?"mobile-bottom-hidden":"")+(navHidden?" auto-hide-nav":"")+(menuOpen?" bb-behind-menu":"")} aria-label="Main navigation">
+    <nav className={"mobile-bottom "+((view==="settings"||view==="clips"||view==="thread")?"mobile-bottom-hidden":"")+(navHidden?" auto-hide-nav":"")+(menuOpen?" bb-behind-menu":"")} aria-label="Main navigation">
       {NAV.filter((n)=>["home","explore","clips","notifications","messages"].includes(n.id)).map(({id,label,Icon})=><button aria-label={label} key={id} className={view===id?"active":""} onClick={()=>navigate(id)}><Icon size={25} strokeWidth={view===id?2.7:1.9}/>{id==="notifications"&&<span className="nav-dot"/>}</button>)}
     </nav>
-    <button aria-label="Open creation menu" className={"floating-compose "+((view==="settings"||view==="clips")?"floating-compose-hidden":"")+(navHidden?" auto-hide-compose":"")+(menuOpen?" bb-behind-menu":"")} onClick={()=>setCreateMenuOpen(true)}><Plus size={28}/></button>
+    <button aria-label="Open creation menu" className={"floating-compose "+((view==="settings"||view==="clips"||view==="thread")?"floating-compose-hidden":"")+(navHidden?" auto-hide-compose":"")+(menuOpen?" bb-behind-menu":"")} onClick={()=>setCreateMenuOpen(true)}><Plus size={28}/></button>
     {menuOpen && <button aria-label="Close menu" className="menu-shade" onClick={()=>setMenuOpen(false)}/>}
     {createMenuOpen&&<CreateMenu onClose={()=>setCreateMenuOpen(false)} onSelect={selectCreate}/>}
     {toast && <div role="status" className="toast">{toast}</div>}
