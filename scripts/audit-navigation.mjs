@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 const app=fs.readFileSync(new URL("../components/BlumbookApp.tsx",import.meta.url),"utf8");
+const stylesheet=fs.readFileSync(new URL("../app/globals.css",import.meta.url),"utf8");
 const studio=fs.readFileSync(new URL("../components/CreatorStudioPlus.tsx",import.meta.url),"utf8");
 const viewer=fs.readFileSync(new URL("../components/ImmersiveVideoViewer.tsx",import.meta.url),"utf8");
 const clips=fs.readFileSync(new URL("../components/BlumClips.tsx",import.meta.url),"utf8");
@@ -10,6 +11,17 @@ const demoRoute=fs.readFileSync(new URL("../app/demo/page.tsx",import.meta.url),
 const commentCard=fs.readFileSync(new URL("../components/CommentCard.tsx",import.meta.url),"utf8");
 const count=(text,regex)=>Array.from(text.matchAll(regex)).length;
 const tests={
+ "Dark theme uses X-inspired black, surfaces and readable text":stylesheet.includes('--bg:#000000; --surface:#16181C; --surface2:#202327; --line:#2F3336;')&&stylesheet.includes('--text:#E7E9EA;'),
+ "Light theme uses white, neutral gray and high-contrast copy":stylesheet.includes('--bg:#FFFFFF; --surface:#FFFFFF; --surface2:#F7F9F9; --line:#EFF3F4;')&&stylesheet.includes('--text:#0F1419;'),
+ "Global brand blue, like pink and repost green share theme tokens":stylesheet.includes('--brand:#1D9BF0;')&&stylesheet.includes('--pink:#F91880; --green:#00BA7C;'),
+ "Verified badge uses semantic brand-blue color":stylesheet.includes('.verified{color:var(--verified)')&&viewer.includes('fill="var(--verified)"'),
+ "Primary actions are blue with readable white text":stylesheet.includes('.primary-btn,.follow-btn,.chat-send button')&&stylesheet.includes('background:var(--brand-strong);')&&stylesheet.includes('color:var(--brand-on);'),
+ "Post reactions restore like and repost accent colors":stylesheet.includes('.post-actions .liked,.post-actions .liked:hover{color:var(--pink);}')&&stylesheet.includes('.post-actions .reposted,.post-actions .reposted:hover{color:var(--green);}'),
+ "Comment and post-detail reactions use semantic accent colors":stylesheet.includes('.comment-card-actions>button:nth-child(3).is-active')&&stylesheet.includes('.thread-actions button:nth-child(2).is-active')&&stylesheet.includes('.thread-actions button:nth-child(3).is-active'),
+ "Video and Clips highlight engagement but preserve black canvas":stylesheet.includes('.cinematic-video .cinematic-video-reactions>button:nth-child(3).is-active')&&stylesheet.includes('.clip-actions button[aria-label="Like clip"].clip-selected')&&stylesheet.includes('.cinematic-video{--brand:#1D9BF0'),
+ "Stories and navigation use consistent primary blue":stylesheet.includes('.fb-story-profile-ring{border-color:var(--brand);}')&&stylesheet.includes('.notification-pip,.nav-dot{background:var(--brand);}')&&stylesheet.includes('.mobile-bottom button.active svg'),
+ "Settings and search focus inherit semantic accent":stylesheet.includes('--settings-active:#1D9BF0;')&&stylesheet.includes('.settings-search-wrap:focus-within,.search-header:focus-within'),
+
  "Facebook story rail has portrait photo cards and prominent create tile":stories.includes('className="stories-row facebook-stories-row"')&&stories.includes('className="story-tile fb-story-card fb-story-create"')&&stories.includes('className="story-tile fb-story-card fb-story-active"'),
  "Story cards have author avatar and visible name":stories.includes('className="fb-story-profile-ring"')&&stories.includes('className="fb-story-name"')&&stories.includes('aria-label={"View story by "+name}'),
  "Creating and opening Stories still have working handlers":stories.includes('else setCreating(true);')&&stories.includes('onClick={()=>void open(i)}')&&stories.includes('forceDemo'),
