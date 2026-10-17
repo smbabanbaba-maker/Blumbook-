@@ -2071,3 +2071,14 @@ textarea:focus-visible,select:focus-visible{outline:2px solid var(--brand);outli
   .like-burst-particles{display:none!important;}
   .like-burst-pop,.like-burst-particle{animation:none!important;}
 }
+
+/* Dense media feed: gentle pagination affordance and small sample provenance marker. */
+.feed-scroll-sentinel{min-height:62px;display:flex;align-items:center;justify-content:center;padding:12px 15px 20px;}
+.feed-scroll-sentinel button{display:flex;align-items:center;justify-content:center;min-height:39px;padding:9px 19px;border-radius:24px;background:var(--brand-soft);color:var(--brand-bright);font-size:12px;font-weight:750;}
+.feed-scroll-sentinel button:hover{background:var(--brand);color:#fff;}
+.post-sample-chip{display:inline-flex;align-items:center;flex-shrink:0;border-radius:5px;padding:2px 4px;background:var(--brand-soft);color:var(--brand-bright);font-size:9px;line-height:1.2;font-weight:760;letter-spacing:.05px;text-transform:uppercase;}
+:root[data-theme="light"] .post-sample-chip{color:var(--brand-strong);}
+:root[data-theme="light"] .feed-scroll-sentinel button{color:var(--brand-strong);}
+:root[data-theme="light"] .feed-scroll-sentinel button:hover{color:#fff;}
+/* Ensure long image/video showcases do not force excessive repainting. */
+.post-image{content-visibility:auto;}
