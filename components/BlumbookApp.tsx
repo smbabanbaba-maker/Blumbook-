@@ -8,7 +8,7 @@ import {
   UserRoundPlus, UsersRound, Accessibility, Link2, LockKeyhole, Languages, Download, Type, Handshake, Ban, Flag, Copy, Video, Play, type LucideIcon, X
 } from "lucide-react";
 import {supabase as configuredSupabase,isCloudEnabled as configuredCloudEnabled} from "@/lib/supabase";
-import {SHOWCASE_POSTS,SHOWCASE_PEOPLE,SHOWCASE_COMMENTS_BY_POST,SHOWCASE_COMMENT_METRICS} from "@/lib/demo-showcase";
+import {SHOWCASE_ME,SHOWCASE_POSTS,SHOWCASE_PEOPLE,SHOWCASE_COMMENTS_BY_POST,SHOWCASE_COMMENT_METRICS} from "@/lib/demo-showcase";
 import BloomCircles from "@/components/BloomCircles";
 import OpportunityHub from "@/components/OpportunityHub";
 import DirectInbox from "@/components/DirectInbox";
@@ -247,7 +247,7 @@ export default function BlumbookApp({forceDemo=false}:{forceDemo?:boolean}={}) {
   const [aiTask,setAiTask]=useState<"caption"|"translate"|"rewrite"|"ideas">("caption");
   const [noticeFilter, setNoticeFilter] = useState("All");
   const [loadingCloud, setLoadingCloud] = useState(isCloudEnabled);
-  const me = member || DEMO_ME;
+  const me = member || (forceDemo ? SHOWCASE_ME : DEMO_ME);
   const allPeople = useMemo(() => [me, ...people.filter((p) => p.id !== me.id)], [me, people]);
   const lookup = useCallback((id: string) => allPeople.find((p) => p.id === id) || { id, display_name:"Blumbook member", username:"member", bio:"" }, [allPeople]);
   const isMember = !isCloudEnabled || Boolean(cloudUserId);
