@@ -81,12 +81,12 @@ function Brand({ compact = false }: { compact?: boolean }) {
   return <span className={"brand " + (compact ? "brand-compact" : "")}><img src="/logo.svg" alt="" /><strong>Blumbook</strong></span>;
 }
 function PostCard({
-  post, author, onLike, onRepost, onBookmark, onReply, onProfile, onShare, onMute, onReport, onViewMedia,
+  post, author, onLike, onRepost, onBookmark, onReply, onProfile, onShare, onMute, onReport, onViewMedia, onTranslate,
 }: {
   post: Post; author: Profile; onLike: (post: Post) => void; onRepost: (post: Post) => void;
   onBookmark: (post: Post) => void; onReply: (post: Post) => void;
   onProfile: (id: string) => void; onShare: (post: Post) => void;
-  onMute:(id:string)=>void;onReport:(post:Post,reason:string)=>void;onViewMedia:(post:Post)=>void;
+  onMute:(id:string)=>void;onReport:(post:Post,reason:string)=>void;onViewMedia:(post:Post)=>void;onTranslate:(post:Post)=>void;
 }) {
   const [options,setOptions]=useState(false);
   return <article className="post-card">
@@ -104,7 +104,7 @@ function PostCard({
             <button onClick={()=>{onReport(post,"Harassment");setOptions(false);}}>Report harassment (beta)</button>
           </div>}</div>
       </div>
-      <div className="post-body">{post.body}</div>
+      <div className="post-body">{post.body}</div><button className="post-translate-link" onClick={()=>onTranslate(post)}><Languages size={14}/> Translate / Blum AI</button>
       {post.image_url&&<button className="post-image-wrap" aria-label="Open image viewer" onClick={()=>onViewMedia(post)}><img className="post-image" src={post.image_url} alt="Shared image" loading="lazy"/></button>}{post.video_url&&<button className="post-video-preview" aria-label="Watch video" onClick={()=>onViewMedia(post)}><video src={post.video_url} preload="metadata" muted playsInline/><span><Play size={21}/> Watch video</span></button>}
       <div className="post-actions">
         <button aria-label="Reply" onClick={() => onReply(post)}><MessageCircle size={18}/><span>{shortCount(post.replies)}</span></button>
@@ -618,7 +618,7 @@ export default function BlumbookApp() {
     if(error){notify(error.code==="23505"?"You have already reported this account.":"Could not submit report. Check the Phase 3 migration.");return;}
     setProfileReport(null);notify("Report saved for future moderation. A human review queue is not active yet.");
   };
-  const postProps = (p: Post) => ({ key:p.id, post:p, author:lookup(p.author_id), onLike:toggleLike, onRepost:toggleRepost, onBookmark:toggleBookmark, onReply:openThread, onProfile:openProfile, onShare:share,onMute:mute,onReport:report,onViewMedia:openMedia });
+  const postProps = (p: Post) => ({ key:p.id, post:p, author:lookup(p.author_id), onLike:toggleLike, onRepost:toggleRepost, onBookmark:toggleBookmark, onReply:openThread, onProfile:openProfile, onShare:share,onMute:mute,onReport:report,onViewMedia:openMedia,onTranslate:(post:Post)=>{setAiSeed(post.body);setAiTask("translate");navigate("ai");} });
   const pickImage = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (!f) return;
@@ -653,8 +653,8 @@ export default function BlumbookApp() {
     <aside className={"sidebar " + (menuOpen ? "sidebar-open" : "")} aria-label="Blumbook navigation">
       <div className="desktop-sidebar">
         <button className="brand-button" onClick={() => navigate("home")} aria-label="Blumbook home"><Brand /></button>
-        <nav className="side-nav">{NAV.map(({ id, label, Icon }) => <button key={id} className={"side-link " + (view === id ? "active" : "")} onClick={() => navigate(id)}><Icon size={25} strokeWidth={view === id ? 2.6 : 1.9}/><span>{id==="home"?tr("Home"):id==="explore"?tr("Explore"):id==="notifications"?tr("Notifications"):id==="messages"?tr("Messages"):id==="communities"?tr("Communities"):id==="bookmarks"?tr("Bookmarks"):id==="profile"?tr("Profile"):tr("Settings")}</span>{id === "notifications" && <i className="notification-pip"/>}</button>)}</nav>
-        <button className="primary-btn side-post" onClick={() => { if (requireAccount()) setCompose(true); }}><Feather size={19}/><span>Post</span></button>
+        <nav className="side-nav">{NAV.filter(({id})=>["home","explore","clips","notifications","messages","profile","communities","opportunities","polls","creator"].includes(id)).map(({ id, label, Icon }) => <button key={id} className={"side-link " + (view === id ? "active" : "")} onClick={() => id==="profile"?openProfile(me.id):navigate(id)}><Icon size={24} strokeWidth={view === id ? 2.5 : 1.85}/><span>{label}</span>{id === "notifications" && <i className="notification-pip"/>}</button>)}</nav>
+        <button className="primary-btn side-post" onClick={()=>setCreateMenuOpen(true)}><Plus size={19}/><span>Create</span></button>
         <button className="side-account" onClick={() => isCloudEnabled && !cloudUserId ? setAuthOpen(true) : openProfile(me.id)}>
           <Avatar profile={me}/><span><strong>{me.display_name}</strong><small>@{me.username}</small></span><Ellipsis size={20}/>
         </button>
@@ -680,10 +680,16 @@ export default function BlumbookApp() {
             <button onClick={()=>navigate("bookmarks")}><Bookmark size={23}/><span>{tr("Bookmarks")}</span></button>
             <button onClick={()=>navigate("communities")}><UsersRound size={23}/><span>Bloom Circles</span></button>
             <button onClick={()=>navigate("opportunities")}><Handshake size={23}/><span>Bloom Opportunities</span></button>
-            <button onClick={()=>navigate("videos")}><Video size={23}/><span>Videos</span></button>
+            <button onClick={()=>navigate("clips")}><Play size={23}/><span>Blum Clips</span></button>
             <button onClick={()=>navigate("creator")}><ChartNoAxesCombined size={23}/><span>{tr("Creator Studio")}</span></button>
             <button className="menu-extra-trigger" aria-expanded={extraToolsOpen} onClick={()=>setExtraToolsOpen(v=>!v)}><Plus size={23}/><span>More tools</span><ChevronDown className={extraToolsOpen?"rotated":""} size={18}/></button>
             {extraToolsOpen&&<div className="menu-extra-items">
+              <button onClick={()=>navigate("polls")}><ChartNoAxesCombined size={20}/><span>Polls</span></button>
+              <button onClick={()=>{navigate("home");setTab("for-you");setStoryLaunch(x=>x+1);}}><ImagePlus size={20}/><span>Stories</span></button>
+              <button onClick={()=>navigate("live")}><Radio size={20}/><span>Live sessions</span></button>
+              <button onClick={()=>navigate("ai")}><Sparkles size={20}/><span>Blum AI</span></button>
+              <button onClick={()=>navigate("schedule")}><CalendarDays size={20}/><span>Scheduled posts</span></button>
+              <button onClick={()=>navigate("verification")}><ShieldCheck size={20}/><span>Verification & Earnings</span></button>
               <button onClick={()=>navigate("premium")}><Crown size={20}/><span>Premium</span><small>Coming soon</small></button>
               <button onClick={()=>navigate("spaces")}><Radio size={20}/><span>Spaces</span><small>Coming soon</small></button>
               <button onClick={()=>navigate("lists")}><List size={20}/><span>My Lists</span><small>Device only</small></button>
@@ -722,7 +728,12 @@ export default function BlumbookApp() {
         {tab === "communities" ? <BloomCircles userId={cloudUserId} requestAuth={()=>setAuthOpen(true)} language={language}/> :
         <>
           {!welcomeHidden&&<section className="onboard-card"><div><span className="feature-overline">WELCOME TO BLUMBOOK</span><h2>Ideas grow better together.</h2><p>Explore stories, discover a Bloom Circle, and introduce yourself. This is an early interactive preview.</p><div><button onClick={()=>navigate("communities")}>Explore Bloom Circles <ArrowRight size={16}/></button><button onClick={()=>{setWelcomeHidden(true);window.localStorage.setItem("blumbook-onboarded","yes");}}>Got it</button></div></div><button className="icon-button" aria-label="Dismiss welcome" onClick={()=>{setWelcomeHidden(true);window.localStorage.setItem("blumbook-onboarded","yes");}}><X size={20}/></button></section>}
+          <StoriesRail userId={cloudUserId} profiles={allPeople} onSignIn={()=>setAuthOpen(true)} launchCreate={storyLaunch}/>
           <div className="home-opportunity-link"><button onClick={()=>navigate("opportunities")}><Handshake size={18}/><span><strong>Bloom Opportunities</strong><small>Discover projects, mentors and collaborators</small></span><ArrowRight size={18}/></button></div>
+          <div className="home-mini-links">
+            <button onClick={()=>navigate("polls")}><ChartNoAxesCombined size={17}/> Community Polls</button>
+            <button onClick={()=>navigate("ai")}><Sparkles size={17}/> Blum AI</button>
+          </div>
           <div className="compose-inline"><Avatar profile={me}/><button onClick={() => { if (requireAccount()) setCompose(true); }}>What&apos;s happening?</button><button className="primary-btn" onClick={() => { if (requireAccount()) setCompose(true); }}>Post</button></div>
           {!isCloudEnabled&&<p className="feed-demo-indicator"><ShieldCheck size={16}/> Demo preview · Sample content and numbers, not real members</p>}
           <div className="feed-status-actions"><button onClick={()=>isCloudEnabled?void loadCloud():notify("Demo content is already up to date.")}><Repeat2 size={15}/> Refresh feed</button></div>
@@ -748,6 +759,7 @@ export default function BlumbookApp() {
             <button onClick={()=>navigate("opportunities")}><Handshake size={21}/><span>Bloom Opportunities<small>Find useful connections</small></span><ArrowRight size={17}/></button>
             <button onClick={()=>navigate("videos")}><Video size={21}/><span>Videos<small>Watch shared clips</small></span><ArrowRight size={17}/></button>
           </div>
+          <div className="explore-mini-tools"><button onClick={()=>navigate("polls")}>Polls <ArrowRight size={16}/></button><button onClick={()=>navigate("live")}>Live <ArrowRight size={16}/></button><button onClick={()=>navigate("ai")}>Blum AI <ArrowRight size={16}/></button></div>
           <div className="section-label">Who to follow</div>
           {people.slice(0,5).map((p)=>personRow(p))}
         </>}
@@ -756,8 +768,13 @@ export default function BlumbookApp() {
       {view === "notifications" && <NotificationsPanel userId={cloudUserId} profiles={allPeople} onSignIn={()=>setAuthOpen(true)} onProfile={openProfile} onPost={(id)=>{const p=posts.find(x=>x.id===id);if(p)void openThread(p);else notify("That post is outside the loaded feed.");}} onMessage={(id)=>{navigate("messages");setChatWith(id);}} prefs={notifyPrefs}/>}
       {view === "messages" && <DirectInbox userId={cloudUserId} profiles={allPeople} initialRecipient={chatWith} onRecipientChange={setChatWith} onSignIn={()=>setAuthOpen(true)}/>}
       {view === "opportunities" && <OpportunityHub userId={cloudUserId} profiles={allPeople} onSignIn={()=>setAuthOpen(true)} onProfile={openProfile} onMessage={(id)=>{navigate("messages");setChatWith(id);}}/>}
-      {view === "videos" && <section className="video-hub"><PanelTitle>Videos</PanelTitle><div className="video-hub-intro"><Video size={27}/><h2>Watch & discover</h2><p>Short videos shared by the Blumbook community.</p><button className="primary-btn" onClick={()=>{if(requireAccount())setCompose(true);}}><Plus size={17}/> Share video</button></div>
-      {posts.filter(p=>p.video_url&&!blockedAuthors.includes(p.author_id)).length?posts.filter(p=>p.video_url&&!blockedAuthors.includes(p.author_id)).map(p=><PostCard {...postProps(p)}/>):<div className="empty-state"><Video size={29}/><h3>No videos yet</h3><p>Videos will appear here once members start sharing.</p></div>}</section>}
+      {(view==="clips"||view==="videos") && <BlumClips posts={posts.filter(p=>!blockedAuthors.includes(p.author_id))} profiles={allPeople} following={followed} onProfile={openProfile} onLike={toggleLike} onBookmark={toggleBookmark} onComment={openThread} onShare={share} onFollow={toggleFollow} onCreate={()=>openComposer("video")}/>}
+      {view==="polls"&&<PollsPanel userId={cloudUserId} profiles={allPeople} onSignIn={()=>setAuthOpen(true)} onProfile={openProfile} launchCreate={pollLaunch}/>}
+      {view==="live"&&<LiveSessions userId={cloudUserId} profiles={allPeople} onSignIn={()=>setAuthOpen(true)} launchCreate={liveLaunch}/>}
+      {view==="ai"&&<BlumAI userId={cloudUserId} onSignIn={()=>setAuthOpen(true)} seedText={aiSeed} seedTask={aiTask} onCompose={text=>openComposer("post",text)}/>}
+      {view==="schedule"&&<ScheduledPosts userId={cloudUserId} onSignIn={()=>setAuthOpen(true)} launchCreate={scheduleLaunch} onCompose={text=>openComposer("post",text)}/>}
+      {view==="verification"&&<CreatorAccess userId={cloudUserId} profile={me} onSignIn={()=>setAuthOpen(true)}/>}
+
 
       {view === "communities" && <BloomCircles userId={cloudUserId} requestAuth={()=>setAuthOpen(true)} language={language}/>}
 
@@ -917,12 +934,10 @@ export default function BlumbookApp() {
         {lists.length ? lists.map((item)=><div className="list-preview-row" key={item}><List size={22}/><div><strong>{item}</strong><small>Private list · Saved on this device</small></div><button className="icon-button" aria-label={"Delete "+item} onClick={()=>{const next=lists.filter(x=>x!==item);setLists(next);window.localStorage.setItem("blumbook-lists",JSON.stringify(next));}}><X size={17}/></button></div>) : <div className="feature-empty">Your lists will appear here when you create one.</div>}
       </div>}
 
-      {view === "spaces" && <div className="feature-page">
-        <PanelTitle>Spaces</PanelTitle><div className="feature-hero"><Radio size={34}/><span className="feature-overline">LIVE CONVERSATIONS</span><h2>Great conversations<br/>bring us closer.</h2><p>Imagine your own live audio room, conversations with creators, and real-time community talks.</p><span className="feature-status">Live audio is coming soon</span></div>
-        <div className="feature-rows"><div><UsersRound size={22}/><span><strong>Community talks</strong><small>Meet around shared interests</small></span></div><div><Sparkles size={22}/><span><strong>Creator conversations</strong><small>Speak, listen and share ideas</small></span></div></div>
-      </div>}
+      {view === "spaces" && <LiveSessions userId={cloudUserId} profiles={allPeople} onSignIn={()=>setAuthOpen(true)} launchCreate={liveLaunch}/>}
 
-      {view === "creator" && <CreatorStudioPlus posts={posts} me={me} onCompose={(text)=>{if(requireAccount()){setPostText(text||"");setCompose(true);}}}/>}
+      {view === "creator" && <><CreatorStudioPlus posts={posts} me={me} onCompose={text=>openComposer("post",text||"")}/>
+       <div className="studio-next-tools"><button onClick={()=>navigate("ai")}><Sparkles size={19}/> Blum AI <ArrowRight size={17}/></button><button onClick={()=>navigate("schedule")}><CalendarDays size={19}/> Scheduled posts <ArrowRight size={17}/></button><button onClick={()=>navigate("verification")}><ShieldCheck size={19}/> Verification & Earnings <ArrowRight size={17}/></button></div></>}
 
       {view === "help" && <div className="feature-page">
         <PanelTitle>Help Center</PanelTitle><div className="feature-intro"><div className="feature-icon"><CircleHelp size={28}/></div><h2>How can we help?</h2><p>Everything you need to get comfortable on Blumbook.</p></div>
@@ -930,7 +945,7 @@ export default function BlumbookApp() {
           <details><summary>How do I switch between Dark and Light Mode?</summary><p>Open your profile menu, find Appearance, and tap Dark or Light. Your choice is saved on this device.</p></details>
           <details><summary>How do I create a post?</summary><p>Tap the plus button or the Post button. Write your thought and add an image if you wish.</p></details>
           <details><summary>Are my posts saved?</summary><p>In demo mode, posts are temporary. When a Supabase project is connected, signed-in members can save posts to a shared database.</p></details>
-          <details><summary>When will direct messages and Spaces be available?</summary><p>These features are still in development and will be added in future releases.</p></details>
+          <details><summary>Are messages, AI and live broadcasting available?</summary><p>Real messages and AI need Supabase and API configuration. Live sessions use an external streaming link; native in-app broadcasting is not active.</p></details>
         </div>
       </div>}
 
@@ -945,10 +960,11 @@ export default function BlumbookApp() {
     </aside>
 
     <nav className={"mobile-bottom "+(view==="settings"?"mobile-bottom-hidden":"")+(menuOpen?" bb-behind-menu":"")} aria-label="Main navigation">
-      {NAV.filter((n)=>["home","explore","notifications","messages","profile"].includes(n.id)).map(({id,label,Icon})=><button aria-label={label} key={id} className={view===id?"active":""} onClick={()=>id==="profile"?openProfile(me.id):navigate(id)}><Icon size={25} strokeWidth={view===id?2.7:1.9}/>{id==="notifications"&&<span className="nav-dot"/>}</button>)}
+      {NAV.filter((n)=>["home","explore","clips","notifications","messages"].includes(n.id)).map(({id,label,Icon})=><button aria-label={label} key={id} className={view===id?"active":""} onClick={()=>navigate(id)}><Icon size={25} strokeWidth={view===id?2.7:1.9}/>{id==="notifications"&&<span className="nav-dot"/>}</button>)}
     </nav>
-    <button aria-label="Create post" className={"floating-compose "+(view==="settings"?"floating-compose-hidden":"")+(menuOpen?" bb-behind-menu":"")} onClick={()=>{if(requireAccount())setCompose(true);}}><Plus size={28}/></button>
+    <button aria-label="Open creation menu" className={"floating-compose "+(view==="settings"?"floating-compose-hidden":"")+(menuOpen?" bb-behind-menu":"")} onClick={()=>setCreateMenuOpen(true)}><Plus size={28}/></button>
     {menuOpen && <button aria-label="Close menu" className="menu-shade" onClick={()=>setMenuOpen(false)}/>}
+    {createMenuOpen&&<CreateMenu onClose={()=>setCreateMenuOpen(false)} onSelect={selectCreate}/>}
     {toast && <div role="status" className="toast">{toast}</div>}
 
     {mediaViewer&&<Modal close={()=>setMediaViewer(null)}><div className="media-dialog">
@@ -957,9 +973,9 @@ export default function BlumbookApp() {
       <div className="media-dialog-foot"><button onClick={()=>nextMedia(-1)} disabled={mediaPosts.length<2}><ArrowLeft size={17}/> Previous</button><span>{lookup(mediaViewer.author_id).display_name}</span><button onClick={()=>nextMedia(1)} disabled={mediaPosts.length<2}>Next <ArrowRight size={17}/></button></div>
     </div></Modal>}
     {compose && <Modal close={()=>setCompose(false)}>
-      <div className="dialog-head"><button className="icon-button" onClick={()=>setCompose(false)} aria-label="Close"><X size={22}/></button><strong>Create post</strong><button form="compose-form" className="primary-btn" disabled={busy||!postText.trim()||postText.length>500}>{busy?"Posting...":"Post"}</button></div>
-      <form id="compose-form" onSubmit={submitPost}><div className="compose-body"><Avatar profile={me}/><div className="compose-fields"><span className="audience">🌐 Everyone</span><textarea autoFocus aria-label="Write a post" placeholder="What's happening?" rows={5} maxLength={500} value={postText} onChange={(e)=>setPostText(e.target.value)}/>{imagePreview&&<div className="preview-wrap"><img src={imagePreview} alt="Image preview"/><button type="button" onClick={()=>{setImageFile(null);setImagePreview("");}} aria-label="Remove image"><X size={19}/></button></div>}
-      {videoPreview&&<div className="preview-wrap"><video src={videoPreview} controls playsInline/><button type="button" onClick={()=>{setVideoFile(null);setVideoPreview("");}} aria-label="Remove video"><X size={19}/></button></div>}</div></div><div className="compose-bottom"><label className="upload-action" title="Attach photo"><ImagePlus size={22}/><input type="file" accept="image/*" onChange={pickImage} hidden/></label><label className="upload-action" title="Attach video"><Video size={22}/><input type="file" accept="video/mp4,video/webm" onChange={pickVideo} hidden/></label><span>500 chars · Images 5MB / Videos 30MB</span><strong className={postText.length>460?"warn-count":""}>{500-postText.length}</strong></div></form>
+      <div className="dialog-head"><button className="icon-button" onClick={()=>setCompose(false)} aria-label="Close"><X size={22}/></button><strong>{composeMode==="video"?"Create video / clip":composeMode==="photo"?"Share a photo":"Create post"}</strong><button form="compose-form" className="primary-btn" disabled={busy||!postText.trim()||postText.length>500}>{busy?"Posting...":"Post"}</button></div>
+      <form id="compose-form" onSubmit={submitPost}><div className="compose-body"><Avatar profile={me}/><div className="compose-fields"><span className="audience">🌐 Everyone</span><textarea autoFocus aria-label="Write a post" placeholder={composeMode==="video"?"Add a caption to your clip...":composeMode==="photo"?"Describe your photo...":"What\u0027s happening?"} rows={5} maxLength={500} value={postText} onChange={(e)=>setPostText(e.target.value)}/>{imagePreview&&<div className="preview-wrap"><img src={imagePreview} alt="Image preview"/><button type="button" onClick={()=>{setImageFile(null);setImagePreview("");}} aria-label="Remove image"><X size={19}/></button></div>}
+      {videoPreview&&<div className="preview-wrap"><video src={videoPreview} controls playsInline/><button type="button" onClick={()=>{setVideoFile(null);setVideoPreview("");}} aria-label="Remove video"><X size={19}/></button></div>}</div></div><div className="compose-bottom"><button type="button" className="upload-action" title="Get AI writing help" onClick={()=>{setAiSeed(postText);setAiTask("caption");setCompose(false);navigate("ai");}}><Sparkles size={22}/></button><label className="upload-action" title="Attach photo"><ImagePlus size={22}/><input type="file" accept="image/*" onChange={pickImage} hidden/></label><label className="upload-action" title="Attach video"><Video size={22}/><input type="file" accept="video/mp4,video/webm" onChange={pickVideo} hidden/></label><span>500 chars · Images 5MB / Videos 30MB</span><strong className={postText.length>460?"warn-count":""}>{500-postText.length}</strong></div></form>
     </Modal>}
 
     {authOpen&&<Modal close={()=>setAuthOpen(false)}>
