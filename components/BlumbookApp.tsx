@@ -5,17 +5,21 @@ import {
   ArrowLeft, ArrowRight, Bell, Bookmark, Check, CheckCircle2, ChevronDown, Compass, Ellipsis,
   Feather, Heart, Home, ImagePlus, LogIn, LogOut, Mail, Menu, MessageCircle, MoreHorizontal,
   Plus, Repeat2, Search, Send, Settings, Share2, ShieldCheck, Smile, Sparkles, Sun, Moon, Crown, List, Radio, ChartNoAxesCombined, CircleHelp, CalendarDays, MapPin, Pin, UserRound,
-  UserRoundPlus, UsersRound, Accessibility, Link2, LockKeyhole, Languages, Download, Type, Handshake, Ban, Flag, Copy, type LucideIcon, X
+  UserRoundPlus, UsersRound, Accessibility, Link2, LockKeyhole, Languages, Download, Type, Handshake, Ban, Flag, Copy, Video, Play, type LucideIcon, X
 } from "lucide-react";
 import { supabase, isCloudEnabled } from "@/lib/supabase";
 import BloomCircles from "@/components/BloomCircles";
+import OpportunityHub from "@/components/OpportunityHub";
+import DirectInbox from "@/components/DirectInbox";
+import NotificationsPanel from "@/components/NotificationsPanel";
+import CreatorStudioPlus from "@/components/CreatorStudioPlus";
 import {translate,type AppLanguage} from "@/lib/locale";
 import {
   COMMUNITIES, DEMO_ME, DEMO_NOTICES, DEMO_PEOPLE, DEMO_POSTS, TRENDS,
   shortCount, timeAgo, type Post, type Profile, type Notice,
 } from "@/lib/demo";
 
-type View = "home" | "explore" | "notifications" | "messages" | "profile" | "communities" | "bookmarks" | "settings" | "thread" | "premium" | "lists" | "spaces" | "creator" | "help";
+type View = "home" | "explore" | "notifications" | "messages" | "profile" | "communities" | "bookmarks" | "settings" | "thread" | "premium" | "lists" | "spaces" | "creator" | "help" | "opportunities" | "videos";
 type Theme = "dark" | "light";
 type SettingsPanel = "account" | "security" | "privacy" | "notifications" | "accessibility" | "resources";
 type Tab = "for-you" | "following" | "communities";
@@ -28,6 +32,8 @@ const NAV: { id: View; label: string; Icon: LucideIcon }[] = [
   { id: "notifications", label: "Notifications", Icon: Bell },
   { id: "messages", label: "Messages", Icon: Mail },
   { id: "communities", label: "Communities", Icon: UsersRound },
+  { id: "opportunities", label: "Opportunities", Icon: Handshake },
+  { id: "videos", label: "Videos", Icon: Video },
   { id: "bookmarks", label: "Bookmarks", Icon: Bookmark },
   { id: "profile", label: "Profile", Icon: UserRound },
   { id: "settings", label: "Settings", Icon: Settings },
@@ -61,12 +67,12 @@ function Brand({ compact = false }: { compact?: boolean }) {
   return <span className={"brand " + (compact ? "brand-compact" : "")}><img src="/logo.svg" alt="" /><strong>Blumbook</strong></span>;
 }
 function PostCard({
-  post, author, onLike, onRepost, onBookmark, onReply, onProfile, onShare, onMute, onReport,
+  post, author, onLike, onRepost, onBookmark, onReply, onProfile, onShare, onMute, onReport, onViewMedia,
 }: {
   post: Post; author: Profile; onLike: (post: Post) => void; onRepost: (post: Post) => void;
   onBookmark: (post: Post) => void; onReply: (post: Post) => void;
   onProfile: (id: string) => void; onShare: (post: Post) => void;
-  onMute:(id:string)=>void;onReport:(post:Post,reason:string)=>void;
+  onMute:(id:string)=>void;onReport:(post:Post,reason:string)=>void;onViewMedia:(post:Post)=>void;
 }) {
   const [options,setOptions]=useState(false);
   return <article className="post-card">
@@ -85,12 +91,12 @@ function PostCard({
           </div>}</div>
       </div>
       <div className="post-body">{post.body}</div>
-      {post.image_url && <button className="post-image-wrap" aria-label="View post" onClick={() => onReply(post)}><img className="post-image" src={post.image_url} alt="Image shared in post" loading="lazy" /></button>}
+      {post.image_url&&<button className="post-image-wrap" aria-label="Open image viewer" onClick={()=>onViewMedia(post)}><img className="post-image" src={post.image_url} alt="Shared image" loading="lazy"/></button>}{post.video_url&&<button className="post-video-preview" aria-label="Watch video" onClick={()=>onViewMedia(post)}><video src={post.video_url} preload="metadata" muted playsInline/><span><Play size={21}/> Watch video</span></button>}
       <div className="post-actions">
         <button aria-label="Reply" onClick={() => onReply(post)}><MessageCircle size={18}/><span>{shortCount(post.replies)}</span></button>
         <button className={post.reposted ? "reposted" : ""} aria-label="Repost" onClick={() => onRepost(post)}><Repeat2 size={18}/><span>{shortCount(post.reposts)}</span></button>
         <button className={post.liked ? "liked" : ""} aria-label="Like" onClick={() => onLike(post)}><Heart size={18} fill={post.liked ? "currentColor" : "none"}/><span>{shortCount(post.likes)}</span></button>
-        <button aria-label="Views" onClick={() => onReply(post)}><span className="view-icon">▥</span><span>{shortCount(post.views)}</span></button>
+        {!isCloudEnabled&&<button aria-label="Sample views (demo only)" onClick={() => onReply(post)}><span className="view-icon">▥</span><span>{shortCount(post.views)}</span></button>}
         <div className="post-end-actions">
           <button className={post.bookmarked ? "bookmarked" : ""} aria-label="Bookmark" onClick={() => onBookmark(post)}><Bookmark size={18} fill={post.bookmarked ? "currentColor" : "none"}/></button>
           <button aria-label="Share" onClick={() => onShare(post)}><Share2 size={18}/></button>
@@ -168,6 +174,9 @@ export default function BlumbookApp() {
   const [followed, setFollowed] = useState<string[]>([]);
   const [compose, setCompose] = useState(false);
   const [postText, setPostText] = useState("");
+  const [videoFile,setVideoFile]=useState<File|null>(null);
+  const [videoPreview,setVideoPreview]=useState("");
+  const [mediaViewer,setMediaViewer]=useState<Post|null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState("");
   const [authOpen, setAuthOpen] = useState(false);
@@ -199,6 +208,7 @@ export default function BlumbookApp() {
   const [toast, setToast] = useState("");
   const [busy, setBusy] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [extraToolsOpen,setExtraToolsOpen]=useState(false);
   const [noticeFilter, setNoticeFilter] = useState("All");
   const [loadingCloud, setLoadingCloud] = useState(isCloudEnabled);
   const me = member || DEMO_ME;
@@ -228,13 +238,15 @@ export default function BlumbookApp() {
       const [{ data: { user } }, { data: profilesData }, { data: postsData }, { data: likesData }, { data: bookmarksData }, { data: followsData }, { data: repostsData }, { data: commentsData }] = await Promise.all([
         client.auth.getUser(),
         client.from("profiles").select("id, username, display_name, bio, avatar_url, verified, location, created_at").limit(100),
-        client.from("posts").select("id, author_id, body, image_url, created_at").order("created_at", { ascending:false }).limit(60),
+        client.from("posts").select("id, author_id, body, image_url, video_url, created_at").order("created_at", { ascending:false }).limit(60),
         client.from("likes").select("post_id, user_id").limit(1000),
         client.from("bookmarks").select("post_id, user_id").limit(1000),
         client.from("follows").select("follower_id, following_id").limit(1000),
         client.from("reposts").select("post_id, user_id").limit(1000),
         client.from("comments").select("id,post_id,author_id,body,created_at").limit(2000),
       ]);
+      let availablePosts=postsData;
+      if(postsData==null){const old=await client.from("posts").select("id,author_id,body,image_url,created_at").order("created_at",{ascending:false}).limit(60);availablePosts=(old.data||[]).map(p=>({...p,video_url:null}));}
       setCloudUserId(user?.id || null);
       const extraResult=await client.from("profile_extras").select("user_id,headline,skills,portfolio_url,open_to_collab").limit(100);
       const extrasData=extraResult.error
@@ -262,7 +274,7 @@ export default function BlumbookApp() {
       const commentIndex:Record<string,Comment[]>={};
       for(const c of commentsData||[])commentIndex[c.post_id]=[...(commentIndex[c.post_id]||[]),c];
       setComments(commentIndex);
-      setPosts((postsData || []).map((p) => ({
+      setPosts((availablePosts || []).map((p) => ({
         ...p, likes:likesCount[p.id] || 0, reposts:repostsCount[p.id] || 0, replies:repliesCount[p.id] || 0, views:0,
         liked:(likesData || []).some((l) => l.post_id === p.id && l.user_id === user?.id),
         bookmarked:(bookmarksData || []).some((b) => b.post_id === p.id && b.user_id === user?.id),
@@ -360,28 +372,37 @@ export default function BlumbookApp() {
     }
     setBusy(false);
   };
-  const submitPost = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!postText.trim() || postText.length > 500 || !requireAccount()) return;
-    setBusy(true);
-    let imageUrl: string | null = imagePreview || null;
-    if (supabase && cloudUserId) {
-      if (imageFile) {
-        const ext = (imageFile.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "");
-        const path = cloudUserId + "/" + crypto.randomUUID() + "." + ext;
-        const { error: uploadError } = await supabase.storage.from("post-media").upload(path, imageFile, { upsert:false });
-        if (uploadError) { notify("Media upload failed: " + uploadError.message); setBusy(false); return; }
-        imageUrl = supabase.storage.from("post-media").getPublicUrl(path).data.publicUrl;
+  const submitPost=async(e:FormEvent)=>{
+    e.preventDefault();if(!postText.trim()||postText.length>500||!requireAccount()||busy)return;
+    setBusy(true);let imageUrl:string|null=imageFile?imagePreview:null;let videoUrl:string|null=videoFile?videoPreview:null;
+    try {
+      if(supabase&&cloudUserId){
+        if(imageFile){
+          const ext=(imageFile.name.split(".").pop()||"jpg").replace(/[^a-z0-9]/gi,"").toLowerCase();
+          const path=cloudUserId+"/"+crypto.randomUUID()+"."+ext;
+          const {error}=await supabase.storage.from("post-media").upload(path,imageFile,{upsert:false,contentType:imageFile.type});
+          if(error)throw new Error("Image upload failed: "+error.message);
+          imageUrl=supabase.storage.from("post-media").getPublicUrl(path).data.publicUrl;
+        }
+        if(videoFile){
+          const ext=videoFile.type==="video/webm"?"webm":"mp4";
+          const path=cloudUserId+"/"+crypto.randomUUID()+"."+ext;
+          const {error}=await supabase.storage.from("post-videos").upload(path,videoFile,{upsert:false,contentType:videoFile.type});
+          if(error)throw new Error("Video upload failed. Apply the Phase 5 migration: "+error.message);
+          videoUrl=supabase.storage.from("post-videos").getPublicUrl(path).data.publicUrl;
+        }
+        const values:Record<string,string|null>={author_id:cloudUserId,body:postText.trim(),image_url:imageUrl};
+        if(videoUrl)values.video_url=videoUrl;
+        const {error}=await supabase.from("posts").insert(values);
+        if(error)throw new Error("Post was not saved: "+error.message);
+        await loadCloud();
+      }else {
+        setPosts(p=>[{id:"demo-"+Date.now(),author_id:me.id,body:postText.trim(),image_url:imageUrl,video_url:videoUrl,created_at:new Date().toISOString(),likes:0,reposts:0,replies:0,views:0},...p]);
       }
-      const { error } = await supabase.from("posts").insert({ author_id:cloudUserId, body:postText.trim(), image_url:imageUrl });
-      if (error) { notify(error.message); setBusy(false); return; }
-      await loadCloud();
-    } else {
-      const fresh: Post = { id:"demo-" + Date.now(), author_id:me.id, body:postText.trim(), image_url:imageUrl, created_at:new Date().toISOString(), likes:0, reposts:0, replies:0, views:0 };
-      setPosts((old) => [fresh, ...old]);
-    }
-    setPostText(""); setImageFile(null); setImagePreview(""); setCompose(false); setBusy(false); navigate("home");
-    notify("Your post is live! ✨");
+      setPostText("");setImageFile(null);setImagePreview("");setVideoFile(null);setVideoPreview("");
+      setCompose(false);navigate("home");notify(isCloudEnabled?"Post published.":"Demo post added to this session.");
+    }catch(err){notify(err instanceof Error?err.message:"Post failed");}
+    finally{setBusy(false);}
   };
   const authSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -471,7 +492,7 @@ export default function BlumbookApp() {
   const profilePosts=posts.filter(p=>p.author_id===activeProfile.id);
   const sortedProfilePosts=[...profilePosts].sort((a,b)=>Number(b.id===activeProfile.pinned_post_id)-Number(a.id===activeProfile.pinned_post_id));
   const profileReplies=Object.values(comments).flat().filter(c=>c.author_id===activeProfile.id).sort((a,b)=>new Date(b.created_at).getTime()-new Date(a.created_at).getTime());
-  const profileMedia=profilePosts.filter(p=>Boolean(p.image_url));
+  const profileMedia=profilePosts.filter(p=>Boolean(p.image_url||p.video_url));
   const profileLikes=activeProfile.id===me.id?posts.filter(p=>p.liked):[];
   useEffect(()=>{
     const slug=new URLSearchParams(window.location.search).get("profile");
@@ -513,7 +534,7 @@ export default function BlumbookApp() {
     setProfileMore(false);
     if(!requireAccount())return;
     navigate("messages");setChatWith(p.id);
-    notify("Messages are a preview and are not delivered to other users.");
+    if(!isCloudEnabled)notify("Demo only — messages are not sent to other people.");
   };
   const openCollab=(p:Profile)=>{
     setProfileMore(false);
@@ -562,13 +583,21 @@ export default function BlumbookApp() {
     if(error){notify(error.code==="23505"?"You have already reported this account.":"Could not submit report. Check the Phase 3 migration.");return;}
     setProfileReport(null);notify("Report saved for future moderation. A human review queue is not active yet.");
   };
-  const postProps = (p: Post) => ({ key:p.id, post:p, author:lookup(p.author_id), onLike:toggleLike, onRepost:toggleRepost, onBookmark:toggleBookmark, onReply:openThread, onProfile:openProfile, onShare:share,onMute:mute,onReport:report });
+  const postProps = (p: Post) => ({ key:p.id, post:p, author:lookup(p.author_id), onLike:toggleLike, onRepost:toggleRepost, onBookmark:toggleBookmark, onReply:openThread, onProfile:openProfile, onShare:share,onMute:mute,onReport:report,onViewMedia:openMedia });
   const pickImage = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (!f) return;
     if (!f.type.startsWith("image/") || f.size > 5 * 1024 * 1024) { notify("Choose an image under 5 MB"); return; }
-    setImageFile(f); setImagePreview(URL.createObjectURL(f));
+    setVideoFile(null);setVideoPreview("");setImageFile(f);setImagePreview(URL.createObjectURL(f));
   };
+  const pickVideo=(e:React.ChangeEvent<HTMLInputElement>)=>{
+   const f=e.target.files?.[0];if(!f)return;
+   if(!["video/mp4","video/webm"].includes(f.type)||f.size>30*1024*1024){notify("Choose MP4 or WebM under 30 MB.");return;}
+   setImageFile(null);setImagePreview("");setVideoFile(f);setVideoPreview(URL.createObjectURL(f));
+  };
+  const openMedia=(p:Post)=>{if(p.image_url||p.video_url)setMediaViewer(p);};
+  const mediaPosts=posts.filter(p=>Boolean(p.image_url||p.video_url)&&!blockedAuthors.includes(p.author_id));
+  const nextMedia=(offset:-1|1)=>{if(!mediaViewer||mediaPosts.length<2)return;const i=mediaPosts.findIndex(p=>p.id===mediaViewer.id);if(i>=0)setMediaViewer(mediaPosts[(i+offset+mediaPosts.length)%mediaPosts.length]);};
   const settingsConfig: {id:SettingsPanel;title:string;description:string;Icon:LucideIcon}[] = [
     {id:"account",title:"Your account",description:"See your account information, manage your profile, and learn about data controls.",Icon:UserRound},
     {id:"security",title:"Security and account access",description:"Manage your sign-in, account protection, and connected devices.",Icon:LockKeyhole},
@@ -615,7 +644,15 @@ export default function BlumbookApp() {
             <button onClick={()=>openProfile(me.id)}><UserRound size={23}/><span>{tr("Profile")}</span></button>
             <button onClick={()=>navigate("bookmarks")}><Bookmark size={23}/><span>{tr("Bookmarks")}</span></button>
             <button onClick={()=>navigate("communities")}><UsersRound size={23}/><span>Bloom Circles</span></button>
+            <button onClick={()=>navigate("opportunities")}><Handshake size={23}/><span>Bloom Opportunities</span></button>
+            <button onClick={()=>navigate("videos")}><Video size={23}/><span>Videos</span></button>
             <button onClick={()=>navigate("creator")}><ChartNoAxesCombined size={23}/><span>{tr("Creator Studio")}</span></button>
+            <button className="menu-extra-trigger" aria-expanded={extraToolsOpen} onClick={()=>setExtraToolsOpen(v=>!v)}><Plus size={23}/><span>More tools</span><ChevronDown className={extraToolsOpen?"rotated":""} size={18}/></button>
+            {extraToolsOpen&&<div className="menu-extra-items">
+              <button onClick={()=>navigate("premium")}><Crown size={20}/><span>Premium</span><small>Coming soon</small></button>
+              <button onClick={()=>navigate("spaces")}><Radio size={20}/><span>Spaces</span><small>Coming soon</small></button>
+              <button onClick={()=>navigate("lists")}><List size={20}/><span>My Lists</span><small>Device only</small></button>
+            </div>}
             <button onClick={()=>navigate("settings")}><Settings size={23}/><span>{tr("Settings")}</span></button>
             <button onClick={()=>navigate("help")}><CircleHelp size={23}/><span>{tr("Help Center")}</span></button>
           </nav>
@@ -650,8 +687,11 @@ export default function BlumbookApp() {
         {tab === "communities" ? <BloomCircles userId={cloudUserId} requestAuth={()=>setAuthOpen(true)} language={language}/> :
         <>
           {!welcomeHidden&&<section className="onboard-card"><div><span className="feature-overline">WELCOME TO BLUMBOOK</span><h2>Ideas grow better together.</h2><p>Explore stories, discover a Bloom Circle, and introduce yourself. This is an early interactive preview.</p><div><button onClick={()=>navigate("communities")}>Explore Bloom Circles <ArrowRight size={16}/></button><button onClick={()=>{setWelcomeHidden(true);window.localStorage.setItem("blumbook-onboarded","yes");}}>Got it</button></div></div><button className="icon-button" aria-label="Dismiss welcome" onClick={()=>{setWelcomeHidden(true);window.localStorage.setItem("blumbook-onboarded","yes");}}><X size={20}/></button></section>}
+          <div className="home-opportunity-link"><button onClick={()=>navigate("opportunities")}><Handshake size={18}/><span><strong>Bloom Opportunities</strong><small>Discover projects, mentors and collaborators</small></span><ArrowRight size={18}/></button></div>
           <div className="compose-inline"><Avatar profile={me}/><button onClick={() => { if (requireAccount()) setCompose(true); }}>What&apos;s happening?</button><button className="primary-btn" onClick={() => { if (requireAccount()) setCompose(true); }}>Post</button></div>
-          {loadingCloud && <div className="center-message">Loading your feed...</div>}
+          {!isCloudEnabled&&<p className="feed-demo-indicator"><ShieldCheck size={16}/> Demo preview · Sample content and numbers, not real members</p>}
+          <div className="feed-status-actions"><button onClick={()=>isCloudEnabled?void loadCloud():notify("Demo content is already up to date.")}><Repeat2 size={15}/> Refresh feed</button></div>
+          {loadingCloud&&<div className="feed-skeleton" role="status" aria-label="Loading posts">{[0,1,2].map(i=><div key={i} className="skeleton-post"><span className="skeleton-avatar"/><div><i/><i/><i/></div></div>)}</div>}
           {!loadingCloud && filteredPosts.length === 0 && <div className="empty-state"><Sparkles size={34}/><h3>{tab === "following" ? "Your feed starts here" : "Be the first to post"}</h3><p>{tab === "following" ? "Follow people in Explore to see what they share." : "Share a thought and start a conversation."}</p><button className="outline-btn" onClick={()=>navigate("explore")}>Discover people</button></div>}
           {filteredPosts.map((post) => <PostCard {...postProps(post)} />)}
         </>}
@@ -669,31 +709,20 @@ export default function BlumbookApp() {
           <div className="explore-hero"><span className="eyebrow">DISCOVER YOUR WORLD</span><h2>What&apos;s happening<br/>around you?</h2><p>Explore conversations, ideas and people who inspire.</p></div>
           <div className="section-label">Trending now <span>See what people are talking about</span></div>
           {TRENDS.map((trend,i)=><button className="trend-row" key={trend.tag} onClick={()=>setQuery(trend.tag.replace("#",""))}><span><small>{i+1} · {trend.category}</small><strong>{trend.tag}</strong><small>{trend.posts}</small></span><MoreHorizontal size={18}/></button>)}
+          <div className="explore-feature-links">
+            <button onClick={()=>navigate("opportunities")}><Handshake size={21}/><span>Bloom Opportunities<small>Find useful connections</small></span><ArrowRight size={17}/></button>
+            <button onClick={()=>navigate("videos")}><Video size={21}/><span>Videos<small>Watch shared clips</small></span><ArrowRight size={17}/></button>
+          </div>
           <div className="section-label">Who to follow</div>
           {people.slice(0,5).map((p)=>personRow(p))}
         </>}
       </>}
 
-      {view === "notifications" && <>
-        <PanelTitle extra={<button className="icon-button" onClick={()=>navigate("settings")} aria-label="Notification settings"><Settings size={19}/></button>}>Notifications</PanelTitle>
-        <div className="feed-tabs">{["All","Mentions","Likes","Follows"].map((name)=><button key={name} className={noticeFilter===name?"selected":""} onClick={()=>setNoticeFilter(name)}>{name}</button>)}</div>
-        {(DEMO_NOTICES.filter((n)=>notifyPrefs[n.kind==="like"?"likes":n.kind==="follow"?"follows":"replies"] && (noticeFilter==="All" || (noticeFilter==="Likes"&&n.kind==="like") || (noticeFilter==="Follows"&&n.kind==="follow") || (noticeFilter==="Mentions"&&n.kind==="reply")))).map((n: Notice)=>
-          <div className="notice-row" key={n.id}><span className={"notice-mark notice-"+n.kind}>{n.kind==="like"?<Heart size={21} fill="currentColor"/>:n.kind==="follow"?<UserRoundPlus size={21}/>:n.kind==="repost"?<Repeat2 size={21}/>:<MessageCircle size={21}/>}</span><div><strong>{n.person}</strong> {n.text}<small>{n.time} ago</small></div></div>
-        )}
-        {isCloudEnabled && <div className="hint-strip">Live notifications will appear here in the next release; the items above are sample activity.</div>}
-      </>}
-
-      {view === "messages" && <>
-        <PanelTitle extra={<button className="icon-button" onClick={()=>notify("Select a conversation below.")} aria-label="New conversation"><Mail size={20}/></button>}>Messages</PanelTitle>
-        {chatWith ? <div className="chat-page">
-          <button className="chat-heading" onClick={()=>setChatWith(null)}><ArrowLeft size={20}/><Avatar profile={lookup(chatWith)} size="small"/><strong>{lookup(chatWith).display_name}</strong></button>
-          <div className="chat-bubbles">{(chats[chatWith] || []).map((m)=><div key={m.id} className={"chat-bubble " + (m.sender==="me"?"mine":"theirs")}><p>{m.text}</p><small>{m.time}</small></div>)}</div>
-          <form className="chat-send" onSubmit={(e)=>{ e.preventDefault(); if(!chatText.trim())return; setChats((prev)=>({...prev,[chatWith]:[...(prev[chatWith]||[]),{id:String(Date.now()),sender:"me",text:chatText.trim(),time:"Now"}]}));setChatText(""); }}><input aria-label="Write a message" placeholder="Start a message" value={chatText} onChange={(e)=>setChatText(e.target.value)}/><button aria-label="Send" disabled={!chatText.trim()}><Send size={19}/></button></form>
-        </div> :
-        <><div className="hint-strip">Message previews are currently a demo. Private messaging backend is planned for the next phase.</div>
-          {demoThreads.map((chat)=><button className="message-row" key={chat.id} onClick={()=>setChatWith(chat.id)}><Avatar profile={lookup(chat.id)}/><span><strong>{chat.name}</strong><small>@{chat.handle} · {chat.time}</small><p>{chats[chat.id]?.at(-1)?.text || chat.last}</p></span></button>)}
-        </>}
-      </>}
+      {view === "notifications" && <NotificationsPanel userId={cloudUserId} profiles={allPeople} onSignIn={()=>setAuthOpen(true)} onProfile={openProfile} onPost={(id)=>{const p=posts.find(x=>x.id===id);if(p)void openThread(p);else notify("That post is outside the loaded feed.");}} onMessage={(id)=>{navigate("messages");setChatWith(id);}} prefs={notifyPrefs}/>}
+      {view === "messages" && <DirectInbox userId={cloudUserId} profiles={allPeople} initialRecipient={chatWith} onRecipientChange={setChatWith} onSignIn={()=>setAuthOpen(true)}/>}
+      {view === "opportunities" && <OpportunityHub userId={cloudUserId} profiles={allPeople} onSignIn={()=>setAuthOpen(true)} onProfile={openProfile} onMessage={(id)=>{navigate("messages");setChatWith(id);}}/>}
+      {view === "videos" && <section className="video-hub"><PanelTitle>Videos</PanelTitle><div className="video-hub-intro"><Video size={27}/><h2>Watch & discover</h2><p>Short videos shared by the Blumbook community.</p><button className="primary-btn" onClick={()=>{if(requireAccount())setCompose(true);}}><Plus size={17}/> Share video</button></div>
+      {posts.filter(p=>p.video_url&&!blockedAuthors.includes(p.author_id)).length?posts.filter(p=>p.video_url&&!blockedAuthors.includes(p.author_id)).map(p=><PostCard {...postProps(p)}/>):<div className="empty-state"><Video size={29}/><h3>No videos yet</h3><p>Videos will appear here once members start sharing.</p></div>}</section>}
 
       {view === "communities" && <BloomCircles userId={cloudUserId} requestAuth={()=>setAuthOpen(true)} language={language}/>}
 
@@ -763,7 +792,7 @@ export default function BlumbookApp() {
             </button>) : <div className="empty-state"><MessageCircle size={30}/><h3>No replies yet</h3><p>Replies to posts will appear here.</p></div>}
         </>}
         {profileTab==="media" && <>
-          {profileMedia.length ? <div className="full-profile-media-grid">{profileMedia.map(p=><button key={p.id} onClick={()=>void openThread(p)} aria-label={"View media in post by "+activeProfile.display_name}><img src={p.image_url||""} alt="Shared post media" loading="lazy"/></button>)}</div>
+          {profileMedia.length ? <div className="full-profile-media-grid">{profileMedia.map(p=><button key={p.id} onClick={()=>openMedia(p)} aria-label={"View media in post by "+activeProfile.display_name}>{p.image_url?<img src={p.image_url} alt="Shared media" loading="lazy"/>:<span className="media-video-tile"><Video size={22}/> Video</span>}</button>)}</div>
           : <div className="empty-state"><ImagePlus size={30}/><h3>No photos yet</h3><p>Photos shared in posts will appear here.</p></div>}
         </>}
         {profileTab==="likes" && <>
@@ -858,13 +887,7 @@ export default function BlumbookApp() {
         <div className="feature-rows"><div><UsersRound size={22}/><span><strong>Community talks</strong><small>Meet around shared interests</small></span></div><div><Sparkles size={22}/><span><strong>Creator conversations</strong><small>Speak, listen and share ideas</small></span></div></div>
       </div>}
 
-      {view === "creator" && <div className="feature-page">
-        <PanelTitle>Creator Studio</PanelTitle><div className="creator-heading"><div><span className="feature-overline">YOUR CREATOR OVERVIEW</span><h2>Create with purpose.</h2><p>See your posts and community interactions at a glance.</p></div><ChartNoAxesCombined size={30}/></div>
-        <div className="metric-grid"><div><span>Total posts</span><strong>{posts.filter(p=>p.author_id===me.id).length}</strong></div><div><span>Post likes</span><strong>{shortCount(posts.filter(p=>p.author_id===me.id).reduce((n,p)=>n+p.likes,0))}</strong></div><div><span>Replies</span><strong>{shortCount(posts.filter(p=>p.author_id===me.id).reduce((n,p)=>n+p.replies,0))}</strong></div><div><span>Following</span><strong>{followed.length}</strong></div></div>
-        <div className="creator-activity"><div><strong>Posting activity</strong><small>Last 7 days · Based on posts loaded in this feed</small></div><div className="creator-bars">{Array.from({length:7},(_,i)=>{const date=new Date();date.setDate(date.getDate()-(6-i));const key=date.toLocaleDateString("en-CA");const total=posts.filter(p=>p.author_id===me.id && new Date(p.created_at).toLocaleDateString("en-CA")===key).length;return <div key={key} title={key+": "+total+" posts"}><span style={{height:(total?Math.min(85,total*24+14):4)+"px"}}/><small>{date.toLocaleDateString("en",{weekday:"short"})}</small></div>;})}</div></div>
-        <button className="creator-compose" onClick={()=>requireAccount()&&setCompose(true)}><Feather size={21}/><span><strong>Share something new</strong><small>Ideas are better when shared</small></span><ArrowRight size={21}/></button>
-        <div className="hint-strip">These figures reflect the current feed. Advanced analytics and monetization are not yet enabled.</div>
-      </div>}
+      {view === "creator" && <CreatorStudioPlus posts={posts} me={me} onCompose={(text)=>{if(requireAccount()){setPostText(text||"");setCompose(true);}}}/>}
 
       {view === "help" && <div className="feature-page">
         <PanelTitle>Help Center</PanelTitle><div className="feature-intro"><div className="feature-icon"><CircleHelp size={28}/></div><h2>How can we help?</h2><p>Everything you need to get comfortable on Blumbook.</p></div>
@@ -893,9 +916,15 @@ export default function BlumbookApp() {
     {menuOpen && <button aria-label="Close menu" className="menu-shade" onClick={()=>setMenuOpen(false)}/>}
     {toast && <div role="status" className="toast">{toast}</div>}
 
+    {mediaViewer&&<Modal close={()=>setMediaViewer(null)}><div className="media-dialog">
+      <div className="media-dialog-head"><button onClick={()=>setMediaViewer(null)} aria-label="Close"><X size={21}/></button><strong>Blumbook Media</strong><button onClick={()=>{const p=mediaViewer;setMediaViewer(null);void openThread(p);}}><MessageCircle size={17}/> Conversation</button></div>
+      <div className="media-dialog-main">{mediaViewer.video_url?<video key={mediaViewer.id} src={mediaViewer.video_url} controls autoPlay playsInline preload="metadata"/>:<img src={mediaViewer.image_url||""} alt="Shared media"/>}</div>
+      <div className="media-dialog-foot"><button onClick={()=>nextMedia(-1)} disabled={mediaPosts.length<2}><ArrowLeft size={17}/> Previous</button><span>{lookup(mediaViewer.author_id).display_name}</span><button onClick={()=>nextMedia(1)} disabled={mediaPosts.length<2}>Next <ArrowRight size={17}/></button></div>
+    </div></Modal>}
     {compose && <Modal close={()=>setCompose(false)}>
       <div className="dialog-head"><button className="icon-button" onClick={()=>setCompose(false)} aria-label="Close"><X size={22}/></button><strong>Create post</strong><button form="compose-form" className="primary-btn" disabled={busy||!postText.trim()||postText.length>500}>{busy?"Posting...":"Post"}</button></div>
-      <form id="compose-form" onSubmit={submitPost}><div className="compose-body"><Avatar profile={me}/><div className="compose-fields"><span className="audience">🌐 Everyone</span><textarea autoFocus aria-label="Write a post" placeholder="What's happening?" rows={5} maxLength={500} value={postText} onChange={(e)=>setPostText(e.target.value)}/>{imagePreview&&<div className="preview-wrap"><img src={imagePreview} alt="Image preview"/><button type="button" onClick={()=>{setImageFile(null);setImagePreview("");}} aria-label="Remove image"><X size={19}/></button></div>}</div></div><div className="compose-bottom"><label className="upload-action" title="Attach photo"><ImagePlus size={22}/><input type="file" accept="image/*" onChange={pickImage} hidden/></label><span>Up to 500 characters · Images up to 5 MB</span><strong className={postText.length>460?"warn-count":""}>{500-postText.length}</strong></div></form>
+      <form id="compose-form" onSubmit={submitPost}><div className="compose-body"><Avatar profile={me}/><div className="compose-fields"><span className="audience">🌐 Everyone</span><textarea autoFocus aria-label="Write a post" placeholder="What's happening?" rows={5} maxLength={500} value={postText} onChange={(e)=>setPostText(e.target.value)}/>{imagePreview&&<div className="preview-wrap"><img src={imagePreview} alt="Image preview"/><button type="button" onClick={()=>{setImageFile(null);setImagePreview("");}} aria-label="Remove image"><X size={19}/></button></div>}
+      {videoPreview&&<div className="preview-wrap"><video src={videoPreview} controls playsInline/><button type="button" onClick={()=>{setVideoFile(null);setVideoPreview("");}} aria-label="Remove video"><X size={19}/></button></div>}</div></div><div className="compose-bottom"><label className="upload-action" title="Attach photo"><ImagePlus size={22}/><input type="file" accept="image/*" onChange={pickImage} hidden/></label><label className="upload-action" title="Attach video"><Video size={22}/><input type="file" accept="video/mp4,video/webm" onChange={pickVideo} hidden/></label><span>500 chars · Images 5MB / Videos 30MB</span><strong className={postText.length>460?"warn-count":""}>{500-postText.length}</strong></div></form>
     </Modal>}
 
     {authOpen&&<Modal close={()=>setAuthOpen(false)}>

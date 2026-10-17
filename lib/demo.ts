@@ -5,7 +5,7 @@ export type Profile = {
   headline?: string; skills?: string[]; portfolio_url?: string; open_to_collab?: boolean;
 };
 export type Post = {
-  id: string; author_id: string; body: string; image_url: string | null;
+  id: string; author_id: string; body: string; image_url: string | null; video_url?:string|null;
   created_at: string; likes: number; reposts: number; replies: number;
   views: number; liked?: boolean; bookmarked?: boolean; reposted?: boolean;
 };
@@ -16,11 +16,11 @@ export const DEMO_ME: Profile = {
   location: "",
 };
 export const DEMO_PEOPLE: Profile[] = [
-  { id: "amina", username: "aminacreates", display_name: "Amina Yusuf", bio: "Creative storyteller • Art & technology 🎨", verified: true, open_to_collab: true },
+  { id: "amina", username: "aminacreates", display_name: "Amina Yusuf", bio: "Creative storyteller • Art & technology 🎨", verified:false, open_to_collab: true },
   { id: "daniel", username: "danielkim", display_name: "Daniel Kim", bio: "Designer. Builder. Exploring new ideas." },
-  { id: "zara", username: "zaralawal", display_name: "Zara Lawal", bio: "Digital creator | Learning every day ✨", verified: true },
+  { id: "zara", username: "zaralawal", display_name: "Zara Lawal", bio: "Digital creator | Learning every day ✨", verified:false },
   { id: "ibrahim", username: "ibrahimmusa", display_name: "Ibrahim Musa", bio: "Software engineer and tech enthusiast.", open_to_collab: true },
-  { id: "sarah", username: "sarahchen", display_name: "Sarah Chen", bio: "Educator • Learning for everyone.", verified: true },
+  { id: "sarah", username: "sarahchen", display_name: "Sarah Chen", bio: "Educator • Learning for everyone.", verified:false },
   { id: "alex", username: "alexj", display_name: "Alex Johnson", bio: "Let's build a brighter community together." },
 ];
 export const DEMO_POSTS: Post[] = [

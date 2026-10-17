@@ -59,3 +59,7 @@ Read the [Premium UI Design System](docs/DESIGN_SYSTEM.md) for global color toke
 ### Full profile migration
 
 Run `supabase/phase4.sql` after phases 1–3 before testing persistent cover images and pinned posts. Profile demo actions are not server-persistent until Supabase is connected.
+
+## Phase 5 — Social features beta
+
+Bloom Opportunities, Direct Messages, real Notifications, video media, Creator Studio drafts and loaded-feed analytics have been added to the code. They require Supabase configuration and the Phase 5 migration to work with actual members. [Read setup and safety notes](docs/PHASE5.md).
