@@ -3,10 +3,11 @@ import {useCallback,useEffect,useState,type FormEvent} from "react";
 import {Camera,ChevronLeft,ChevronRight,Clock3,Plus,Trash2,X} from "lucide-react";
 import {supabase,isCloudEnabled} from "@/lib/supabase";
 import type {Profile} from "@/lib/demo";
+import {SHOWCASE_STORIES} from "@/lib/demo-showcase";
 type Story={id:string;author_id:string;media_url:string;media_type:"image"|"video";caption:string;created_at:string;expires_at:string};
 const valid=(f:File)=>{const image=["image/jpeg","image/png","image/webp","image/gif"].includes(f.type);const video=["video/mp4","video/webm"].includes(f.type);return (image&&f.size<=5*1024*1024)||(video&&f.size<=30*1024*1024);};
 export default function StoriesRail({userId,profiles,onSignIn,launchCreate=0,compact=false,forceDemo=false}:{userId:string|null;profiles:Profile[];onSignIn:()=>void;launchCreate?:number;compact?:boolean;forceDemo?:boolean}){
- const [stories,setStories]=useState<Story[]>([]),[selected,setSelected]=useState<number|null>(null),[creating,setCreating]=useState(false);
+ const [stories,setStories]=useState<Story[]>(forceDemo?SHOWCASE_STORIES:[]),[selected,setSelected]=useState<number|null>(null),[creating,setCreating]=useState(false);
  const [file,setFile]=useState<File|null>(null),[preview,setPreview]=useState(""),[caption,setCaption]=useState(""),[busy,setBusy]=useState(false),[message,setMessage]=useState("");
  const me=userId||"demo-me";
  const load=useCallback(async()=>{
