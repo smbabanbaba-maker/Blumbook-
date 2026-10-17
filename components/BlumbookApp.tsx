@@ -748,18 +748,49 @@ export default function BlumbookApp() {
         </>}
       </div>
 
-      {view === "home" && <>
-        <div className="feed-tabs">
-          {([["for-you","For you"],["following","Following"]] as const).map(([id,label])=><button key={id} className={tab === id ? "selected" : ""} onClick={()=>setTab(id)}>{label==="For you"?tr("For you"):label==="Following"?tr("Following"):tr("Communities")}</button>)}
+      {view === "home" && <section className="premium-home" aria-label="Blumbook home">
+        <header className="premium-home-intro">
+          <div className="premium-home-intro-copy">
+            <span className="premium-home-eyebrow"><span aria-hidden="true"/> BLUMBOOK · YOUR WORLD</span>
+            <h1>Your world,<br/><em>in bloom.</em></h1>
+            <p>Good conversations start here. Share your ideas and discover people worth knowing.</p>
+          </div>
+          <div className="premium-home-orbit" aria-hidden="true"><span/><span/><i>✦</i></div>
+        </header>
+        <section className="premium-publisher" aria-label="Create something">
+          <div className="premium-publisher-top">
+            <Avatar profile={me} size="small"/>
+            <button className="premium-publisher-prompt" onClick={()=>openComposer("post")}>
+              {menuLabel("What's on your mind?","Me ke ranka?")}
+            </button>
+            <button className="premium-publisher-submit" aria-label="Write a post" onClick={()=>openComposer("post")}><Feather size={18}/></button>
+          </div>
+          <div className="premium-publisher-actions">
+            <button onClick={()=>openComposer("photo")}><ImagePlus size={17}/><span>{menuLabel("Photo","Hoto")}</span></button>
+            <button onClick={()=>openComposer("video")}><Video size={17}/><span>{menuLabel("Video","Bidiyo")}</span></button>
+            <button onClick={()=>selectCreate("poll")}><ChartNoAxesCombined size={17}/><span>Poll</span></button>
+            <span className="premium-publisher-signature">TALK · SHARE · BLOOM</span>
+          </div>
+        </section>
+        {!welcomeHidden&&<div className="premium-home-onboarding">
+          <span><Sparkles size={17}/> New to Blumbook? Find your people in Bloom Circles.</span>
+          <div><button onClick={()=>navigate("communities")}>Discover circles <ArrowRight size={14}/></button><button aria-label="Dismiss welcome" onClick={()=>{setWelcomeHidden(true);window.localStorage.setItem("blumbook-onboarded","yes");}}><X size={17}/></button></div>
+        </div>}
+        <StoriesRail userId={cloudUserId} profiles={allPeople} onSignIn={()=>setAuthOpen(true)} launchCreate={storyLaunch}/>
+        <div className="premium-feed-heading">
+          <div><span>YOUR TIMELINE</span><h2>{menuLabel("Latest conversations","Sabbin tattaunawa")}</h2></div>
+          <button onClick={()=>isCloudEnabled?void loadCloud():notify("Demo content is already up to date.")} aria-label="Refresh feed" disabled={loadingCloud}><Repeat2 size={17}/></button>
         </div>
-          {!welcomeHidden&&<section className="onboard-card"><div><span className="feature-overline">WELCOME TO BLUMBOOK</span><h2>Ideas grow better together.</h2><p>Explore stories, discover a Bloom Circle, and introduce yourself. This is an early interactive preview.</p><div><button onClick={()=>navigate("communities")}>Explore Bloom Circles <ArrowRight size={16}/></button><button onClick={()=>{setWelcomeHidden(true);window.localStorage.setItem("blumbook-onboarded","yes");}}>Got it</button></div></div><button className="icon-button" aria-label="Dismiss welcome" onClick={()=>{setWelcomeHidden(true);window.localStorage.setItem("blumbook-onboarded","yes");}}><X size={20}/></button></section>}
-          <StoriesRail userId={cloudUserId} profiles={allPeople} onSignIn={()=>setAuthOpen(true)} launchCreate={storyLaunch}/>
-          {!isCloudEnabled&&<p className="feed-demo-indicator"><ShieldCheck size={16}/> Demo preview · Sample content and numbers, not real members</p>}
-          <div className="feed-status-actions"><button onClick={()=>isCloudEnabled?void loadCloud():notify("Demo content is already up to date.")}><Repeat2 size={15}/> Refresh feed</button></div>
-          {loadingCloud&&<div className="feed-skeleton" role="status" aria-label="Loading posts">{[0,1,2].map(i=><div key={i} className="skeleton-post"><span className="skeleton-avatar"/><div><i/><i/><i/></div></div>)}</div>}
-          {!loadingCloud && filteredPosts.length === 0 && <div className="empty-state"><Sparkles size={34}/><h3>{tab === "following" ? "Your feed starts here" : "Be the first to post"}</h3><p>{tab === "following" ? "Follow people in Explore to see what they share." : "Share a thought and start a conversation."}</p><button className="outline-btn" onClick={()=>navigate("explore")}>Discover people</button></div>}
-          {filteredPosts.map((post) => <PostCard {...postProps(post)} />)}
-      </>}
+        <div className="feed-tabs premium-feed-tabs" aria-label="Choose your feed">
+          {([["for-you","For you"],["following","Following"]] as const).map(([id,label])=>
+            <button key={id} aria-pressed={tab===id} className={tab === id ? "selected" : ""} onClick={()=>setTab(id)}>{tr(label)}</button>
+          )}
+        </div>
+        {!isCloudEnabled&&<p className="feed-demo-indicator"><ShieldCheck size={16}/> Demo preview · Sample content and numbers, not real members</p>}
+        {loadingCloud&&<div className="feed-skeleton" role="status" aria-label="Loading posts">{[0,1,2].map(i=><div key={i} className="skeleton-post"><span className="skeleton-avatar"/><div><i/><i/><i/></div></div>)}</div>}
+        {!loadingCloud&&filteredPosts.length===0&&<div className="empty-state premium-empty-feed"><Sparkles size={34}/><h3>{tab === "following" ? "Your feed starts here" : "Be the first to post"}</h3><p>{tab === "following" ? "Follow people in Explore to see what they share." : "Share a thought and start a conversation."}</p><button className="outline-btn" onClick={()=>tab==="following"?navigate("explore"):openComposer("post")}>{tab==="following"?"Discover people":"Create a post"}</button></div>}
+        {!loadingCloud&&filteredPosts.map((post) => <PostCard {...postProps(post)} />)}
+      </section>}
 
       {view === "explore" && <>
         <div className="search-header"><Search size={19}/><input aria-label="Search Blumbook" placeholder="Search Blumbook" value={query} onChange={(e)=>setQuery(e.target.value)}/>{query && <button aria-label="Clear search" onClick={()=>setQuery("")}><X size={18}/></button>}</div>
