@@ -14,6 +14,8 @@ type Props={
   onLike:()=>void;
   onBookmark:()=>void;
   onShare:()=>void;
+  onNext?:()=>void;
+  onPrevious?:()=>void;
 };
 const clock=(seconds:number)=>{
   if(!Number.isFinite(seconds)||seconds<0)return "0:00";
@@ -21,14 +23,16 @@ const clock=(seconds:number)=>{
   return Math.floor(total/60)+":"+String(total%60).padStart(2,"0");
 };
 
-export default function ImmersiveVideoViewer({post,author,onClose,onProfile,onReply,onLike,onBookmark,onShare}:Props){
+export default function ImmersiveVideoViewer({post,author,onClose,onProfile,onReply,onLike,onBookmark,onShare,onNext,onPrevious}:Props){
   const video=useRef<HTMLVideoElement>(null);
+  const startTouchY=useRef<number|null>(null);
   const [playing,setPlaying]=useState(false);
   const [muted,setMuted]=useState(false);
   const [duration,setDuration]=useState(0);
   const [position,setPosition]=useState(0);
   const [speed,setSpeed]=useState(1);
   const [showChrome,setShowChrome]=useState(true);
+  useEffect(()=>{setPosition(0);setDuration(0);setPlaying(false);setShowChrome(true);},[post.id]);
   const toggle=()=>{
     const player=video.current;
     if(!player)return;
@@ -64,7 +68,7 @@ export default function ImmersiveVideoViewer({post,author,onClose,onProfile,onRe
     if(video.current)video.current.playbackRate=value;
   };
   return <div className="immersive-video" role="dialog" aria-modal="true" aria-label={"Video from "+author.display_name}>
-    <div className="immersive-video-stage">
+    <div className="immersive-video-stage" onTouchStart={e=>{startTouchY.current=e.touches[0]?.clientY??null;}} onTouchEnd={e=>{const start=startTouchY.current;startTouchY.current=null;if(start===null)return;const end=e.changedTouches[0]?.clientY??start;const distance=end-start;if(Math.abs(distance)>75){if(distance<0)onNext?.();else onPrevious?.();}}}>
       <video
         ref={video}
         key={post.id}
@@ -85,7 +89,6 @@ export default function ImmersiveVideoViewer({post,author,onClose,onProfile,onRe
       <header className="immersive-video-top">
         <button autoFocus onClick={onClose} aria-label="Back to feed"><ArrowLeft size={24}/></button>
         <span>Blumbook</span>
-        <button onClick={()=>setShowChrome(false)} aria-label="Hide video controls">•••</button>
       </header>
       <footer className="immersive-video-bottom">
         <div className="immersive-video-author">
