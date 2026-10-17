@@ -9,7 +9,7 @@
 
 ## Supabase backend
 - Create your own Supabase project and open its SQL Editor.
-- Run [supabase/schema.sql](../supabase/schema.sql) **once** to create all tables, row-level security policies, storage bucket and the sign-up profile trigger.
+- Run [supabase/schema.sql](../supabase/schema.sql) first on a fresh database. Then apply `supabase/phase2.sql`, `supabase/phase3.sql`, and [supabase/phase4.sql](../supabase/phase4.sql) in order. Existing databases should apply only the migrations they have not yet applied.
 - Under Authentication → Providers, enable email sign-up. You may require email confirmation; if so, users must confirm before interacting.
 - Copy [.env.example](../.env.example) to '.env.local':
   - NEXT_PUBLIC_SUPABASE_URL=your-project-url
@@ -35,3 +35,11 @@ You can preview with **no variables**, but that is sample/demo mode. Do not adve
 - Add tests (unit, integration, end-to-end), accessibility audits, security review and load testing.
 - Review Nigerian Data Protection Act 2023 obligations and any other jurisdictions served.
 - Verify trademark rights for the Blumbook name and final logo; buy the selected domain.
+
+## Profile image and pin feature
+
+- The new profile supports avatar, cover image, optional location, website, registration date, and one pinned post.
+- Before connecting live user data, run `supabase/phase4.sql` to add `banner_url`, `pinned_post_id` and constrained update privileges.
+- Image uploads use the existing public `post-media` bucket (5 MB max; supported JPEG, PNG, WebP, GIF).
+- The `Posts`, `Replies`, `Media`, and `Likes` tabs work on posts/replies currently loaded into the feed. Pagination and private likes remain future work.
+- In demo mode, profile photo edits and pinned posts are temporary and not synchronized across devices.
