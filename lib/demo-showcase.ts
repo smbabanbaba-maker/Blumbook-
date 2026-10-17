@@ -207,3 +207,15 @@ export const SHOWCASE_COMMENTS_BY_POST:Record<string,ShowcaseComment[]>=SHOWCASE
  (all[comment.post_id]??=[]).push(comment);
  return all;
 },{} as Record<string,ShowcaseComment[]>);
+
+/** Fictional 24-hour Status items for the Home preview rail. */
+export const SHOWCASE_STORIES=[
+  {id:"demo-story-1",author_id:"amina",media_url:"https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=800&q=80",media_type:"image" as const,caption:"Behind the scenes — designing something new.",created_at:new Date(Date.now()-30*60_000).toISOString(),expires_at:new Date(Date.now()+23*60*60_000).toISOString()},
+  {id:"demo-story-2",author_id:"ibrahim",media_url:"https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=800&q=80",media_type:"image" as const,caption:"A morning spent building and testing.",created_at:new Date(Date.now()-44*60_000).toISOString(),expires_at:new Date(Date.now()+22*60*60_000).toISOString()},
+  {id:"demo-story-3",author_id:"zara",media_url:"https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&q=80",media_type:"image" as const,caption:"A little inspiration today ✨",created_at:new Date(Date.now()-58*60_000).toISOString(),expires_at:new Date(Date.now()+22*60*60_000).toISOString()},
+  {id:"demo-story-4",author_id:"chioma",media_url:"https://images.unsplash.com/photo-1519608487953-e999c86e7455?w=800&q=80",media_type:"image" as const,caption:"Views from my photo walk.",created_at:new Date(Date.now()-86*60_000).toISOString(),expires_at:new Date(Date.now()+21*60*60_000).toISOString()},
+  {id:"demo-story-5",author_id:"fatima",media_url:"https://images.unsplash.com/photo-1501004318641-b39e6451bec6?w=800&q=80",media_type:"image" as const,caption:"Green things and good days 🌱",created_at:new Date(Date.now()-124*60_000).toISOString(),expires_at:new Date(Date.now()+20*60*60_000).toISOString()},
+  {id:"demo-story-6",author_id:"sarah",media_url:"https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=800&q=80",media_type:"image" as const,caption:"Learning together.",created_at:new Date(Date.now()-176*60_000).toISOString(),expires_at:new Date(Date.now()+19*60*60_000).toISOString()},
+  {id:"demo-story-7",author_id:"grace",media_url:"https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=800&q=80",media_type:"image" as const,caption:"Community matters.",created_at:new Date(Date.now()-201*60_000).toISOString(),expires_at:new Date(Date.now()+18*60*60_000).toISOString()},
+  {id:"demo-story-8",author_id:"salim",media_url:"https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4",media_type:"video" as const,caption:"A quick demo clip.",created_at:new Date(Date.now()-242*60_000).toISOString(),expires_at:new Date(Date.now()+17*60*60_000).toISOString()},
+];
