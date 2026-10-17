@@ -1,4 +1,5 @@
 import type {Post,Profile} from "./demo";
+import {EXTRA_DEMO_PEOPLE,EXTRA_DEMO_POSTS,EXTRA_DEMO_COMMENTS} from "./demo-expanded";
 
 /**
  * Fictional interface-testing fixtures. Never upload these to real Supabase tables.
@@ -22,6 +23,7 @@ export const SHOWCASE_PEOPLE:Profile[]=[
   {id:"peter",username:"petercreates",display_name:"Peter Cole",bio:"Independent maker and web developer",location:"Accra, Ghana",open_to_collab:false},
   {id:"grace",username:"graceconnects",display_name:"Grace Mensah",bio:"Community events and collaborations",location:"Accra, Ghana",open_to_collab:true},
   {id:"salim",username:"salimfilms",display_name:"Salim Ali",bio:"Video creator and editor",location:"Abuja, Nigeria",open_to_collab:false},
+  ...EXTRA_DEMO_PEOPLE,
 ];
 
 export const SHOWCASE_POSTS:Post[]=[
@@ -57,6 +59,7 @@ export const SHOWCASE_POSTS:Post[]=[
   {id:"showcase-30",author_id:"fatima",body:"We’re experimenting with a new growing setup and keeping notes on every little change. Data is useful, but observation still matters.",image_url:"https://images.unsplash.com/photo-1501004318641-b39e6451bec6?w=1000&q=80",video_url:null,created_at:new Date(Date.now()-4900*60_000).toISOString(),likes:472,reposts:39,replies:4,views:6136},
   {id:"showcase-31",author_id:"demo-me",body:"Exploring Blumbook’s new design today. Testing the feed, post details, replies, bookmarks and video view. What should we improve next?",image_url:null,video_url:null,created_at:new Date(Date.now()-9*60_000).toISOString(),likes:48,reposts:6,replies:6,views:624},
   {id:"showcase-32",author_id:"demo-me",body:"A second test post to try my profile page, comments, following feed and engagement controls. Everything here is demo content for review.",image_url:null,video_url:null,created_at:new Date(Date.now()-93*60_000).toISOString(),likes:29,reposts:3,replies:3,views:377},
+  ...EXTRA_DEMO_POSTS,
 ];
 
 export const SHOWCASE_COMMENTS:ShowcaseComment[]=[
@@ -201,6 +204,7 @@ export const SHOWCASE_COMMENTS:ShowcaseComment[]=[
   {id:"showcase-32-reply-1",post_id:"showcase-32",author_id:"yusuf",body:"Looks like a helpful preview.",created_at:new Date(Date.now()-42*60_000).toISOString()},
   {id:"showcase-32-reply-2",post_id:"showcase-32",author_id:"amina",body:"I can open this from your profile.",created_at:new Date(Date.now()-39*60_000).toISOString()},
   {id:"showcase-32-reply-3",post_id:"showcase-32",author_id:"alex",body:"Great way to test navigation.",created_at:new Date(Date.now()-36*60_000).toISOString()},
+  ...EXTRA_DEMO_COMMENTS,
 ];
 
 export const SHOWCASE_COMMENTS_BY_POST:Record<string,ShowcaseComment[]>=SHOWCASE_COMMENTS.reduce((all,comment)=>{
