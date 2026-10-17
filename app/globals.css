@@ -1737,3 +1737,74 @@ button.settings-detail-row:hover { background:var(--hover); }
  .home-status-strip .story-circle,.stories-destination .story-circle{width:88px;height:88px;}
  .home-status-strip .story-tile small,.stories-destination .story-tile small{width:94px;max-width:94px;}
 }
+
+/* Facebook-inspired story cards. Blumbook's distinct neutral identity is preserved. */
+.home-status-strip .facebook-stories-row,.stories-destination .facebook-stories-row{
+  display:flex;align-items:stretch;gap:9px;overflow-x:auto;overflow-y:hidden;
+  padding:4px 4px 11px;scrollbar-width:none;scroll-snap-type:x proximity;
+  overscroll-behavior-inline:contain;
+}
+.home-status-strip .facebook-stories-row::-webkit-scrollbar,
+.stories-destination .facebook-stories-row::-webkit-scrollbar{display:none;}
+.home-status-strip .fb-story-card,.stories-destination .fb-story-card{
+  display:block;position:relative;flex:0 0 114px;width:114px;height:184px;
+  min-height:184px;padding:0;overflow:hidden;border-radius:14px;
+  background:var(--surface2);box-shadow:0 1px 3px #0002;
+  border:1px solid var(--line);scroll-snap-align:start;isolation:isolate;
+  text-align:left;transition:transform .16s ease;
+}
+.home-status-strip .fb-story-card:hover,.stories-destination .fb-story-card:hover{transform:translateY(-2px);}
+.home-status-strip .blum-stories,.stories-destination .blum-stories{padding:11px 11px 5px;background:var(--bg);}
+.fb-story-media,.fb-story-create-cover{
+  position:absolute;inset:0;display:grid;place-items:center;
+  overflow:hidden;background:var(--surface2);
+}
+.fb-story-media img,.fb-story-create-cover img{width:100%;height:100%;object-fit:cover;display:block;}
+.fb-story-video-cover{display:grid;place-items:center;width:100%;height:100%;
+  background:linear-gradient(140deg,#222936,#15171b 64%,#363c4c);color:#fff;}
+.fb-story-shade{position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(180deg,#0004,transparent 34%,transparent 45%,#000c 100%);}
+.fb-story-profile-ring{
+  position:absolute;top:10px;left:9px;width:37px;height:37px;border-radius:50%;
+  display:grid;place-items:center;overflow:hidden;border:3px solid #1877f2;
+  box-shadow:0 0 0 1px #0005;background:#242a32;color:#fff;font-size:13px;font-weight:800;
+}
+.fb-story-profile-ring img{width:100%;height:100%;object-fit:cover;}
+.fb-story-name{
+  position:absolute;left:9px;right:8px;bottom:11px;z-index:1;
+  font-size:12px;line-height:1.22;font-weight:800;color:#fff;
+  text-shadow:0 1px 5px #000d;overflow:hidden;display:-webkit-box;
+  -webkit-box-orient:vertical;-webkit-line-clamp:2;
+}
+.fb-story-create .fb-story-create-cover{bottom:47px;}
+.fb-story-create-initial{font-size:46px;line-height:1;font-weight:850;
+  color:var(--text);letter-spacing:-2px;}
+.fb-story-create-footer{
+  display:flex;flex-direction:column;align-items:center;justify-content:flex-end;
+  position:absolute;bottom:0;left:0;right:0;height:56px;padding:19px 4px 10px;
+  background:var(--surface);color:var(--text);
+  font-size:11.5px;font-weight:820;white-space:nowrap;
+}
+.fb-story-create-badge{
+  position:absolute;top:-18px;left:50%;transform:translateX(-50%);
+  width:35px;height:35px;border-radius:50%;display:grid;place-items:center;
+  border:4px solid var(--surface);background:#1877f2;color:#fff;
+}
+.fb-story-card:focus-visible{outline:2px solid var(--text);outline-offset:3px;}
+@media(min-width:768px){
+  .home-status-strip .fb-story-card,.stories-destination .fb-story-card{
+    flex-basis:132px;width:132px;height:208px;min-height:208px;
+  }
+  .home-status-strip .facebook-stories-row,.stories-destination .facebook-stories-row{gap:12px;}
+  .fb-story-name{font-size:13px;}
+}
+@media(max-width:365px){
+  .home-status-strip .fb-story-card,.stories-destination .fb-story-card{
+    flex-basis:101px;width:101px;height:169px;min-height:169px;
+  }
+  .home-status-strip .facebook-stories-row,.stories-destination .facebook-stories-row{gap:8px;}
+  .fb-story-name{font-size:11px;}
+}
+@media(prefers-reduced-motion:reduce){
+  .home-status-strip .fb-story-card,.stories-destination .fb-story-card{transition:none;}
+}
