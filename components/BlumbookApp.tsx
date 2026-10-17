@@ -14,6 +14,7 @@ import DirectInbox from "@/components/DirectInbox";
 import NotificationsPanel from "@/components/NotificationsPanel";
 import CreatorStudioPlus from "@/components/CreatorStudioPlus";
 import BlumClips from "@/components/BlumClips";
+import ImmersiveVideoViewer from "@/components/ImmersiveVideoViewer";
 import StoriesRail from "@/components/StoriesRail";
 import PollsPanel from "@/components/PollsPanel";
 import LiveSessions from "@/components/LiveSessions";
@@ -220,6 +221,7 @@ export default function BlumbookApp() {
   const [toast, setToast] = useState("");
   const [busy, setBusy] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [navHidden,setNavHidden] = useState(false);
   const [createMenuOpen,setCreateMenuOpen]=useState(false);
   const [composeMode,setComposeMode]=useState<"post"|"photo"|"video">("post");
   const [storyLaunch,setStoryLaunch]=useState(0);
@@ -243,7 +245,36 @@ export default function BlumbookApp() {
     document.addEventListener("keydown",onKeyDown);
     return () => {document.body.style.overflow=previousOverflow;document.removeEventListener("keydown",onKeyDown);};
   },[menuOpen]);
-  const navigate = (target: View) => { setProfileMore(false); if(target!=="profile" && typeof window!=="undefined" && new URLSearchParams(window.location.search).has("profile")){const url=new URL(window.location.href);url.searchParams.delete("profile");window.history.replaceState({},"",url.pathname+url.search);} setView(target); if (target === "settings") { setSettingsPanel(null); setSettingsSearch(""); } setMenuOpen(false); setChatWith(null); window.scrollTo({ top: 0, behavior:"smooth" }); };
+  useEffect(()=>{
+    const scrollingPages=["home","explore","profile","thread","bookmarks","opportunities"].includes(view);
+    if(!scrollingPages||menuOpen||createMenuOpen||compose||mediaViewer){
+      setNavHidden(false);
+      return;
+    }
+    let previousY=window.scrollY;
+    let travel=0;
+    let idleTimer:ReturnType<typeof setTimeout>|undefined;
+    const onScroll=()=>{
+      const y=Math.max(0,window.scrollY);
+      const delta=y-previousY;previousY=y;
+      if(y<85){travel=0;setNavHidden(false);}
+      else if(Math.abs(delta)>1){
+        if((delta>0&&travel<0)||(delta<0&&travel>0))travel=0;
+        travel+=delta;
+        if(travel>25){setNavHidden(true);travel=0;}
+        if(travel< -17){setNavHidden(false);travel=0;}
+      }
+      if(idleTimer)clearTimeout(idleTimer);
+      idleTimer=setTimeout(()=>setNavHidden(false),1100);
+    };
+    window.addEventListener("scroll",onScroll,{passive:true});
+    return()=>{
+      window.removeEventListener("scroll",onScroll);
+      if(idleTimer)clearTimeout(idleTimer);
+    };
+  },[view,menuOpen,createMenuOpen,compose,mediaViewer]);
+
+  const navigate = (target: View) => { setNavHidden(false); setProfileMore(false); if(target!=="profile" && typeof window!=="undefined" && new URLSearchParams(window.location.search).has("profile")){const url=new URL(window.location.href);url.searchParams.delete("profile");window.history.replaceState({},"",url.pathname+url.search);} setView(target); if (target === "settings") { setSettingsPanel(null); setSettingsSearch(""); } setMenuOpen(false); setChatWith(null); window.scrollTo({ top: 0, behavior:"smooth" }); };
   const requireAccount = () => {
     if (!isMember) { setAuthOpen(true); notify("Sign in to interact with the community."); return false; }
     return true;
@@ -736,7 +767,7 @@ export default function BlumbookApp() {
     </aside>
 
     <main className="main-column">
-      <div className={"mobile-topbar " + (view === "settings" ? "mobile-topbar-settings" : "")}>
+      <div className={"mobile-topbar " + (view === "settings" ? "mobile-topbar-settings" : "") + (view==="clips" ? " mobile-topbar-clips" : "")}>
         {view === "settings" ? <>
           <button className="icon-button" onClick={() => settingsPanel ? setSettingsPanel(null) : navigate("home")} aria-label="Back"><ArrowLeft size={25}/></button>
           <div className="mobile-settings-heading"><strong>{settingsPanel ? settingsConfig.find(s => s.id === settingsPanel)?.title : "Settings"}</strong><small>@{me.username}</small></div>
@@ -783,7 +814,7 @@ export default function BlumbookApp() {
       {view === "notifications" && <NotificationsPanel userId={cloudUserId} profiles={allPeople} onSignIn={()=>setAuthOpen(true)} onProfile={openProfile} onPost={(id)=>{const p=posts.find(x=>x.id===id);if(p)void openThread(p);else notify("That post is outside the loaded feed.");}} onMessage={(id)=>{navigate("messages");setChatWith(id);}} prefs={notifyPrefs}/>}
       {view === "messages" && <DirectInbox userId={cloudUserId} profiles={allPeople} initialRecipient={chatWith} onRecipientChange={setChatWith} onSignIn={()=>setAuthOpen(true)}/>}
       {view === "opportunities" && <OpportunityHub userId={cloudUserId} profiles={allPeople} onSignIn={()=>setAuthOpen(true)} onProfile={openProfile} onMessage={(id)=>{navigate("messages");setChatWith(id);}}/>}
-      {view==="clips" && <BlumClips posts={posts.filter(p=>!blockedAuthors.includes(p.author_id))} profiles={allPeople} following={followed} onProfile={openProfile} onLike={toggleLike} onBookmark={toggleBookmark} onComment={openThread} onShare={share} onFollow={toggleFollow} onCreate={()=>openComposer("video")}/>}
+      {view==="clips" && <BlumClips posts={posts.filter(p=>!blockedAuthors.includes(p.author_id))} profiles={allPeople} following={followed} onProfile={openProfile} onLike={toggleLike} onBookmark={toggleBookmark} onComment={openThread} onShare={share} onFollow={toggleFollow} onCreate={()=>openComposer("video")} onBack={()=>navigate("home")}/>}
       {view==="polls"&&<PollsPanel userId={cloudUserId} profiles={allPeople} onSignIn={()=>setAuthOpen(true)} onProfile={openProfile} launchCreate={pollLaunch}/>}
       {view==="live"&&<LiveSessions userId={cloudUserId} profiles={allPeople} onSignIn={()=>setAuthOpen(true)} launchCreate={liveLaunch}/>}
       {view==="ai"&&<BlumAI userId={cloudUserId} onSignIn={()=>setAuthOpen(true)} seedText={aiSeed} seedTask={aiTask} onCompose={text=>openComposer("post",text)}/>}
@@ -973,17 +1004,27 @@ export default function BlumbookApp() {
       <footer className="right-footer">About · Privacy · Terms · Accessibility<br/>© {new Date().getFullYear()} Blumbook. Talk. Share. Bloom.</footer>
     </aside>
 
-    <nav className={"mobile-bottom "+(view==="settings"?"mobile-bottom-hidden":"")+(menuOpen?" bb-behind-menu":"")} aria-label="Main navigation">
+    <nav className={"mobile-bottom "+((view==="settings"||view==="clips")?"mobile-bottom-hidden":"")+(navHidden?" auto-hide-nav":"")+(menuOpen?" bb-behind-menu":"")} aria-label="Main navigation">
       {NAV.filter((n)=>["home","explore","clips","notifications","messages"].includes(n.id)).map(({id,label,Icon})=><button aria-label={label} key={id} className={view===id?"active":""} onClick={()=>navigate(id)}><Icon size={25} strokeWidth={view===id?2.7:1.9}/>{id==="notifications"&&<span className="nav-dot"/>}</button>)}
     </nav>
-    <button aria-label="Open creation menu" className={"floating-compose "+(view==="settings"?"floating-compose-hidden":"")+(menuOpen?" bb-behind-menu":"")} onClick={()=>setCreateMenuOpen(true)}><Plus size={28}/></button>
+    <button aria-label="Open creation menu" className={"floating-compose "+((view==="settings"||view==="clips")?"floating-compose-hidden":"")+(navHidden?" auto-hide-compose":"")+(menuOpen?" bb-behind-menu":"")} onClick={()=>setCreateMenuOpen(true)}><Plus size={28}/></button>
     {menuOpen && <button aria-label="Close menu" className="menu-shade" onClick={()=>setMenuOpen(false)}/>}
     {createMenuOpen&&<CreateMenu onClose={()=>setCreateMenuOpen(false)} onSelect={selectCreate}/>}
     {toast && <div role="status" className="toast">{toast}</div>}
 
-    {mediaViewer&&<Modal close={()=>setMediaViewer(null)}><div className="media-dialog">
-      <div className="media-dialog-head"><button onClick={()=>setMediaViewer(null)} aria-label="Close"><X size={21}/></button><strong>Blumbook Media</strong><button onClick={()=>{const p=mediaViewer;setMediaViewer(null);void openThread(p);}}><MessageCircle size={17}/> Conversation</button></div>
-      <div className="media-dialog-main">{mediaViewer.video_url?<video key={mediaViewer.id} src={mediaViewer.video_url} controls autoPlay playsInline preload="metadata"/>:<img src={mediaViewer.image_url||""} alt="Shared media"/>}</div>
+    {mediaViewer?.video_url&&<ImmersiveVideoViewer
+      post={posts.find(p=>p.id===mediaViewer.id)||mediaViewer}
+      author={lookup(mediaViewer.author_id)}
+      onClose={()=>setMediaViewer(null)}
+      onProfile={()=>{const id=mediaViewer.author_id;setMediaViewer(null);openProfile(id);}}
+      onReply={()=>{const p=mediaViewer;setMediaViewer(null);void openThread(p);}}
+      onLike={()=>void toggleLike(posts.find(p=>p.id===mediaViewer.id)||mediaViewer)}
+      onBookmark={()=>void toggleBookmark(posts.find(p=>p.id===mediaViewer.id)||mediaViewer)}
+      onShare={()=>void share(mediaViewer)}
+    />}
+    {mediaViewer&&!mediaViewer.video_url&&<Modal close={()=>setMediaViewer(null)}><div className="media-dialog">
+      <div className="media-dialog-head"><button onClick={()=>setMediaViewer(null)} aria-label="Close"><ArrowLeft size={21}/></button><strong>Photo</strong><button onClick={()=>{const p=mediaViewer;setMediaViewer(null);void openThread(p);}}><MessageCircle size={17}/> Conversation</button></div>
+      <div className="media-dialog-main"><img src={mediaViewer.image_url||""} alt="Shared photo"/></div>
       <div className="media-dialog-foot"><button onClick={()=>nextMedia(-1)} disabled={mediaPosts.length<2}><ArrowLeft size={17}/> Previous</button><span>{lookup(mediaViewer.author_id).display_name}</span><button onClick={()=>nextMedia(1)} disabled={mediaPosts.length<2}>Next <ArrowRight size={17}/></button></div>
     </div></Modal>}
     {compose && <Modal close={()=>setCompose(false)}>
