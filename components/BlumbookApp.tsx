@@ -13,13 +13,21 @@ import OpportunityHub from "@/components/OpportunityHub";
 import DirectInbox from "@/components/DirectInbox";
 import NotificationsPanel from "@/components/NotificationsPanel";
 import CreatorStudioPlus from "@/components/CreatorStudioPlus";
+import BlumClips from "@/components/BlumClips";
+import StoriesRail from "@/components/StoriesRail";
+import PollsPanel from "@/components/PollsPanel";
+import LiveSessions from "@/components/LiveSessions";
+import CreateMenu from "@/components/CreateMenu";
+import CreatorAccess from "@/components/CreatorAccess";
+import BlumAI from "@/components/BlumAI";
+import ScheduledPosts from "@/components/ScheduledPosts";
 import {translate,type AppLanguage} from "@/lib/locale";
 import {
   COMMUNITIES, DEMO_ME, DEMO_NOTICES, DEMO_PEOPLE, DEMO_POSTS, TRENDS,
   shortCount, timeAgo, type Post, type Profile, type Notice,
 } from "@/lib/demo";
 
-type View = "home" | "explore" | "notifications" | "messages" | "profile" | "communities" | "bookmarks" | "settings" | "thread" | "premium" | "lists" | "spaces" | "creator" | "help" | "opportunities" | "videos";
+type View = "home" | "explore" | "notifications" | "messages" | "profile" | "communities" | "bookmarks" | "settings" | "thread" | "premium" | "lists" | "spaces" | "creator" | "help" | "opportunities" | "videos" | "clips" | "polls" | "live" | "ai" | "verification" | "schedule";
 type Theme = "dark" | "light";
 type SettingsPanel = "account" | "security" | "privacy" | "notifications" | "accessibility" | "resources";
 type Tab = "for-you" | "following" | "communities";
@@ -34,6 +42,12 @@ const NAV: { id: View; label: string; Icon: LucideIcon }[] = [
   { id: "communities", label: "Communities", Icon: UsersRound },
   { id: "opportunities", label: "Opportunities", Icon: Handshake },
   { id: "videos", label: "Videos", Icon: Video },
+  { id: "clips", label: "Clips", Icon: Play },
+  { id: "polls", label: "Polls", Icon: ChartNoAxesCombined },
+  { id: "live", label: "Live", Icon: Radio },
+  { id: "ai", label: "Blum AI", Icon: Sparkles },
+  { id: "schedule", label: "Scheduled", Icon: CalendarDays },
+  { id: "verification", label: "Creator Access", Icon: ShieldCheck },
   { id: "bookmarks", label: "Bookmarks", Icon: Bookmark },
   { id: "profile", label: "Profile", Icon: UserRound },
   { id: "settings", label: "Settings", Icon: Settings },
@@ -209,6 +223,14 @@ export default function BlumbookApp() {
   const [busy, setBusy] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [extraToolsOpen,setExtraToolsOpen]=useState(false);
+  const [createMenuOpen,setCreateMenuOpen]=useState(false);
+  const [composeMode,setComposeMode]=useState<"post"|"photo"|"video">("post");
+  const [storyLaunch,setStoryLaunch]=useState(0);
+  const [pollLaunch,setPollLaunch]=useState(0);
+  const [liveLaunch,setLiveLaunch]=useState(0);
+  const [scheduleLaunch,setScheduleLaunch]=useState(0);
+  const [aiSeed,setAiSeed]=useState("");
+  const [aiTask,setAiTask]=useState<"caption"|"translate"|"rewrite"|"ideas">("caption");
   const [noticeFilter, setNoticeFilter] = useState("All");
   const [loadingCloud, setLoadingCloud] = useState(isCloudEnabled);
   const me = member || DEMO_ME;
@@ -230,6 +252,19 @@ export default function BlumbookApp() {
     return true;
   };
 
+  const openComposer=(mode:"post"|"photo"|"video"="post",draft?:string)=>{
+    if(!requireAccount())return;
+    setComposeMode(mode);setPostText(draft||"");setCompose(true);
+  };
+  const selectCreate=(action:"post"|"photo"|"video"|"poll"|"story"|"live"|"opportunity"|"schedule")=>{
+    setCreateMenuOpen(false);
+    if(["post","photo","video"].includes(action)){openComposer(action as "post"|"photo"|"video");return;}
+    if(action==="story"){navigate("home");setTab("for-you");setStoryLaunch(k=>k+1);return;}
+    if(action==="poll"){navigate("polls");setPollLaunch(k=>k+1);return;}
+    if(action==="live"){navigate("live");setLiveLaunch(k=>k+1);return;}
+    if(action==="schedule"){navigate("schedule");setScheduleLaunch(k=>k+1);return;}
+    if(action==="opportunity"){navigate("opportunities");return;}
+  };
   const loadCloud = useCallback(async () => {
     if (!supabase) return;
     const client = supabase;
