@@ -8,7 +8,7 @@ import {
   UserRoundPlus, UsersRound, Accessibility, Link2, LockKeyhole, Languages, Download, Type, Handshake, Ban, Flag, Copy, Video, Play, type LucideIcon, X
 } from "lucide-react";
 import {supabase as configuredSupabase,isCloudEnabled as configuredCloudEnabled} from "@/lib/supabase";
-import {SHOWCASE_POSTS,SHOWCASE_PEOPLE,SHOWCASE_COMMENTS_BY_POST} from "@/lib/demo-showcase";
+import {SHOWCASE_POSTS,SHOWCASE_PEOPLE,SHOWCASE_COMMENTS_BY_POST,SHOWCASE_COMMENT_METRICS} from "@/lib/demo-showcase";
 import BloomCircles from "@/components/BloomCircles";
 import OpportunityHub from "@/components/OpportunityHub";
 import DirectInbox from "@/components/DirectInbox";
@@ -16,6 +16,7 @@ import NotificationsPanel from "@/components/NotificationsPanel";
 import CreatorStudioPlus from "@/components/CreatorStudioPlus";
 import BlumClips from "@/components/BlumClips";
 import ImmersiveVideoViewer from "@/components/ImmersiveVideoViewer";
+import CommentCard from "@/components/CommentCard";
 import StoriesRail from "@/components/StoriesRail";
 import PollsPanel from "@/components/PollsPanel";
 import LiveSessions from "@/components/LiveSessions";
@@ -34,7 +35,8 @@ type Theme = "dark" | "light";
 type SettingsPanel = "account" | "security" | "privacy" | "notifications" | "accessibility" | "resources";
 type Tab = "for-you" | "following";
 type ProfileTab = "posts" | "replies" | "media" | "likes";
-type Comment = { id: string; post_id: string; author_id: string; body: string; created_at: string };
+type Comment = { id: string; post_id: string; author_id: string; body: string; created_at: string; parent_comment_id?:string|null };
+type CommentMetric = {likes:number;reposts:number;liked:boolean;reposted:boolean;bookmarked:boolean};
 type ChatMessage = { id: string; sender: "me" | "them"; text: string; time: string };
 const NAV: { id: View; label: string; Icon: LucideIcon }[] = [
   { id: "home", label: "Home", Icon: Home },
@@ -209,6 +211,10 @@ export default function BlumbookApp({forceDemo=false}:{forceDemo?:boolean}={}) {
   const [profileTab,setProfileTab] = useState<ProfileTab>("posts");
   const [threadId, setThreadId] = useState<string | null>(null);
   const [comments, setComments] = useState<Record<string, Comment[]>>(SHOWCASE_COMMENTS_BY_POST);
+  const [commentMetrics,setCommentMetrics]=useState<Record<string,CommentMetric>>(SHOWCASE_COMMENT_METRICS);
+  const [commentFeaturesReady,setCommentFeaturesReady]=useState(!configuredCloudEnabled||forceDemo);
+  const [replyingTo,setReplyingTo]=useState<Comment|null>(null);
+  const [expandedCommentThreads,setExpandedCommentThreads]=useState<Record<string,boolean>>({});
   const [replyText, setReplyText] = useState("");
   const [chatWith, setChatWith] = useState<string | null>(null);
   const [chatText, setChatText] = useState("");
@@ -414,43 +420,98 @@ export default function BlumbookApp({forceDemo=false}:{forceDemo?:boolean}={}) {
       if (error) { notify(error.message); void loadCloud(); }
     }
   };
+  const loadCommentConversation = async (postId:string)=>{
+    if(!supabase)return;
+    setThreadError("");
+    setThreadLoading(true);
+    try{
+      const enhanced=await supabase.from("comments").select("id,post_id,author_id,body,created_at,parent_comment_id").eq("post_id",postId).order("created_at");
+      const canNest=!enhanced.error;
+      const fallback=canNest?null:await supabase.from("comments").select("id,post_id,author_id,body,created_at").eq("post_id",postId).order("created_at");
+      const rows=((canNest?enhanced.data:fallback?.data)||[]) as Comment[];
+      if(!canNest&&fallback?.error){setThreadError("Replies could not be loaded. Try again.");return;}
+      setComments(old=>({...old,[postId]:rows}));
+      const ids=rows.map(row=>row.id);
+      if(!canNest||ids.length===0){setCommentFeaturesReady(canNest);return;}
+      const results=await Promise.all([
+        supabase.from("comment_likes").select("comment_id,user_id").in("comment_id",ids).limit(5000),
+        supabase.from("comment_reposts").select("comment_id,user_id").in("comment_id",ids).limit(5000),
+        supabase.from("comment_bookmarks").select("comment_id,user_id").in("comment_id",ids).limit(5000),
+      ]);
+      if(results.some(result=>result.error)){setCommentFeaturesReady(false);return;}
+      const next:Record<string,CommentMetric>={};
+      ids.forEach(id=>{next[id]={likes:0,reposts:0,liked:false,reposted:false,bookmarked:false};});
+      for(const row of results[0].data||[]){const item=next[row.comment_id];if(item){item.likes++;if(row.user_id===cloudUserId)item.liked=true;}}
+      for(const row of results[1].data||[]){const item=next[row.comment_id];if(item){item.reposts++;if(row.user_id===cloudUserId)item.reposted=true;}}
+      for(const row of results[2].data||[]){const item=next[row.comment_id];if(item&&row.user_id===cloudUserId)item.bookmarked=true;}
+      setCommentMetrics(old=>({...old,...next}));
+      setCommentFeaturesReady(true);
+    }catch{setThreadError("Replies could not be loaded. Try again.");}
+    finally{setThreadLoading(false);}
+  };
   const openThread = async (post: Post) => {
     if(view!=="thread")setThreadReturnView(view);
-    setThreadId(post.id);
-    setReplyOrder("recent");
-    setReplyText("");
-    setThreadError("");
-    setThreadLoading(Boolean(supabase));
+    setThreadId(post.id);setReplyOrder("recent");setReplyText("");setReplyingTo(null);
+    setExpandedCommentThreads({});
     navigate("thread");
-    if(supabase){
-      try{
-        const {data,error}=await supabase.from("comments").select("id,post_id,author_id,body,created_at").eq("post_id",post.id).order("created_at");
-        if(error)setThreadError("Replies could not be loaded. Try again.");
-        else setComments(old=>({...old,[post.id]:data||[]}));
-      }catch{
-        setThreadError("Replies could not be loaded. Try again.");
-      }finally{setThreadLoading(false);}
+    await loadCommentConversation(post.id);
+  };
+  const replyToComment=(comment:Comment)=>{
+    setReplyingTo(comment);
+    setReplyText("");
+    window.requestAnimationFrame(()=>document.getElementById("thread-reply-input")?.focus());
+  };
+  const commentAction=async(comment:Comment,kind:"likes"|"reposts"|"bookmarks")=>{
+    if(!requireAccount())return;
+    if(supabase&&!commentFeaturesReady){notify("Comment reactions need the Supabase comment-interactions migration.");return;}
+    const current=commentMetrics[comment.id]||{likes:0,reposts:0,liked:false,reposted:false,bookmarked:false};
+    const flag=kind==="likes"?"liked":kind==="reposts"?"reposted":"bookmarked";
+    const undo=current[flag];
+    const next={...current,[flag]:!undo,...(kind==="likes"?{likes:Math.max(0,current.likes+(undo?-1:1))}:kind==="reposts"?{reposts:Math.max(0,current.reposts+(undo?-1:1))}:{})};
+    setCommentMetrics(prev=>({...prev,[comment.id]:next}));
+    if(supabase&&cloudUserId){
+      const table=kind==="likes"?"comment_likes":kind==="reposts"?"comment_reposts":"comment_bookmarks";
+      const request=undo?supabase.from(table).delete().eq("comment_id",comment.id).eq("user_id",cloudUserId):
+       supabase.from(table).insert({comment_id:comment.id,user_id:cloudUserId});
+      const {error}=await request;
+      if(error){setCommentMetrics(prev=>({...prev,[comment.id]:current}));notify("Could not save comment action. Check the comment-interactions migration.");}
+    }
+  };
+  const shareComment=async(comment:Comment)=>{
+    const url=window.location.origin+(forceDemo?"/demo":"/")+"?post="+encodeURIComponent(comment.post_id)+"&comment="+encodeURIComponent(comment.id);
+    try{
+      if(navigator.share){await navigator.share({title:"Blumbook comment",url});return;}
+      await navigator.clipboard.writeText(url);notify("Comment link copied.");
+    }catch(error){
+      if(error instanceof DOMException&&error.name==="AbortError")return;
+      try{await navigator.clipboard.writeText(url);notify("Comment link copied.");}
+      catch{window.prompt("Copy comment link",url);}
     }
   };
   const sendReply = async (e: FormEvent) => {
     e.preventDefault();
-    if (!threadId || !replyText.trim() || !requireAccount()) return;
+    if (!threadId || !replyText.trim() || !requireAccount() || busy) return;
+    if (replyingTo&&supabase&&!commentFeaturesReady){notify("Nested replies need the Supabase comment-interactions migration.");return;}
     const body = replyText.trim();
+    // MVP supports one nested level: replying to a nested comment attaches to its parent.
+    const parent=replyingTo?(replyingTo.parent_comment_id||replyingTo.id):null;
     setBusy(true);
     if (supabase && cloudUserId) {
-      const { error } = await supabase.from("comments").insert({ post_id:threadId, author_id:cloudUserId, body });
-      if (error) notify(error.message);
+      const values={post_id:threadId,author_id:cloudUserId,body,...(parent?{parent_comment_id:parent}:{})};
+      const {error}=await supabase.from("comments").insert(values);
+      if(error)notify(error.message);
       else {
-        const { data } = await supabase.from("comments").select("id, post_id, author_id, body, created_at").eq("post_id", threadId).order("created_at");
-        setComments((prev) => ({...prev, [threadId]:data || []}));
-        setPosts((prev) => prev.map((p) => p.id === threadId ? {...p, replies:p.replies + 1} : p));
-        setReplyText("");
+        await loadCommentConversation(threadId);
+        setPosts(prev=>prev.map(p=>p.id===threadId?{...p,replies:p.replies+1}:p));
+        setReplyText("");setReplyingTo(null);
+        if(parent)setExpandedCommentThreads(prev=>({...prev,[parent]:true}));
       }
-    } else {
-      const item: Comment = { id:"demo-reply-" + Date.now(), post_id:threadId, author_id:me.id, body, created_at:new Date().toISOString() };
-      setComments((prev) => ({ ...prev, [threadId]:[...(prev[threadId] || []), item] }));
-      setPosts((prev) => prev.map((p) => p.id === threadId ? {...p, replies:p.replies + 1} : p));
-      setReplyText("");
+    }else{
+      const item: Comment={id:"demo-reply-"+crypto.randomUUID(),post_id:threadId,author_id:me.id,body,created_at:new Date().toISOString(),parent_comment_id:parent};
+      setComments(prev=>({...prev,[threadId]:[...(prev[threadId]||[]),item]}));
+      setPosts(prev=>prev.map(p=>p.id===threadId?{...p,replies:p.replies+1}:p));
+      setReplyText("");setReplyingTo(null);
+      if(parent)setExpandedCommentThreads(prev=>({...prev,[parent]:true}));
     }
     setBusy(false);
   };
