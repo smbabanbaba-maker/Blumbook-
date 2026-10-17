@@ -1937,3 +1937,137 @@ textarea:focus-visible,select:focus-visible{outline:2px solid var(--brand);outli
 @media(prefers-reduced-motion:reduce){
  .side-link,.floating-compose,.primary-btn{transition:none;}
 }
+
+
+/* BLUMBOOK COLOR POP 2026 — vivid actions without filling the feed with decoration. */
+:root{
+  --brand:#00A6FF;--brand-bright:#35C3FF;--brand-strong:#007CE0;
+  --pink:#FF268E;--green:#00DB95;--danger:#FF344B;
+  --premium:#FFE34E;--verified:#00A6FF;
+  --violet:#AC5BFF;--orange:#FF9C32;--cyan:#22DAF7;
+  --like-soft:rgba(255,38,142,.19);
+  --repost-soft:rgba(0,219,149,.17);
+  --brand-soft:rgba(0,166,255,.17);
+}
+:root[data-theme="light"]{
+  --brand:#0076E4;--brand-bright:#068DE9;--brand-strong:#005FB8;
+  --pink:#CF0968;--green:#008B5D;--danger:#D91F34;
+  --premium:#9B6900;--verified:#0076E4;
+  --violet:#8439DB;--orange:#A85100;--cyan:#006C85;
+  --like-soft:rgba(255,38,142,.12);
+  --repost-soft:rgba(0,219,149,.12);
+  --brand-soft:rgba(0,118,228,.10);
+}
+/* Foreground/background blue contrast and matching active navigation. */
+.primary-btn,.follow-btn,.thread-compose-row>button,.chat-send button{
+  background:linear-gradient(130deg,var(--brand-strong),var(--brand));
+  color:#fff;
+  box-shadow:0 3px 12px rgba(0,126,234,.18);
+}
+.primary-btn:hover:not(:disabled),.follow-btn:hover:not(:disabled),
+.thread-compose-row>button:hover:not(:disabled){
+  background:linear-gradient(130deg,var(--brand),var(--brand-bright));
+  color:#fff;
+}
+.post-actions .liked,.post-actions .liked:hover,
+.thread-actions .thread-like-action.is-active,
+.comment-card-actions .comment-like-action.is-active,
+.cinematic-video .cinematic-like-action.is-active,
+.clip-actions .clip-like-action.clip-selected{
+  color:var(--pink);
+  filter:drop-shadow(0 0 7px var(--like-soft));
+}
+.post-actions .reposted,.post-actions .reposted:hover,
+.thread-actions button:nth-child(2).is-active,
+.comment-card-actions button:nth-child(2).is-active{
+  color:var(--green);
+  filter:drop-shadow(0 0 6px var(--repost-soft));
+}
+.post-actions .bookmarked,.thread-actions button:nth-child(4).is-active,
+.comment-card-actions button[aria-label^="Remove comment bookmark"].is-active{
+  color:var(--brand);
+}
+.post-actions button:hover:not(.liked):not(.reposted),
+.thread-actions button:hover:not(.is-active),.comment-card-actions button:hover:not(.is-active){
+  color:var(--brand);
+}
+.post-actions .liked:hover,.thread-actions .thread-like-action:hover,
+.comment-card-actions .comment-like-action:hover{
+  color:var(--pink);
+}
+.post-actions .reposted:hover,.thread-actions button:nth-child(2):hover,
+.comment-card-actions button:nth-child(2):hover{
+  color:var(--green);
+}
+.cinematic-video-reactions .cinematic-like-action.is-active{
+  color:#FF5CA9!important;
+  background:rgba(255,38,142,.17);
+}
+.cinematic-video-follow:not(:disabled){
+  background:linear-gradient(120deg,#0072E5,#00A6FF);color:#fff;
+}
+.clip-actions .clip-like-action.clip-selected{color:#FF52A6;}
+.fb-story-profile-ring{border-color:var(--brand-bright);box-shadow:0 0 0 2px rgba(0,166,255,.30);}
+.fb-story-create-badge{background:linear-gradient(140deg,#057CFF,#00B7FF);color:#fff;}
+.fb-story-preview-chip{
+  position:absolute;top:9px;right:7px;z-index:2;
+  padding:4px 5px;border-radius:5px;background:rgba(0,0,0,.72);
+  color:#fff;font-size:8px;font-weight:850;letter-spacing:.65px;
+  pointer-events:none;
+}
+.blum-demo-chip{
+  display:inline-flex;align-items:center;padding:3px 6px;border-radius:6px;
+  font-size:9px;line-height:1.2;font-weight:850;letter-spacing:.6px;
+  border:1px solid var(--brand);color:var(--brand-bright);
+}
+:root[data-theme="light"] .blum-demo-chip{color:var(--brand);}
+
+/* Multicolor hearts burst out on new Likes, rather than endlessly animating.
+   Fixed DOM count, CSS-only effects, no extra event handlers and no layout shift. */
+.like-burst{
+  display:inline-grid;position:relative;isolation:isolate;
+  place-items:center;flex:0 0 auto;overflow:visible;
+  vertical-align:middle;color:inherit;
+}
+.like-burst-heart{display:block;transform-origin:50% 50%;}
+.like-burst-pop{animation:blum-heart-pop .38s cubic-bezier(.18,.78,.22,1.3) both;}
+.like-burst-particles{
+  position:absolute;left:50%;top:50%;width:0;height:0;
+  overflow:visible;pointer-events:none;z-index:20;
+}
+.like-burst-particle{
+  position:absolute;display:grid;place-items:center;
+  left:0;top:0;width:11px;height:11px;
+  color:#FF2E8B;opacity:0;pointer-events:none;
+  animation:blum-heart-spark .75s cubic-bezier(.18,.64,.3,1) both;
+  animation-delay:var(--lag,0ms);
+}
+.like-burst-particle svg{display:block;filter:drop-shadow(0 0 3px currentColor);}
+.like-burst-particle:nth-child(1){--tx:0px;--ty:-43px;--spin:-25deg;color:#FF288C;--lag:0ms;}
+.like-burst-particle:nth-child(2){--tx:26px;--ty:-35px;--spin:35deg;color:#00B8FF;--lag:25ms;}
+.like-burst-particle:nth-child(3){--tx:42px;--ty:-16px;--spin:70deg;color:#FFCA3B;--lag:5ms;}
+.like-burst-particle:nth-child(4){--tx:46px;--ty:15px;--spin:125deg;color:#AB56FF;--lag:32ms;}
+.like-burst-particle:nth-child(5){--tx:25px;--ty:35px;--spin:70deg;color:#00E8A4;--lag:18ms;}
+.like-burst-particle:nth-child(6){--tx:4px;--ty:45px;--spin:-60deg;color:#FF658A;--lag:0ms;}
+.like-burst-particle:nth-child(7){--tx:-25px;--ty:37px;--spin:-90deg;color:#00B5F3;--lag:20ms;}
+.like-burst-particle:nth-child(8){--tx:-42px;--ty:19px;--spin:25deg;color:#FF9D31;--lag:30ms;}
+.like-burst-particle:nth-child(9){--tx:-43px;--ty:-13px;--spin:-35deg;color:#FF2DA1;--lag:0ms;}
+.like-burst-particle:nth-child(10){--tx:-25px;--ty:-34px;--spin:65deg;color:#B75BFF;--lag:17ms;}
+.like-burst-particle:nth-child(11){--tx:13px;--ty:-23px;--spin:-90deg;color:#64E6FF;--lag:35ms;}
+.like-burst-particle:nth-child(12){--tx:-7px;--ty:25px;--spin:65deg;color:#FFDE47;--lag:26ms;}
+@keyframes blum-heart-pop{
+  0%{transform:scale(.75);}
+  48%{transform:scale(1.56) rotate(-9deg);}
+  74%{transform:scale(.91);}
+  100%{transform:scale(1);}
+}
+@keyframes blum-heart-spark{
+  0%{opacity:0;transform:translate(-50%,-50%) scale(.25);}
+  16%{opacity:1;transform:translate(-50%,-50%) scale(1.15);}
+  70%{opacity:1;}
+  100%{opacity:0;transform:translate(-50%,-50%) translate(var(--tx),var(--ty)) rotate(var(--spin)) scale(.52);}
+}
+@media(prefers-reduced-motion:reduce){
+  .like-burst-particles{display:none!important;}
+  .like-burst-pop,.like-burst-particle{animation:none!important;}
+}
