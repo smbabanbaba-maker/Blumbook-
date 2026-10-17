@@ -27,10 +27,10 @@ import {
   shortCount, timeAgo, type Post, type Profile, type Notice,
 } from "@/lib/demo";
 
-type View = "home" | "explore" | "notifications" | "messages" | "profile" | "communities" | "bookmarks" | "settings" | "thread" | "premium" | "lists" | "spaces" | "creator" | "help" | "opportunities" | "videos" | "clips" | "polls" | "live" | "ai" | "verification" | "schedule";
+type View = "home" | "explore" | "notifications" | "messages" | "profile" | "communities" | "bookmarks" | "settings" | "thread" | "premium" | "lists" | "creator" | "help" | "opportunities" | "clips" | "polls" | "live" | "ai" | "verification" | "schedule";
 type Theme = "dark" | "light";
 type SettingsPanel = "account" | "security" | "privacy" | "notifications" | "accessibility" | "resources";
-type Tab = "for-you" | "following" | "communities";
+type Tab = "for-you" | "following";
 type ProfileTab = "posts" | "replies" | "media" | "likes";
 type Comment = { id: string; post_id: string; author_id: string; body: string; created_at: string };
 type ChatMessage = { id: string; sender: "me" | "them"; text: string; time: string };
@@ -41,8 +41,7 @@ const NAV: { id: View; label: string; Icon: LucideIcon }[] = [
   { id: "messages", label: "Messages", Icon: Mail },
   { id: "communities", label: "Communities", Icon: UsersRound },
   { id: "opportunities", label: "Opportunities", Icon: Handshake },
-  { id: "videos", label: "Videos", Icon: Video },
-  { id: "clips", label: "Clips", Icon: Play },
+  { id: "clips", label: "Blum Clips", Icon: Play },
   { id: "polls", label: "Polls", Icon: ChartNoAxesCombined },
   { id: "live", label: "Live", Icon: Radio },
   { id: "ai", label: "Blum AI", Icon: Sparkles },
@@ -222,7 +221,6 @@ export default function BlumbookApp() {
   const [toast, setToast] = useState("");
   const [busy, setBusy] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [extraToolsOpen,setExtraToolsOpen]=useState(false);
   const [createMenuOpen,setCreateMenuOpen]=useState(false);
   const [composeMode,setComposeMode]=useState<"post"|"photo"|"video">("post");
   const [storyLaunch,setStoryLaunch]=useState(0);
@@ -653,7 +651,7 @@ export default function BlumbookApp() {
     <aside className={"sidebar " + (menuOpen ? "sidebar-open" : "")} aria-label="Blumbook navigation">
       <div className="desktop-sidebar">
         <button className="brand-button" onClick={() => navigate("home")} aria-label="Blumbook home"><Brand /></button>
-        <nav className="side-nav">{NAV.filter(({id})=>["home","explore","clips","notifications","messages","profile","communities","opportunities","polls","creator"].includes(id)).map(({ id, label, Icon }) => <button key={id} className={"side-link " + (view === id ? "active" : "")} onClick={() => id==="profile"?openProfile(me.id):navigate(id)}><Icon size={24} strokeWidth={view === id ? 2.5 : 1.85}/><span>{label}</span>{id === "notifications" && <i className="notification-pip"/>}</button>)}</nav>
+        <nav className="side-nav">{NAV.filter(({id})=>["home","explore","clips","notifications","messages","bookmarks","communities","opportunities","polls","creator"].includes(id)).map(({ id, label, Icon }) => <button key={id} className={"side-link " + (view === id ? "active" : "")} onClick={() => id==="profile"?openProfile(me.id):navigate(id)}><Icon size={24} strokeWidth={view === id ? 2.5 : 1.85}/><span>{label}</span>{id === "notifications" && <i className="notification-pip"/>}</button>)}</nav>
         <button className="primary-btn side-post" onClick={()=>setCreateMenuOpen(true)}><Plus size={19}/><span>Create</span></button>
         <button className="side-account" onClick={() => isCloudEnabled && !cloudUserId ? setAuthOpen(true) : openProfile(me.id)}>
           <Avatar profile={me}/><span><strong>{me.display_name}</strong><small>@{me.username}</small></span><Ellipsis size={20}/>
@@ -676,24 +674,12 @@ export default function BlumbookApp() {
           </div>
           <div className="simple-drawer-divider"/>
           <nav className="simple-drawer-links" aria-label="More places">
-            <button onClick={()=>openProfile(me.id)}><UserRound size={23}/><span>{tr("Profile")}</span></button>
             <button onClick={()=>navigate("bookmarks")}><Bookmark size={23}/><span>{tr("Bookmarks")}</span></button>
             <button onClick={()=>navigate("communities")}><UsersRound size={23}/><span>Bloom Circles</span></button>
             <button onClick={()=>navigate("opportunities")}><Handshake size={23}/><span>Bloom Opportunities</span></button>
-            <button onClick={()=>navigate("clips")}><Play size={23}/><span>Blum Clips</span></button>
             <button onClick={()=>navigate("creator")}><ChartNoAxesCombined size={23}/><span>{tr("Creator Studio")}</span></button>
-            <button className="menu-extra-trigger" aria-expanded={extraToolsOpen} onClick={()=>setExtraToolsOpen(v=>!v)}><Plus size={23}/><span>More tools</span><ChevronDown className={extraToolsOpen?"rotated":""} size={18}/></button>
-            {extraToolsOpen&&<div className="menu-extra-items">
-              <button onClick={()=>navigate("polls")}><ChartNoAxesCombined size={20}/><span>Polls</span></button>
-              <button onClick={()=>{navigate("home");setTab("for-you");setStoryLaunch(x=>x+1);}}><ImagePlus size={20}/><span>Stories</span></button>
-              <button onClick={()=>navigate("live")}><Radio size={20}/><span>Live sessions</span></button>
-              <button onClick={()=>navigate("ai")}><Sparkles size={20}/><span>Blum AI</span></button>
-              <button onClick={()=>navigate("schedule")}><CalendarDays size={20}/><span>Scheduled posts</span></button>
-              <button onClick={()=>navigate("verification")}><ShieldCheck size={20}/><span>Verification & Earnings</span></button>
-              <button onClick={()=>navigate("premium")}><Crown size={20}/><span>Premium</span><small>Coming soon</small></button>
-              <button onClick={()=>navigate("spaces")}><Radio size={20}/><span>Spaces</span><small>Coming soon</small></button>
-              <button onClick={()=>navigate("lists")}><List size={20}/><span>My Lists</span><small>Device only</small></button>
-            </div>}
+            <button onClick={()=>navigate("polls")}><ChartNoAxesCombined size={23}/><span>Polls</span></button>
+            <button onClick={()=>navigate("live")}><Radio size={23}/><span>Live Sessions</span></button>
             <button onClick={()=>navigate("settings")}><Settings size={23}/><span>{tr("Settings")}</span></button>
             <button onClick={()=>navigate("help")}><CircleHelp size={23}/><span>{tr("Help Center")}</span></button>
           </nav>
@@ -715,7 +701,7 @@ export default function BlumbookApp() {
           <button className="icon-button" onClick={() => settingsPanel ? setSettingsPanel(null) : navigate("home")} aria-label="Back"><ArrowLeft size={25}/></button>
           <div className="mobile-settings-heading"><strong>{settingsPanel ? settingsConfig.find(s => s.id === settingsPanel)?.title : "Settings"}</strong><small>@{me.username}</small></div>
         </> : <>
-          <button className="avatar-action" onClick={() => setMenuOpen(!menuOpen)} aria-label="Open menu"><Avatar profile={me} size="small"/></button>
+          <button className="avatar-action" onClick={() => isCloudEnabled && !cloudUserId ? setAuthOpen(true) : openProfile(me.id)} aria-label="Your profile"><Avatar profile={me} size="small"/></button>
           <button onClick={() => navigate("home")} className="mobile-brand"><img src="/logo.svg" alt="Blumbook"/><strong>Blumbook</strong></button>
           <button aria-label="Open more menu" aria-expanded={menuOpen} className="icon-button top-more-button" onClick={()=>setMenuOpen(true)}><MoreHorizontal size={25}/></button>
         </>}
@@ -723,24 +709,15 @@ export default function BlumbookApp() {
 
       {view === "home" && <>
         <div className="feed-tabs">
-          {([["for-you","For you"],["following","Following"],["communities","Communities"]] as const).map(([id,label])=><button key={id} className={tab === id ? "selected" : ""} onClick={()=>setTab(id)}>{label==="For you"?tr("For you"):label==="Following"?tr("Following"):tr("Communities")}</button>)}
+          {([["for-you","For you"],["following","Following"]] as const).map(([id,label])=><button key={id} className={tab === id ? "selected" : ""} onClick={()=>setTab(id)}>{label==="For you"?tr("For you"):label==="Following"?tr("Following"):tr("Communities")}</button>)}
         </div>
-        {tab === "communities" ? <BloomCircles userId={cloudUserId} requestAuth={()=>setAuthOpen(true)} language={language}/> :
-        <>
           {!welcomeHidden&&<section className="onboard-card"><div><span className="feature-overline">WELCOME TO BLUMBOOK</span><h2>Ideas grow better together.</h2><p>Explore stories, discover a Bloom Circle, and introduce yourself. This is an early interactive preview.</p><div><button onClick={()=>navigate("communities")}>Explore Bloom Circles <ArrowRight size={16}/></button><button onClick={()=>{setWelcomeHidden(true);window.localStorage.setItem("blumbook-onboarded","yes");}}>Got it</button></div></div><button className="icon-button" aria-label="Dismiss welcome" onClick={()=>{setWelcomeHidden(true);window.localStorage.setItem("blumbook-onboarded","yes");}}><X size={20}/></button></section>}
           <StoriesRail userId={cloudUserId} profiles={allPeople} onSignIn={()=>setAuthOpen(true)} launchCreate={storyLaunch}/>
-          <div className="home-opportunity-link"><button onClick={()=>navigate("opportunities")}><Handshake size={18}/><span><strong>Bloom Opportunities</strong><small>Discover projects, mentors and collaborators</small></span><ArrowRight size={18}/></button></div>
-          <div className="home-mini-links">
-            <button onClick={()=>navigate("polls")}><ChartNoAxesCombined size={17}/> Community Polls</button>
-            <button onClick={()=>navigate("ai")}><Sparkles size={17}/> Blum AI</button>
-          </div>
-          <div className="compose-inline"><Avatar profile={me}/><button onClick={() => { if (requireAccount()) setCompose(true); }}>What&apos;s happening?</button><button className="primary-btn" onClick={() => { if (requireAccount()) setCompose(true); }}>Post</button></div>
           {!isCloudEnabled&&<p className="feed-demo-indicator"><ShieldCheck size={16}/> Demo preview · Sample content and numbers, not real members</p>}
           <div className="feed-status-actions"><button onClick={()=>isCloudEnabled?void loadCloud():notify("Demo content is already up to date.")}><Repeat2 size={15}/> Refresh feed</button></div>
           {loadingCloud&&<div className="feed-skeleton" role="status" aria-label="Loading posts">{[0,1,2].map(i=><div key={i} className="skeleton-post"><span className="skeleton-avatar"/><div><i/><i/><i/></div></div>)}</div>}
           {!loadingCloud && filteredPosts.length === 0 && <div className="empty-state"><Sparkles size={34}/><h3>{tab === "following" ? "Your feed starts here" : "Be the first to post"}</h3><p>{tab === "following" ? "Follow people in Explore to see what they share." : "Share a thought and start a conversation."}</p><button className="outline-btn" onClick={()=>navigate("explore")}>Discover people</button></div>}
           {filteredPosts.map((post) => <PostCard {...postProps(post)} />)}
-        </>}
       </>}
 
       {view === "explore" && <>
@@ -755,11 +732,6 @@ export default function BlumbookApp() {
           <div className="explore-hero"><span className="eyebrow">DISCOVER YOUR WORLD</span><h2>What&apos;s happening<br/>around you?</h2><p>Explore conversations, ideas and people who inspire.</p></div>
           <div className="section-label">Trending now <span>See what people are talking about</span></div>
           {TRENDS.map((trend,i)=><button className="trend-row" key={trend.tag} onClick={()=>setQuery(trend.tag.replace("#",""))}><span><small>{i+1} · {trend.category}</small><strong>{trend.tag}</strong><small>{trend.posts}</small></span><MoreHorizontal size={18}/></button>)}
-          <div className="explore-feature-links">
-            <button onClick={()=>navigate("opportunities")}><Handshake size={21}/><span>Bloom Opportunities<small>Find useful connections</small></span><ArrowRight size={17}/></button>
-            <button onClick={()=>navigate("videos")}><Video size={21}/><span>Videos<small>Watch shared clips</small></span><ArrowRight size={17}/></button>
-          </div>
-          <div className="explore-mini-tools"><button onClick={()=>navigate("polls")}>Polls <ArrowRight size={16}/></button><button onClick={()=>navigate("live")}>Live <ArrowRight size={16}/></button><button onClick={()=>navigate("ai")}>Blum AI <ArrowRight size={16}/></button></div>
           <div className="section-label">Who to follow</div>
           {people.slice(0,5).map((p)=>personRow(p))}
         </>}
@@ -768,7 +740,7 @@ export default function BlumbookApp() {
       {view === "notifications" && <NotificationsPanel userId={cloudUserId} profiles={allPeople} onSignIn={()=>setAuthOpen(true)} onProfile={openProfile} onPost={(id)=>{const p=posts.find(x=>x.id===id);if(p)void openThread(p);else notify("That post is outside the loaded feed.");}} onMessage={(id)=>{navigate("messages");setChatWith(id);}} prefs={notifyPrefs}/>}
       {view === "messages" && <DirectInbox userId={cloudUserId} profiles={allPeople} initialRecipient={chatWith} onRecipientChange={setChatWith} onSignIn={()=>setAuthOpen(true)}/>}
       {view === "opportunities" && <OpportunityHub userId={cloudUserId} profiles={allPeople} onSignIn={()=>setAuthOpen(true)} onProfile={openProfile} onMessage={(id)=>{navigate("messages");setChatWith(id);}}/>}
-      {(view==="clips"||view==="videos") && <BlumClips posts={posts.filter(p=>!blockedAuthors.includes(p.author_id))} profiles={allPeople} following={followed} onProfile={openProfile} onLike={toggleLike} onBookmark={toggleBookmark} onComment={openThread} onShare={share} onFollow={toggleFollow} onCreate={()=>openComposer("video")}/>}
+      {view==="clips" && <BlumClips posts={posts.filter(p=>!blockedAuthors.includes(p.author_id))} profiles={allPeople} following={followed} onProfile={openProfile} onLike={toggleLike} onBookmark={toggleBookmark} onComment={openThread} onShare={share} onFollow={toggleFollow} onCreate={()=>openComposer("video")}/>}
       {view==="polls"&&<PollsPanel userId={cloudUserId} profiles={allPeople} onSignIn={()=>setAuthOpen(true)} onProfile={openProfile} launchCreate={pollLaunch}/>}
       {view==="live"&&<LiveSessions userId={cloudUserId} profiles={allPeople} onSignIn={()=>setAuthOpen(true)} launchCreate={liveLaunch}/>}
       {view==="ai"&&<BlumAI userId={cloudUserId} onSignIn={()=>setAuthOpen(true)} seedText={aiSeed} seedTask={aiTask} onCompose={text=>openComposer("post",text)}/>}
@@ -793,19 +765,17 @@ export default function BlumbookApp() {
               {activeProfile.id===me.id
                 ? <><button onClick={()=>void shareProfile(activeProfile)}><Share2 size={17}/> Share</button><button onClick={openEdit}>Edit profile</button></>
                 : <><button onClick={()=>toggleFollow(activeProfile.id)} className="profile-follow-primary">{followed.includes(activeProfile.id)?"Following":"Follow"}</button><button onClick={()=>openMessagePreview(activeProfile)}><Mail size={17}/> Message</button></>}
-              <div className="profile-more-wrap">
+              {activeProfile.id!==me.id&&<div className="profile-more-wrap">
                 <button className="profile-action-icon" aria-label="More profile options" aria-expanded={profileMore} onClick={()=>setProfileMore(x=>!x)}><MoreHorizontal size={20}/></button>
                 {profileMore&&<div className="profile-more-panel" role="group" aria-label="Profile options">
                   <button onClick={()=>void shareProfile(activeProfile)}><Share2 size={17}/> Share profile</button>
-                  {activeProfile.id===me.id
-                  ? <><button onClick={()=>{setProfileMore(false);openEdit();}}><Feather size={17}/> Edit profile</button><button onClick={()=>navigate("settings")}><Settings size={17}/> Settings & privacy</button></>
-                  : <><button onClick={()=>openCollab(activeProfile)}><Handshake size={17}/> Collaborate</button>
-                    <button onClick={()=>toggleProfileAlerts(activeProfile)}><Bell size={17}/> {profileAlerts.includes(activeProfile.id)?"Turn off alerts":"Post alerts (preview)"}</button>
-                    <button onClick={()=>{mute(activeProfile.id);setProfileMore(false);}}><Bell size={17}/> Mute @{activeProfile.username}</button>
-                    <button onClick={()=>{setBlockTarget(activeProfile);setProfileMore(false);}}><Ban size={17}/>{blockedAuthors.includes(activeProfile.id)?"Unhide account":"Hide account (preview)"}</button>
-                    <button onClick={()=>{setReportReason("Spam");setProfileReport(activeProfile);setProfileMore(false);}}><Flag size={17}/> Report account (beta)</button></>}
+                  <button onClick={()=>openCollab(activeProfile)}><Handshake size={17}/> Collaborate</button>
+                  <button onClick={()=>toggleProfileAlerts(activeProfile)}><Bell size={17}/> {profileAlerts.includes(activeProfile.id)?"Turn off alerts":"Post alerts (preview)"}</button>
+                  <button onClick={()=>{mute(activeProfile.id);setProfileMore(false);}}><Bell size={17}/> Mute @{activeProfile.username}</button>
+                  <button onClick={()=>{setBlockTarget(activeProfile);setProfileMore(false);}}><Ban size={17}/>{blockedAuthors.includes(activeProfile.id)?"Unhide account":"Hide account (preview)"}</button>
+                  <button onClick={()=>{setReportReason("Spam");setProfileReport(activeProfile);setProfileMore(false);}}><Flag size={17}/> Report account (beta)</button>
                 </div>}
-              </div>
+              </div>}
             </div>
           </div>
           <div className="full-profile-name">
@@ -934,7 +904,6 @@ export default function BlumbookApp() {
         {lists.length ? lists.map((item)=><div className="list-preview-row" key={item}><List size={22}/><div><strong>{item}</strong><small>Private list · Saved on this device</small></div><button className="icon-button" aria-label={"Delete "+item} onClick={()=>{const next=lists.filter(x=>x!==item);setLists(next);window.localStorage.setItem("blumbook-lists",JSON.stringify(next));}}><X size={17}/></button></div>) : <div className="feature-empty">Your lists will appear here when you create one.</div>}
       </div>}
 
-      {view === "spaces" && <LiveSessions userId={cloudUserId} profiles={allPeople} onSignIn={()=>setAuthOpen(true)} launchCreate={liveLaunch}/>}
 
       {view === "creator" && <><CreatorStudioPlus posts={posts} me={me} onCompose={text=>openComposer("post",text||"")}/>
        <div className="studio-next-tools"><button onClick={()=>navigate("ai")}><Sparkles size={19}/> Blum AI <ArrowRight size={17}/></button><button onClick={()=>navigate("schedule")}><CalendarDays size={19}/> Scheduled posts <ArrowRight size={17}/></button><button onClick={()=>navigate("verification")}><ShieldCheck size={19}/> Verification & Earnings <ArrowRight size={17}/></button></div></>}
@@ -953,7 +922,7 @@ export default function BlumbookApp() {
 
     <aside className="right-column">
       <div className="right-search"><Search size={19}/><input aria-label="Search" placeholder="Search Blumbook" value={query} onChange={(e)=>{setQuery(e.target.value);setView("explore");}}/></div>
-      <section className="right-panel subscribe-panel"><h3>Welcome to Blumbook</h3><p>Meet new people, share your story and find your community.</p>{isCloudEnabled&&!cloudUserId?<button className="primary-btn" onClick={()=>{setSignUp(true);setAuthOpen(true);}}>Create your account</button>:<button className="primary-btn" onClick={()=>navigate("explore")}>Explore Blumbook</button>}</section>
+      {isCloudEnabled && !cloudUserId && <section className="right-panel subscribe-panel"><h3>Welcome to Blumbook</h3><p>Meet new people, share your story and find your community.</p>{isCloudEnabled&&!cloudUserId?<button className="primary-btn" onClick={()=>{setSignUp(true);setAuthOpen(true);}}>Create your account</button>:<button className="primary-btn" onClick={()=>navigate("explore")}>Explore Blumbook</button>}</section>}
       <section className="right-panel"><h3>What&apos;s happening</h3>{TRENDS.slice(0,4).map((t)=><button key={t.tag} className="right-trend" onClick={()=>{setQuery(t.tag.slice(1));navigate("explore");}}><small>{t.category}</small><strong>{t.tag}</strong><small>{t.posts}</small></button>)}<button className="panel-link" onClick={()=>navigate("explore")}>Show more</button></section>
       <section className="right-panel"><h3>Who to follow</h3>{people.filter((p)=>p.id!==me.id).slice(0,3).map((p)=><div className="suggestion" key={p.id}><button onClick={()=>openProfile(p.id)}><Avatar profile={p} size="small"/><span><strong>{p.display_name}</strong><small>@{p.username}</small></span></button><button className="follow-btn" onClick={()=>toggleFollow(p.id)}>{followed.includes(p.id)?"Following":"Follow"}</button></div>)}<button className="panel-link" onClick={()=>navigate("explore")}>Show more</button></section>
       <footer className="right-footer">About · Privacy · Terms · Accessibility<br/>© {new Date().getFullYear()} Blumbook. Talk. Share. Bloom.</footer>
