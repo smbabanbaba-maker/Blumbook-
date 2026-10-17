@@ -9,8 +9,15 @@ const showcase=fs.readFileSync(new URL("../lib/demo-showcase.ts",import.meta.url
 const stories=fs.readFileSync(new URL("../components/StoriesRail.tsx",import.meta.url),"utf8");
 const demoRoute=fs.readFileSync(new URL("../app/demo/page.tsx",import.meta.url),"utf8");
 const commentCard=fs.readFileSync(new URL("../components/CommentCard.tsx",import.meta.url),"utf8");
+const likeBurst=fs.readFileSync(new URL("../components/LikeBurst.tsx",import.meta.url),"utf8");
 const count=(text,regex)=>Array.from(text.matchAll(regex)).length;
 const tests={
+ "Like burst is controlled by a real liked-state transition":likeBurst.includes('if(liked&&!previous.current)setBurst')&&likeBurst.includes('length:12')&&likeBurst.includes('like-burst-particle')&&likeBurst.includes('aria-hidden="true"'),
+ "All likes use the same animated heart":app.includes('<LikeBurst liked={post.liked}')&&app.includes('<LikeBurst liked={selectedPost.liked}')&&commentCard.includes('<LikeBurst liked={liked}')&&viewer.includes('<LikeBurst liked={post.liked}')&&clips.includes('<LikeBurst liked={post.liked}'),
+ "Like bursts honor reduced motion":stylesheet.includes('.like-burst-particles{display:none!important;}')&&stylesheet.includes('@keyframes blum-heart-spark'),
+ "Color tokens now have vivid blue pink green and violet":stylesheet.includes('--brand:#00A6FF;')&&stylesheet.includes('--pink:#FF268E;--green:#00DB95;')&&stylesheet.includes('--violet:#AC5BFF'),
+ "Sample statuses are labeled and cannot write story views":stories.includes('showcaseWhenEmpty')&&stories.includes('PREVIEW</span>')&&stories.includes('!previewStories&&item.author_id!==userId')&&stories.includes('visibleStories:Story[]'),
+ "Demo indicator is subtle in navigation":app.includes('className="blum-demo-chip"'),
  "Dark theme uses X-inspired black, surfaces and readable text":stylesheet.includes('--bg:#000000; --surface:#16181C; --surface2:#202327; --line:#2F3336;')&&stylesheet.includes('--text:#E7E9EA;'),
  "Light theme uses white, neutral gray and high-contrast copy":stylesheet.includes('--bg:#FFFFFF; --surface:#FFFFFF; --surface2:#F7F9F9; --line:#EFF3F4;')&&stylesheet.includes('--text:#0F1419;'),
  "Global brand blue, like pink and repost green share theme tokens":stylesheet.includes('--brand:#1D9BF0;')&&stylesheet.includes('--pink:#F91880; --green:#00BA7C;'),
@@ -52,7 +59,7 @@ const tests={
  "Showroom has playable video and photo content":showcase.split('video_url:"https://').length-1>=3&&showcase.split('image_url:"https://images.unsplash.com').length-1>=12,
  "Production homepage does not force demo showroom":!app.includes('export default function BlumbookApp({forceDemo=true}')&&demoRoute.includes('<BlumbookApp forceDemo/>'),
  "Showroom route is noindex and replaces live backend":demoRoute.includes('robots:{index:false,follow:false}')&&demoRoute.includes('<BlumbookApp forceDemo/>')&&app.includes('const supabase=forceDemo?null:configuredSupabase')&&stories.includes('if(!supabase||forceDemo)return'),
- "Showroom initializes posts, profiles and comments together":app.includes('useState<Post[]>(SHOWCASE_POSTS)')&&app.includes('useState<Profile[]>(SHOWCASE_PEOPLE)')&&app.includes('useState<Record<string, Comment[]>>(SHOWCASE_COMMENTS_BY_POST)'),
+ "Showroom data never seeds normal production state":app.includes('useState<Post[]>(forceDemo?SHOWCASE_POSTS:[])')&&app.includes('useState<Profile[]>(forceDemo?SHOWCASE_PEOPLE:[])')&&app.includes('useState<Record<string, Comment[]>>(forceDemo?SHOWCASE_COMMENTS_BY_POST:{})')&&app.includes('useState<Record<string,CommentMetric>>(forceDemo?SHOWCASE_COMMENT_METRICS:{})'),
 
  "Scroll-aware nav hides on down-scroll and returns on idle":app.includes('setNavHidden(true)')&&app.includes('setNavHidden(false),1100')&&app.includes('auto-hide-nav')&&app.includes('auto-hide-compose'),
  "Video viewer uses dedicated full-screen player":count(app,/<ImmersiveVideoViewer\b/g)===1&&viewer.includes('className="immersive-video cinematic-video"')&&viewer.includes('object-fit')===false,
@@ -69,9 +76,9 @@ const tests={
  "Live Sessions has one canonical destination":count(app,/<LiveSessions\b/g)===1&&!app.includes('navigate("spaces")'),
  "Bloom Circles mounted once":count(app,/<BloomCircles\b/g)===1,
  "Home has no decorative banners or duplicated composer":!["premium-home-intro","premium-publisher","premium-feed-heading","premium-home-onboarding"].some(x=>app.includes(x)),
- "Home contains only feed tabs, demo disclosure and posts":app.includes('className="clean-home"')&&app.includes('className="feed-tabs clean-home-tabs"')&&!app.includes('YOUR TIMELINE'),
+ "Home has clean feed without tabs or long demo disclaimer":app.includes('className="clean-home"')&&!app.includes('className="feed-tabs clean-home-tabs"')&&!app.includes('DEMO CONTENT · Fictional profiles, posts')&&!app.includes('YOUR TIMELINE'),
  "Stories has dedicated destination":app.includes('view === "stories"')&&app.includes('navigate("stories");setStoryLaunch')&&app.includes('onClick={()=>navigate("stories")}'),
- "Home status rail appears before the feed tabs":app.includes('view === "home" ? "home-status-strip" : "stories-destination"')&&app.indexOf('className={view === "home" ? "home-status-strip"')<app.indexOf('className="feed-tabs clean-home-tabs"'),
+ "Status remains above Home feed":app.includes('view === "home" ? "home-status-strip" : "stories-destination"')&&app.indexOf('className={view === "home" ? "home-status-strip"')<app.indexOf('className="clean-home"'),
  "Home status rail uses compact mode":app.includes('<StoriesRail compact={view === "home"}'),
  "Stories rail mounted once":count(app,/<StoriesRail\b/g)===1,
  "Create menu mounted once":count(app,/<CreateMenu\b/g)===1,
