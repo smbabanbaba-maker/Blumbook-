@@ -1719,3 +1719,43 @@ button.settings-detail-row:hover { background:var(--hover); }
  .cinematic-video-transport-actions button{min-width:35px;}
 }
 @media(prefers-reduced-motion:reduce){.cinematic-video-round{transition:none;}}
+
+/* Larger, premium story carousel inspired by the supplied reference.
+   Keep the main Home/feed monochrome; color appears only around unread status. */
+.blum-stories .stories-row{gap:15px;padding:7px 2px 8px;scroll-snap-type:x proximity;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;}
+.blum-stories .story-tile{position:relative;flex:0 0 98px;width:98px;min-height:122px;gap:9px;scroll-snap-align:start;align-items:center;justify-content:flex-start;color:var(--text);}
+.blum-stories .story-circle{width:90px;height:90px;display:grid;place-items:center;padding:3px;border:0;border-radius:50%;overflow:visible;flex:0 0 90px;background:transparent;}
+.blum-stories .story-gradient-ring{background:conic-gradient(from 40deg,#ff2d83 0%,#be24bd 25%,#7033ff 43%,#f03472 65%,#ff9d27 84%,#ffcf35 100%);}
+.blum-stories .story-gradient-ring.story-ring-seen{background:var(--tone-3);}
+.blum-stories .story-avatar-inner{width:100%;height:100%;display:grid;place-items:center;border:3px solid var(--bg);background:var(--surface2);border-radius:50%;overflow:hidden;}
+.blum-stories .story-avatar-inner img{display:block;width:100%;height:100%;object-fit:cover;border-radius:50%;}
+.blum-stories .story-initials{font-size:23px;font-weight:800;letter-spacing:-.5px;color:var(--text);}
+.blum-stories .story-own-avatar{padding:0;width:90px;height:90px;display:block;border:0;border-radius:50%;flex-shrink:0;}
+.blum-stories .story-create .story-own-circle{width:90px;height:90px;border:0;padding:0;background:var(--surface2);}
+.blum-stories .story-create .story-own-circle.story-own-active{padding:3px;background:conic-gradient(#ff3d79,#7138ee,#ffb52f,#ff3d79);}
+.blum-stories .story-create .story-own-circle .story-avatar-inner{border:0;}
+.blum-stories .story-create .story-own-circle.story-own-active .story-avatar-inner{border:3px solid var(--bg);}
+.blum-stories .story-plus-badge{position:absolute;top:61px;right:2px;display:grid;place-items:center;width:27px;height:27px;border-radius:50%;background:#1597f5;color:#fff;border:3px solid var(--bg);padding:0;z-index:3;box-shadow:0 1px 2px #0003;}
+.blum-stories .story-plus-badge:hover{background:#117dd0;}
+.blum-stories .story-tile small{max-width:98px;width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12px;line-height:1.3;font-weight:520;color:var(--text);text-align:center;}
+.blum-stories .story-create{cursor:default;}
+.blum-stories .story-tile:focus-visible,.blum-stories .story-own-avatar:focus-visible,.blum-stories .story-plus-badge:focus-visible{outline:2px solid var(--text);outline-offset:3px;}
+.home-status-strip .blum-stories{padding:13px 10px 8px;background:var(--bg);border:0;}
+.home-status-strip .blum-stories .stories-row{gap:15px;padding:5px 3px 8px;}
+.home-status-strip .blum-stories .story-tile{flex:0 0 98px;width:98px;min-height:122px;gap:9px;}
+.home-status-strip .blum-stories .story-circle{width:90px;height:90px;flex-basis:90px;border:0;padding:3px;}
+.home-status-strip .blum-stories .story-create .story-own-circle{border:0;padding:0;}
+.home-status-strip .blum-stories .story-create .story-own-circle.story-own-active{padding:3px;}
+.home-status-strip .blum-stories .story-tile small{font-size:12px;max-width:98px;color:var(--text);}
+@media(max-width:700px){
+ .home-status-strip .blum-stories{padding:12px 8px 5px;}
+ .home-status-strip .blum-stories .stories-row{gap:12px;padding:4px 4px 9px;}
+ .home-status-strip .blum-stories .story-tile,.blum-stories .story-tile{flex:0 0 91px;width:91px;min-height:110px;gap:7px;}
+ .home-status-strip .blum-stories .story-circle,.blum-stories .story-circle{width:84px;height:84px;flex-basis:84px;padding:3px;border:0;}
+ .home-status-strip .blum-stories .story-create .story-own-circle,.blum-stories .story-create .story-own-circle{width:84px;height:84px;padding:0;border:0;}
+ .home-status-strip .blum-stories .story-create .story-own-circle.story-own-active,.blum-stories .story-create .story-own-circle.story-own-active{padding:3px;}
+ .blum-stories .story-own-avatar{width:84px;height:84px;}
+ .blum-stories .story-plus-badge{top:57px;right:2px;width:26px;height:26px;}
+ .home-status-strip .blum-stories .story-tile small,.blum-stories .story-tile small{font-size:11.5px;max-width:91px;}
+}
+@media(prefers-reduced-motion:reduce){.blum-stories .stories-row{scroll-behavior:auto;}}
