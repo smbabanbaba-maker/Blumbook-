@@ -13,7 +13,7 @@ const likeBurst=fs.readFileSync(new URL("../components/LikeBurst.tsx",import.met
 const count=(text,regex)=>Array.from(text.matchAll(regex)).length;
 const tests={
  "Like burst is controlled by a real liked-state transition":likeBurst.includes('if(liked&&!previous.current)setBurst')&&likeBurst.includes('length:12')&&likeBurst.includes('like-burst-particle')&&likeBurst.includes('aria-hidden="true"'),
- "All likes use the same animated heart":app.includes('<LikeBurst liked={post.liked}')&&app.includes('<LikeBurst liked={selectedPost.liked}')&&commentCard.includes('<LikeBurst liked={liked}')&&viewer.includes('<LikeBurst liked={post.liked}')&&clips.includes('<LikeBurst liked={post.liked}'),
+ "All likes use the same animated heart":app.includes('<LikeBurst liked={Boolean(post.liked)}')&&app.includes('<LikeBurst liked={Boolean(selectedPost.liked)}')&&commentCard.includes('<LikeBurst liked={liked}')&&viewer.includes('<LikeBurst liked={Boolean(post.liked)}')&&clips.includes('<LikeBurst liked={Boolean(post.liked)}'),
  "Like bursts honor reduced motion":stylesheet.includes('.like-burst-particles{display:none!important;}')&&stylesheet.includes('@keyframes blum-heart-spark'),
  "Color tokens now have vivid blue pink green and violet":stylesheet.includes('--brand:#00A6FF;')&&stylesheet.includes('--pink:#FF268E;--green:#00DB95;')&&stylesheet.includes('--violet:#AC5BFF'),
  "Sample statuses are labeled and cannot write story views":stories.includes('showcaseWhenEmpty')&&stories.includes('PREVIEW</span>')&&stories.includes('!previewStories&&item.author_id!==userId')&&stories.includes('visibleStories:Story[]'),
