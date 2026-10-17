@@ -1201,9 +1201,13 @@ export default function BlumbookApp({forceDemo=false}:{forceDemo?:boolean}={}) {
     {mediaViewer?.video_url&&<ImmersiveVideoViewer
       post={posts.find(p=>p.id===mediaViewer.id)||mediaViewer}
       author={lookup(mediaViewer.author_id)}
+      isOwnPost={mediaViewer.author_id===me.id}
+      isFollowing={followed.includes(mediaViewer.author_id)}
+      onFollow={()=>void toggleFollow(mediaViewer.author_id)}
       onClose={()=>setMediaViewer(null)}
       onProfile={()=>{const id=mediaViewer.author_id;setMediaViewer(null);openProfile(id);}}
       onReply={()=>{const p=mediaViewer;setMediaViewer(null);void openThread(p);}}
+      onRepost={()=>void toggleRepost(posts.find(p=>p.id===mediaViewer.id)||mediaViewer)}
       onLike={()=>void toggleLike(posts.find(p=>p.id===mediaViewer.id)||mediaViewer)}
       onBookmark={()=>void toggleBookmark(posts.find(p=>p.id===mediaViewer.id)||mediaViewer)}
       onShare={()=>void share(mediaViewer)}

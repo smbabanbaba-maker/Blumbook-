@@ -10,6 +10,12 @@ const demoRoute=fs.readFileSync(new URL("../app/demo/page.tsx",import.meta.url),
 const commentCard=fs.readFileSync(new URL("../components/CommentCard.tsx",import.meta.url),"utf8");
 const count=(text,regex)=>Array.from(text.matchAll(regex)).length;
 const tests={
+ "Cinematic player has black screen, floating back and More controls":viewer.includes('className="immersive-video cinematic-video"')&&viewer.includes('className="cinematic-video-header"')&&viewer.includes('aria-label="More video options"'),
+ "Cinematic video has author identity and connected Follow":viewer.includes('className="cinematic-video-author"')&&viewer.includes('isFollowing')&&viewer.includes('onFollow')&&app.includes('onFollow={()=>void toggleFollow(mediaViewer.author_id)}'),
+ "Video interactions display real post counters and repost":viewer.includes('className="cinematic-video-reactions"')&&viewer.includes('shortCount(post.reposts)')&&viewer.includes('onRepost')&&app.includes('onRepost={()=>void toggleRepost('),
+ "Video keeps functioning media controls":viewer.includes('aria-label="Seek video"')&&viewer.includes('className="cinematic-video-remaining"')&&viewer.includes('aria-label="Change playback speed"')&&viewer.includes('Mute video')&&viewer.includes('Fill screen'),
+ "Video retains swipe navigation and posts only":viewer.includes('onTouchStart')&&viewer.includes('onTouchEnd')&&app.includes('const nextVideo=')&&app.includes('mediaViewer?.video_url&&<ImmersiveVideoViewer'),
+
  "Feed photos open post detail directly":app.includes('className="post-image-wrap" aria-label="Open post details" onClick={()=>onOpen(post)}'),
  "Post detail displays photos inline without another modal":app.includes('<div className="thread-main-image"><img')&&!app.includes('onClick={()=>openMedia(selectedPost)}'),
  "Profile photo grid opens post conversations":app.includes('p.image_url?void openThread(p):openVideo(p)'),
