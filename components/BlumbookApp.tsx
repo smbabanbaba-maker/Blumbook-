@@ -747,6 +747,10 @@ export default function BlumbookApp() {
         </>}
       </div>
 
+      {(view === "home" || view === "stories") && <section className={view === "home" ? "home-status-strip" : "stories-destination"} aria-label="Blumbook stories">
+        <StoriesRail compact={view === "home"} userId={cloudUserId} profiles={allPeople} onSignIn={()=>setAuthOpen(true)} launchCreate={storyLaunch}/>
+      </section>}
+
       {view === "home" && <section className="clean-home" aria-label="Blumbook home">
         <nav className="feed-tabs clean-home-tabs" aria-label="Choose your feed">
           {([["for-you","For you"],["following","Following"]] as const).map(([id,label])=>
@@ -757,10 +761,6 @@ export default function BlumbookApp() {
         {loadingCloud&&<div className="feed-skeleton" role="status" aria-label="Loading posts">{[0,1,2].map(i=><div key={i} className="skeleton-post"><span className="skeleton-avatar"/><div><i/><i/><i/></div></div>)}</div>}
         {!loadingCloud&&filteredPosts.length===0&&<div className="empty-state clean-home-empty"><h3>{tab==="following"?"No posts from people you follow yet":"No posts yet"}</h3><p>{tab==="following"?"Find people to follow in Explore.":"Start the conversation."}</p><button className="outline-btn" onClick={()=>tab==="following"?navigate("explore"):openComposer("post")}>{tab==="following"?"Explore people":"Create post"}</button></div>}
         {!loadingCloud&&filteredPosts.map(post=><PostCard {...postProps(post)}/>)}
-      </section>}
-
-      {view === "stories" && <section className="stories-destination" aria-label="Blumbook stories">
-        <StoriesRail userId={cloudUserId} profiles={allPeople} onSignIn={()=>setAuthOpen(true)} launchCreate={storyLaunch}/>
       </section>}
 
       {view === "explore" && <>
