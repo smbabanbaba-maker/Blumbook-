@@ -1,6 +1,7 @@
 "use client";
 import {useState} from "react";
-import {Bookmark,Heart,MessageCircle,MoreHorizontal,Repeat2,Share2,BarChart3} from "lucide-react";
+import {Bookmark,MessageCircle,MoreHorizontal,Repeat2,Share2,BarChart3} from "lucide-react";
+import LikeBurst from "@/components/LikeBurst";
 import type {Profile} from "@/lib/demo";
 import {shortCount,timeAgo} from "@/lib/demo";
 
@@ -44,7 +45,7 @@ export default function CommentCard({comment,author,depth=0,childCount,liked,rep
    <nav className="comment-card-actions" aria-label={"Actions for "+author.display_name+" comment"}>
      <button title="Reply" aria-label={"Reply to comment ("+childCount+")"} onClick={()=>onReply(comment)}><MessageCircle size={18}/>{childCount>0&&<span>{shortCount(childCount)}</span>}</button>
      <button title="Repost" className={reposted?"is-active":""} aria-label={reposted?"Undo comment repost":"Repost comment"} onClick={()=>onRepost(comment)}><Repeat2 size={18}/>{repostCount>0&&<span>{shortCount(repostCount)}</span>}</button>
-     <button title="Like" className={liked?"is-active":""} aria-label={liked?"Unlike comment":"Like comment"} onClick={()=>onLike(comment)}><Heart size={18} fill={liked?"currentColor":"none"}/>{likeCount>0&&<span>{shortCount(likeCount)}</span>}</button>
+     <button title="Like" className={liked?"is-active comment-like-action":"comment-like-action"} aria-label={liked?"Unlike comment":"Like comment"} onClick={()=>onLike(comment)}><LikeBurst liked={liked} size={18}/>{likeCount>0&&<span>{shortCount(likeCount)}</span>}</button>
      {viewCount!==undefined&&<span className="comment-card-demo-views" title="Fictional demo views" aria-label={shortCount(viewCount)+" sample views"}><BarChart3 size={17}/><span>{shortCount(viewCount)}</span></span>}
      <button title="Bookmark" className={bookmarked?"is-active":""} aria-label={bookmarked?"Remove comment bookmark":"Bookmark comment"} onClick={()=>onBookmark(comment)}><Bookmark size={18} fill={bookmarked?"currentColor":"none"}/></button>
      <button title="Share" aria-label="Share comment" onClick={()=>onShare(comment)}><Share2 size={18}/></button>

@@ -17,6 +17,7 @@ import CreatorStudioPlus from "@/components/CreatorStudioPlus";
 import BlumClips from "@/components/BlumClips";
 import ImmersiveVideoViewer from "@/components/ImmersiveVideoViewer";
 import CommentCard from "@/components/CommentCard";
+import LikeBurst from "@/components/LikeBurst";
 import StoriesRail from "@/components/StoriesRail";
 import PollsPanel from "@/components/PollsPanel";
 import LiveSessions from "@/components/LiveSessions";
@@ -33,7 +34,6 @@ import {
 type View = "home" | "explore" | "notifications" | "messages" | "profile" | "communities" | "bookmarks" | "settings" | "thread" | "premium" | "lists" | "creator" | "help" | "opportunities" | "clips" | "polls" | "live" | "ai" | "verification" | "schedule" | "planner" | "earnings" | "stories";
 type Theme = "dark" | "light";
 type SettingsPanel = "account" | "security" | "privacy" | "notifications" | "accessibility" | "resources";
-type Tab = "for-you" | "following";
 type ProfileTab = "posts" | "replies" | "media" | "likes";
 type Comment = { id: string; post_id: string; author_id: string; body: string; created_at: string; parent_comment_id?:string|null };
 type CommentMetric = {likes:number;reposts:number;liked:boolean;reposted:boolean;bookmarked:boolean};
@@ -112,7 +112,7 @@ function PostCard({
       <div className="post-actions">
         <button aria-label="Reply" onClick={() => onReply(post)}><MessageCircle size={18}/><span>{shortCount(post.replies)}</span></button>
         <button className={post.reposted ? "reposted" : ""} aria-label="Repost" onClick={() => onRepost(post)}><Repeat2 size={18}/><span>{shortCount(post.reposts)}</span></button>
-        <button className={post.liked ? "liked" : ""} aria-label="Like" onClick={() => onLike(post)}><Heart size={18} fill={post.liked ? "currentColor" : "none"}/><span>{shortCount(post.likes)}</span></button>
+        <button className={post.liked ? "liked" : ""} aria-label={post.liked?"Unlike post":"Like post"} onClick={() => onLike(post)}><LikeBurst liked={Boolean(post.liked)} size={18}/><span>{shortCount(post.likes)}</span></button>
         {isDemo&&<button aria-label="Sample views (demo only)" onClick={() => onReply(post)}><span className="view-icon">▥</span><span>{shortCount(post.views)}</span></button>}
         <div className="post-end-actions">
           <button className={post.bookmarked ? "bookmarked" : ""} aria-label="Bookmark" onClick={() => onBookmark(post)}><Bookmark size={18} fill={post.bookmarked ? "currentColor" : "none"}/></button>
@@ -183,14 +183,13 @@ export default function BlumbookApp({forceDemo=false}:{forceDemo?:boolean}={}) {
     window.localStorage.setItem("blumbook-notification-prefs", JSON.stringify(notifyPrefs));
     window.localStorage.setItem("blumbook-compact-text", String(compactText));
   }, [notifyPrefs, compactText, themeLoaded]);
-  const [tab, setTab] = useState<Tab>("for-you");
   const [threadReturnView,setThreadReturnView]=useState<View>("home");
   const [replyOrder,setReplyOrder]=useState<"recent"|"oldest">("recent");
   const [threadLoading,setThreadLoading]=useState(false);
   const [threadError,setThreadError]=useState("");
   const [query, setQuery] = useState("");
-  const [posts, setPosts] = useState<Post[]>(SHOWCASE_POSTS);
-  const [people, setPeople] = useState<Profile[]>(SHOWCASE_PEOPLE);
+  const [posts, setPosts] = useState<Post[]>(forceDemo?SHOWCASE_POSTS:[]);
+  const [people, setPeople] = useState<Profile[]>(forceDemo?SHOWCASE_PEOPLE:[]);
   const [member, setMember] = useState<Profile | null>(null);
   const [cloudUserId, setCloudUserId] = useState<string | null>(null);
   const [demoSignedIn, setDemoSignedIn] = useState(false);
@@ -210,8 +209,8 @@ export default function BlumbookApp({forceDemo=false}:{forceDemo?:boolean}={}) {
   const [selectedProfile, setSelectedProfile] = useState("demo-me");
   const [profileTab,setProfileTab] = useState<ProfileTab>("posts");
   const [threadId, setThreadId] = useState<string | null>(null);
-  const [comments, setComments] = useState<Record<string, Comment[]>>(SHOWCASE_COMMENTS_BY_POST);
-  const [commentMetrics,setCommentMetrics]=useState<Record<string,CommentMetric>>(SHOWCASE_COMMENT_METRICS);
+  const [comments, setComments] = useState<Record<string, Comment[]>>(forceDemo?SHOWCASE_COMMENTS_BY_POST:{});
+  const [commentMetrics,setCommentMetrics]=useState<Record<string,CommentMetric>>(forceDemo?SHOWCASE_COMMENT_METRICS:{});
   const [commentFeaturesReady,setCommentFeaturesReady]=useState(!configuredCloudEnabled||forceDemo);
   const [replyingTo,setReplyingTo]=useState<Comment|null>(null);
   const handledCommentLink=useRef<string|null>(null);
@@ -660,7 +659,7 @@ export default function BlumbookApp({forceDemo=false}:{forceDemo?:boolean}={}) {
     const person=allPeople.find(p=>p.username.toLowerCase()===slug.toLowerCase());
     if(person){setSelectedProfile(person.id);setView("profile");}
   },[allPeople]);
-  const filteredPosts = posts.filter((p) => !blockedAuthors.includes(p.author_id) && !mutedAuthors.includes(p.author_id) && (tab !== "following" || p.author_id === me.id || followed.includes(p.author_id)));
+  const filteredPosts = posts.filter(p=>!blockedAuthors.includes(p.author_id)&&!mutedAuthors.includes(p.author_id));
   const searchPosts = posts.filter((p) => !blockedAuthors.includes(p.author_id) && !mutedAuthors.includes(p.author_id) && (p.body.toLowerCase().includes(query.toLowerCase()) || lookup(p.author_id).display_name.toLowerCase().includes(query.toLowerCase())));
   const searchProfiles = people.filter((p) => p.display_name.toLowerCase().includes(query.toLowerCase()) || p.username.toLowerCase().includes(query.toLowerCase()));
   const mute=(id:string)=>{if(id===me.id){notify("Cannot mute yourself.");return;}const next=[...new Set([...mutedAuthors,id])];setMutedAuthors(next);window.localStorage.setItem("blumbook-muted",JSON.stringify(next));notify("Muted in this browser. You can undo in Settings.");};
@@ -893,24 +892,18 @@ export default function BlumbookApp({forceDemo=false}:{forceDemo?:boolean}={}) {
           <div className="mobile-settings-heading"><strong>{settingsPanel ? settingsConfig.find(s => s.id === settingsPanel)?.title : "Settings"}</strong><small>@{me.username}</small></div>
         </> : <>
           <button className="avatar-action" onClick={() => isCloudEnabled && !cloudUserId ? setAuthOpen(true) : openProfile(me.id)} aria-label="Your profile"><Avatar profile={me} size="small"/></button>
-          <button onClick={() => navigate("home")} className="mobile-brand"><img src="/logo.svg" alt="Blumbook"/><strong>Blumbook</strong></button>
+          <button onClick={() => navigate("home")} className="mobile-brand"><img src="/logo.svg" alt="Blumbook"/><strong>Blumbook</strong>{forceDemo&&<small className="blum-demo-chip">DEMO</small>}</button>
           <button aria-label="Open more menu" aria-expanded={menuOpen} className="icon-button top-more-button" onClick={()=>setMenuOpen(true)}><MoreHorizontal size={25}/></button>
         </>}
       </div>
 
       {(view === "home" || view === "stories") && <section className={view === "home" ? "home-status-strip" : "stories-destination"} aria-label="Blumbook stories">
-        <StoriesRail compact={view === "home"} forceDemo={forceDemo} userId={cloudUserId} profiles={allPeople} onSignIn={()=>setAuthOpen(true)} launchCreate={storyLaunch}/>
+        <StoriesRail compact={view === "home"} forceDemo={forceDemo} showcaseWhenEmpty userId={cloudUserId} profiles={allPeople} onSignIn={()=>setAuthOpen(true)} launchCreate={storyLaunch}/>
       </section>}
 
       {view === "home" && <section className="clean-home" aria-label="Blumbook home">
-        <nav className="feed-tabs clean-home-tabs" aria-label="Choose your feed">
-          {([["for-you","For you"],["following","Following"]] as const).map(([id,label])=>
-            <button key={id} aria-pressed={tab===id} className={tab===id?"selected":""} onClick={()=>setTab(id)}>{tr(label)}</button>
-          )}
-        </nav>
-        {!isCloudEnabled&&<p className="feed-demo-indicator"><ShieldCheck size={16}/> DEMO CONTENT · Fictional profiles, posts and engagement — nothing is published to real accounts</p>}
         {loadingCloud&&<div className="feed-skeleton" role="status" aria-label="Loading posts">{[0,1,2].map(i=><div key={i} className="skeleton-post"><span className="skeleton-avatar"/><div><i/><i/><i/></div></div>)}</div>}
-        {!loadingCloud&&filteredPosts.length===0&&<div className="empty-state clean-home-empty"><h3>{tab==="following"?"No posts from people you follow yet":"No posts yet"}</h3><p>{tab==="following"?"Find people to follow in Explore.":"Start the conversation."}</p><button className="outline-btn" onClick={()=>tab==="following"?navigate("explore"):openComposer("post")}>{tab==="following"?"Explore people":"Create post"}</button></div>}
+        {!loadingCloud&&filteredPosts.length===0&&<div className="empty-state clean-home-empty"><h3>No posts yet</h3><p>Start a conversation, or discover people in Explore.</p><button className="outline-btn" onClick={()=>navigate("explore")}>Explore people</button></div>}
         {!loadingCloud&&filteredPosts.map(post=><PostCard {...postProps(post)}/>)}
       </section>}
 
@@ -1051,7 +1044,7 @@ export default function BlumbookApp({forceDemo=false}:{forceDemo?:boolean}={}) {
           <div className="thread-actions" role="group" aria-label="Post actions">
             <button aria-label="Write a reply" onClick={()=>document.getElementById("thread-reply-input")?.focus()}><MessageCircle size={19}/></button>
             <button className={selectedPost.reposted?"is-active":""} aria-label="Repost" onClick={()=>void toggleRepost(selectedPost)}><Repeat2 size={19}/></button>
-            <button className={selectedPost.liked?"is-active":""} aria-label={selectedPost.liked?"Unlike post":"Like post"} onClick={()=>void toggleLike(selectedPost)}><Heart size={19} fill={selectedPost.liked?"currentColor":"none"}/></button>
+            <button className={selectedPost.liked?"is-active thread-like-action": "thread-like-action"} aria-label={selectedPost.liked?"Unlike post":"Like post"} onClick={()=>void toggleLike(selectedPost)}><LikeBurst liked={Boolean(selectedPost.liked)} size={19}/></button>
             <button className={selectedPost.bookmarked?"is-active":""} aria-label="Bookmark" onClick={()=>void toggleBookmark(selectedPost)}><Bookmark size={19} fill={selectedPost.bookmarked?"currentColor":"none"}/></button>
             <button aria-label="Share" onClick={()=>void share(selectedPost)}><Share2 size={19}/></button>
           </div>
