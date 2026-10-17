@@ -1108,3 +1108,20 @@ button.settings-detail-row:hover { background:var(--hover); }
  .media-dialog-main { min-height:45vh; }
 }
 @media(prefers-reduced-motion:reduce) { .opp-card,.dm-thread,.notify-row,.post-video-preview {transition:none;} }
+
+/* Finish: honest demo state and polished loading skeletons */
+.feed-demo-indicator { display:flex; align-items:center; gap:9px; color:var(--muted); background:var(--surface2); padding:12px 17px; border-bottom:1px solid var(--line); font-size:11px; line-height:1.4; }
+.feed-demo-indicator svg { flex-shrink:0; }
+.feed-status-actions { display:flex; justify-content:flex-end; padding:7px 14px; border-bottom:1px solid var(--line); }
+.feed-status-actions>button { display:flex; align-items:center; gap:7px; color:var(--muted); font-size:11px; padding:7px 10px; border-radius:22px; min-height:32px; }
+.feed-status-actions>button:hover { background:var(--hover); color:var(--text); }
+.feed-skeleton { padding:0 15px; }
+.skeleton-post { display:flex; gap:11px; padding:21px 0; border-bottom:1px solid var(--line); min-height:150px; }
+.skeleton-avatar { display:block; width:44px; height:44px; flex-shrink:0; border-radius:50%; background:var(--surface2); }
+.skeleton-post>div { flex:1; padding:8px 0; display:flex; flex-direction:column; gap:13px; }
+.skeleton-post i { display:block; width:65%; height:12px; background:var(--surface2); border-radius:6px; }
+.skeleton-post i:nth-child(2) { width:94%; }
+.skeleton-post i:nth-child(3) { width:78%; }
+.skeleton-post .skeleton-avatar,.skeleton-post i { animation:skeleton-blink 1.5s ease-in-out infinite; }
+@keyframes skeleton-blink { 0%,100%{opacity:.45} 50%{opacity:1} }
+@media(prefers-reduced-motion:reduce) { .skeleton-post .skeleton-avatar,.skeleton-post i {animation:none;} }

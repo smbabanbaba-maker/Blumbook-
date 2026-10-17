@@ -96,7 +96,7 @@ function PostCard({
         <button aria-label="Reply" onClick={() => onReply(post)}><MessageCircle size={18}/><span>{shortCount(post.replies)}</span></button>
         <button className={post.reposted ? "reposted" : ""} aria-label="Repost" onClick={() => onRepost(post)}><Repeat2 size={18}/><span>{shortCount(post.reposts)}</span></button>
         <button className={post.liked ? "liked" : ""} aria-label="Like" onClick={() => onLike(post)}><Heart size={18} fill={post.liked ? "currentColor" : "none"}/><span>{shortCount(post.likes)}</span></button>
-        <button aria-label="Views" onClick={() => onReply(post)}><span className="view-icon">▥</span><span>{shortCount(post.views)}</span></button>
+        {!isCloudEnabled&&<button aria-label="Sample views (demo only)" onClick={() => onReply(post)}><span className="view-icon">▥</span><span>{shortCount(post.views)}</span></button>}
         <div className="post-end-actions">
           <button className={post.bookmarked ? "bookmarked" : ""} aria-label="Bookmark" onClick={() => onBookmark(post)}><Bookmark size={18} fill={post.bookmarked ? "currentColor" : "none"}/></button>
           <button aria-label="Share" onClick={() => onShare(post)}><Share2 size={18}/></button>
@@ -533,7 +533,7 @@ export default function BlumbookApp() {
     setProfileMore(false);
     if(!requireAccount())return;
     navigate("messages");setChatWith(p.id);
-    notify("Messages are a preview and are not delivered to other users.");
+    if(!isCloudEnabled)notify("Demo only — messages are not sent to other people.");
   };
   const openCollab=(p:Profile)=>{
     setProfileMore(false);
@@ -682,7 +682,9 @@ export default function BlumbookApp() {
           {!welcomeHidden&&<section className="onboard-card"><div><span className="feature-overline">WELCOME TO BLUMBOOK</span><h2>Ideas grow better together.</h2><p>Explore stories, discover a Bloom Circle, and introduce yourself. This is an early interactive preview.</p><div><button onClick={()=>navigate("communities")}>Explore Bloom Circles <ArrowRight size={16}/></button><button onClick={()=>{setWelcomeHidden(true);window.localStorage.setItem("blumbook-onboarded","yes");}}>Got it</button></div></div><button className="icon-button" aria-label="Dismiss welcome" onClick={()=>{setWelcomeHidden(true);window.localStorage.setItem("blumbook-onboarded","yes");}}><X size={20}/></button></section>}
           <div className="home-opportunity-link"><button onClick={()=>navigate("opportunities")}><Handshake size={18}/><span><strong>Bloom Opportunities</strong><small>Discover projects, mentors and collaborators</small></span><ArrowRight size={18}/></button></div>
           <div className="compose-inline"><Avatar profile={me}/><button onClick={() => { if (requireAccount()) setCompose(true); }}>What&apos;s happening?</button><button className="primary-btn" onClick={() => { if (requireAccount()) setCompose(true); }}>Post</button></div>
-          {loadingCloud && <div className="center-message">Loading your feed...</div>}
+          {!isCloudEnabled&&<p className="feed-demo-indicator"><ShieldCheck size={16}/> Demo preview · Sample content and numbers, not real members</p>}
+          <div className="feed-status-actions"><button onClick={()=>isCloudEnabled?void loadCloud():notify("Demo content is already up to date.")}><Repeat2 size={15}/> Refresh feed</button></div>
+          {loadingCloud&&<div className="feed-skeleton" role="status" aria-label="Loading posts">{[0,1,2].map(i=><div key={i} className="skeleton-post"><span className="skeleton-avatar"/><div><i/><i/><i/></div></div>)}</div>}
           {!loadingCloud && filteredPosts.length === 0 && <div className="empty-state"><Sparkles size={34}/><h3>{tab === "following" ? "Your feed starts here" : "Be the first to post"}</h3><p>{tab === "following" ? "Follow people in Explore to see what they share." : "Share a thought and start a conversation."}</p><button className="outline-btn" onClick={()=>navigate("explore")}>Discover people</button></div>}
           {filteredPosts.map((post) => <PostCard {...postProps(post)} />)}
         </>}
