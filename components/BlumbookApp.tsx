@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import {
   ArrowLeft, ArrowRight, Bell, Bookmark, Check, CheckCircle2, ChevronDown, Compass, Ellipsis,
   Feather, Heart, Home, ImagePlus, LogIn, LogOut, Mail, Menu, MessageCircle, MoreHorizontal,
@@ -214,6 +214,7 @@ export default function BlumbookApp({forceDemo=false}:{forceDemo?:boolean}={}) {
   const [commentMetrics,setCommentMetrics]=useState<Record<string,CommentMetric>>(SHOWCASE_COMMENT_METRICS);
   const [commentFeaturesReady,setCommentFeaturesReady]=useState(!configuredCloudEnabled||forceDemo);
   const [replyingTo,setReplyingTo]=useState<Comment|null>(null);
+  const handledCommentLink=useRef<string|null>(null);
   const [expandedCommentThreads,setExpandedCommentThreads]=useState<Record<string,boolean>>({});
   const [replyText, setReplyText] = useState("");
   const [chatWith, setChatWith] = useState<string | null>(null);
@@ -634,6 +635,22 @@ export default function BlumbookApp({forceDemo=false}:{forceDemo?:boolean}={}) {
   const selectedPost = posts.find((p) => p.id === threadId);
   const profilePosts=posts.filter(p=>p.author_id===activeProfile.id);
   const sortedProfilePosts=[...profilePosts].sort((a,b)=>Number(b.id===activeProfile.pinned_post_id)-Number(a.id===activeProfile.pinned_post_id));
+  useEffect(()=>{
+    if(view!=="thread"||!threadId||threadLoading)return;
+    const commentId=new URLSearchParams(window.location.search).get("comment");
+    if(!commentId||handledCommentLink.current===commentId)return;
+    const target=(comments[threadId]||[]).find(c=>c.id===commentId);
+    if(!target)return;
+    if(target.parent_comment_id&&!expandedCommentThreads[target.parent_comment_id]){
+      setExpandedCommentThreads(prev=>({...prev,[target.parent_comment_id!]:true}));
+      return;
+    }
+    const handle=window.setTimeout(()=>{
+      document.getElementById("comment-"+commentId)?.scrollIntoView({behavior:"smooth",block:"center"});
+      handledCommentLink.current=commentId;
+    },90);
+    return()=>window.clearTimeout(handle);
+  },[view,threadId,threadLoading,comments,expandedCommentThreads]);
   const profileReplies=Object.values(comments).flat().filter(c=>c.author_id===activeProfile.id).sort((a,b)=>new Date(b.created_at).getTime()-new Date(a.created_at).getTime());
   const profileMedia=profilePosts.filter(p=>Boolean(p.image_url||p.video_url));
   const profileLikes=activeProfile.id===me.id?posts.filter(p=>p.liked):[];
