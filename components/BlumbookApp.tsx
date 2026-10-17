@@ -112,7 +112,7 @@ function PostCard({
       <div className="post-actions">
         <button aria-label="Reply" onClick={() => onReply(post)}><MessageCircle size={18}/><span>{shortCount(post.replies)}</span></button>
         <button className={post.reposted ? "reposted" : ""} aria-label="Repost" onClick={() => onRepost(post)}><Repeat2 size={18}/><span>{shortCount(post.reposts)}</span></button>
-        <button className={post.liked ? "liked" : ""} aria-label={post.liked?"Unlike post":"Like post"} onClick={() => onLike(post)}><LikeBurst liked={post.liked} size={18}/><span>{shortCount(post.likes)}</span></button>
+        <button className={post.liked ? "liked" : ""} aria-label={post.liked?"Unlike post":"Like post"} onClick={() => onLike(post)}><LikeBurst liked={Boolean(post.liked)} size={18}/><span>{shortCount(post.likes)}</span></button>
         {isDemo&&<button aria-label="Sample views (demo only)" onClick={() => onReply(post)}><span className="view-icon">▥</span><span>{shortCount(post.views)}</span></button>}
         <div className="post-end-actions">
           <button className={post.bookmarked ? "bookmarked" : ""} aria-label="Bookmark" onClick={() => onBookmark(post)}><Bookmark size={18} fill={post.bookmarked ? "currentColor" : "none"}/></button>
@@ -1044,7 +1044,7 @@ export default function BlumbookApp({forceDemo=false}:{forceDemo?:boolean}={}) {
           <div className="thread-actions" role="group" aria-label="Post actions">
             <button aria-label="Write a reply" onClick={()=>document.getElementById("thread-reply-input")?.focus()}><MessageCircle size={19}/></button>
             <button className={selectedPost.reposted?"is-active":""} aria-label="Repost" onClick={()=>void toggleRepost(selectedPost)}><Repeat2 size={19}/></button>
-            <button className={selectedPost.liked?"is-active thread-like-action": "thread-like-action"} aria-label={selectedPost.liked?"Unlike post":"Like post"} onClick={()=>void toggleLike(selectedPost)}><LikeBurst liked={selectedPost.liked} size={19}/></button>
+            <button className={selectedPost.liked?"is-active thread-like-action": "thread-like-action"} aria-label={selectedPost.liked?"Unlike post":"Like post"} onClick={()=>void toggleLike(selectedPost)}><LikeBurst liked={Boolean(selectedPost.liked)} size={19}/></button>
             <button className={selectedPost.bookmarked?"is-active":""} aria-label="Bookmark" onClick={()=>void toggleBookmark(selectedPost)}><Bookmark size={19} fill={selectedPost.bookmarked?"currentColor":"none"}/></button>
             <button aria-label="Share" onClick={()=>void share(selectedPost)}><Share2 size={19}/></button>
           </div>
