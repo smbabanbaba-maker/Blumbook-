@@ -221,9 +221,10 @@ export default function BlumbookApp() {
         client.from("comments").select("post_id").limit(2000),
       ]);
       setCloudUserId(user?.id || null);
-      let extraResult=await client.from("profile_extras").select("user_id,headline,skills,portfolio_url,open_to_collab").limit(100);
-      if(extraResult.error)extraResult=await client.from("profile_extras").select("user_id,headline,skills,portfolio_url").limit(100);
-      const extrasData=extraResult.data;
+      const extraResult=await client.from("profile_extras").select("user_id,headline,skills,portfolio_url,open_to_collab").limit(100);
+      const extrasData=extraResult.error
+        ? ((await client.from("profile_extras").select("user_id,headline,skills,portfolio_url").limit(100)).data||[]).map(x=>({...x,open_to_collab:false}))
+        : extraResult.data;
       const extras=new Map((extrasData||[]).map(x=>[x.user_id,x]));
       const cleanProfiles: Profile[] = (profilesData || []).map((p) => ({ id:p.id, username:p.username, display_name:p.display_name, bio:p.bio || "", avatar_url:p.avatar_url, verified:p.verified, location:p.location,headline:extras.get(p.id)?.headline||"",skills:extras.get(p.id)?.skills||[],portfolio_url:extras.get(p.id)?.portfolio_url||"",open_to_collab:extras.get(p.id)?.open_to_collab===true }));
       setPeople(cleanProfiles);
