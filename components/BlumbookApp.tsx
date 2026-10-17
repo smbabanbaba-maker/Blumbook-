@@ -5,17 +5,21 @@ import {
   ArrowLeft, ArrowRight, Bell, Bookmark, Check, CheckCircle2, ChevronDown, Compass, Ellipsis,
   Feather, Heart, Home, ImagePlus, LogIn, LogOut, Mail, Menu, MessageCircle, MoreHorizontal,
   Plus, Repeat2, Search, Send, Settings, Share2, ShieldCheck, Smile, Sparkles, Sun, Moon, Crown, List, Radio, ChartNoAxesCombined, CircleHelp, CalendarDays, MapPin, Pin, UserRound,
-  UserRoundPlus, UsersRound, Accessibility, Link2, LockKeyhole, Languages, Download, Type, Handshake, Ban, Flag, Copy, type LucideIcon, X
+  UserRoundPlus, UsersRound, Accessibility, Link2, LockKeyhole, Languages, Download, Type, Handshake, Ban, Flag, Copy, Video, Play, type LucideIcon, X
 } from "lucide-react";
 import { supabase, isCloudEnabled } from "@/lib/supabase";
 import BloomCircles from "@/components/BloomCircles";
+import OpportunityHub from "@/components/OpportunityHub";
+import DirectInbox from "@/components/DirectInbox";
+import NotificationsPanel from "@/components/NotificationsPanel";
+import CreatorStudioPlus from "@/components/CreatorStudioPlus";
 import {translate,type AppLanguage} from "@/lib/locale";
 import {
   COMMUNITIES, DEMO_ME, DEMO_NOTICES, DEMO_PEOPLE, DEMO_POSTS, TRENDS,
   shortCount, timeAgo, type Post, type Profile, type Notice,
 } from "@/lib/demo";
 
-type View = "home" | "explore" | "notifications" | "messages" | "profile" | "communities" | "bookmarks" | "settings" | "thread" | "premium" | "lists" | "spaces" | "creator" | "help";
+type View = "home" | "explore" | "notifications" | "messages" | "profile" | "communities" | "bookmarks" | "settings" | "thread" | "premium" | "lists" | "spaces" | "creator" | "help" | "opportunities" | "videos";
 type Theme = "dark" | "light";
 type SettingsPanel = "account" | "security" | "privacy" | "notifications" | "accessibility" | "resources";
 type Tab = "for-you" | "following" | "communities";
@@ -28,6 +32,8 @@ const NAV: { id: View; label: string; Icon: LucideIcon }[] = [
   { id: "notifications", label: "Notifications", Icon: Bell },
   { id: "messages", label: "Messages", Icon: Mail },
   { id: "communities", label: "Communities", Icon: UsersRound },
+  { id: "opportunities", label: "Opportunities", Icon: Handshake },
+  { id: "videos", label: "Videos", Icon: Video },
   { id: "bookmarks", label: "Bookmarks", Icon: Bookmark },
   { id: "profile", label: "Profile", Icon: UserRound },
   { id: "settings", label: "Settings", Icon: Settings },
@@ -615,6 +621,8 @@ export default function BlumbookApp() {
             <button onClick={()=>openProfile(me.id)}><UserRound size={23}/><span>{tr("Profile")}</span></button>
             <button onClick={()=>navigate("bookmarks")}><Bookmark size={23}/><span>{tr("Bookmarks")}</span></button>
             <button onClick={()=>navigate("communities")}><UsersRound size={23}/><span>Bloom Circles</span></button>
+            <button onClick={()=>navigate("opportunities")}><Handshake size={23}/><span>Bloom Opportunities</span></button>
+            <button onClick={()=>navigate("videos")}><Video size={23}/><span>Videos</span></button>
             <button onClick={()=>navigate("creator")}><ChartNoAxesCombined size={23}/><span>{tr("Creator Studio")}</span></button>
             <button onClick={()=>navigate("settings")}><Settings size={23}/><span>{tr("Settings")}</span></button>
             <button onClick={()=>navigate("help")}><CircleHelp size={23}/><span>{tr("Help Center")}</span></button>
@@ -650,6 +658,7 @@ export default function BlumbookApp() {
         {tab === "communities" ? <BloomCircles userId={cloudUserId} requestAuth={()=>setAuthOpen(true)} language={language}/> :
         <>
           {!welcomeHidden&&<section className="onboard-card"><div><span className="feature-overline">WELCOME TO BLUMBOOK</span><h2>Ideas grow better together.</h2><p>Explore stories, discover a Bloom Circle, and introduce yourself. This is an early interactive preview.</p><div><button onClick={()=>navigate("communities")}>Explore Bloom Circles <ArrowRight size={16}/></button><button onClick={()=>{setWelcomeHidden(true);window.localStorage.setItem("blumbook-onboarded","yes");}}>Got it</button></div></div><button className="icon-button" aria-label="Dismiss welcome" onClick={()=>{setWelcomeHidden(true);window.localStorage.setItem("blumbook-onboarded","yes");}}><X size={20}/></button></section>}
+          <div className="home-opportunity-link"><button onClick={()=>navigate("opportunities")}><Handshake size={18}/><span><strong>Bloom Opportunities</strong><small>Discover projects, mentors and collaborators</small></span><ArrowRight size={18}/></button></div>
           <div className="compose-inline"><Avatar profile={me}/><button onClick={() => { if (requireAccount()) setCompose(true); }}>What&apos;s happening?</button><button className="primary-btn" onClick={() => { if (requireAccount()) setCompose(true); }}>Post</button></div>
           {loadingCloud && <div className="center-message">Loading your feed...</div>}
           {!loadingCloud && filteredPosts.length === 0 && <div className="empty-state"><Sparkles size={34}/><h3>{tab === "following" ? "Your feed starts here" : "Be the first to post"}</h3><p>{tab === "following" ? "Follow people in Explore to see what they share." : "Share a thought and start a conversation."}</p><button className="outline-btn" onClick={()=>navigate("explore")}>Discover people</button></div>}
@@ -669,31 +678,20 @@ export default function BlumbookApp() {
           <div className="explore-hero"><span className="eyebrow">DISCOVER YOUR WORLD</span><h2>What&apos;s happening<br/>around you?</h2><p>Explore conversations, ideas and people who inspire.</p></div>
           <div className="section-label">Trending now <span>See what people are talking about</span></div>
           {TRENDS.map((trend,i)=><button className="trend-row" key={trend.tag} onClick={()=>setQuery(trend.tag.replace("#",""))}><span><small>{i+1} · {trend.category}</small><strong>{trend.tag}</strong><small>{trend.posts}</small></span><MoreHorizontal size={18}/></button>)}
+          <div className="explore-feature-links">
+            <button onClick={()=>navigate("opportunities")}><Handshake size={21}/><span>Bloom Opportunities<small>Find useful connections</small></span><ArrowRight size={17}/></button>
+            <button onClick={()=>navigate("videos")}><Video size={21}/><span>Videos<small>Watch shared clips</small></span><ArrowRight size={17}/></button>
+          </div>
           <div className="section-label">Who to follow</div>
           {people.slice(0,5).map((p)=>personRow(p))}
         </>}
       </>}
 
-      {view === "notifications" && <>
-        <PanelTitle extra={<button className="icon-button" onClick={()=>navigate("settings")} aria-label="Notification settings"><Settings size={19}/></button>}>Notifications</PanelTitle>
-        <div className="feed-tabs">{["All","Mentions","Likes","Follows"].map((name)=><button key={name} className={noticeFilter===name?"selected":""} onClick={()=>setNoticeFilter(name)}>{name}</button>)}</div>
-        {(DEMO_NOTICES.filter((n)=>notifyPrefs[n.kind==="like"?"likes":n.kind==="follow"?"follows":"replies"] && (noticeFilter==="All" || (noticeFilter==="Likes"&&n.kind==="like") || (noticeFilter==="Follows"&&n.kind==="follow") || (noticeFilter==="Mentions"&&n.kind==="reply")))).map((n: Notice)=>
-          <div className="notice-row" key={n.id}><span className={"notice-mark notice-"+n.kind}>{n.kind==="like"?<Heart size={21} fill="currentColor"/>:n.kind==="follow"?<UserRoundPlus size={21}/>:n.kind==="repost"?<Repeat2 size={21}/>:<MessageCircle size={21}/>}</span><div><strong>{n.person}</strong> {n.text}<small>{n.time} ago</small></div></div>
-        )}
-        {isCloudEnabled && <div className="hint-strip">Live notifications will appear here in the next release; the items above are sample activity.</div>}
-      </>}
-
-      {view === "messages" && <>
-        <PanelTitle extra={<button className="icon-button" onClick={()=>notify("Select a conversation below.")} aria-label="New conversation"><Mail size={20}/></button>}>Messages</PanelTitle>
-        {chatWith ? <div className="chat-page">
-          <button className="chat-heading" onClick={()=>setChatWith(null)}><ArrowLeft size={20}/><Avatar profile={lookup(chatWith)} size="small"/><strong>{lookup(chatWith).display_name}</strong></button>
-          <div className="chat-bubbles">{(chats[chatWith] || []).map((m)=><div key={m.id} className={"chat-bubble " + (m.sender==="me"?"mine":"theirs")}><p>{m.text}</p><small>{m.time}</small></div>)}</div>
-          <form className="chat-send" onSubmit={(e)=>{ e.preventDefault(); if(!chatText.trim())return; setChats((prev)=>({...prev,[chatWith]:[...(prev[chatWith]||[]),{id:String(Date.now()),sender:"me",text:chatText.trim(),time:"Now"}]}));setChatText(""); }}><input aria-label="Write a message" placeholder="Start a message" value={chatText} onChange={(e)=>setChatText(e.target.value)}/><button aria-label="Send" disabled={!chatText.trim()}><Send size={19}/></button></form>
-        </div> :
-        <><div className="hint-strip">Message previews are currently a demo. Private messaging backend is planned for the next phase.</div>
-          {demoThreads.map((chat)=><button className="message-row" key={chat.id} onClick={()=>setChatWith(chat.id)}><Avatar profile={lookup(chat.id)}/><span><strong>{chat.name}</strong><small>@{chat.handle} · {chat.time}</small><p>{chats[chat.id]?.at(-1)?.text || chat.last}</p></span></button>)}
-        </>}
-      </>}
+      {view === "notifications" && <NotificationsPanel userId={cloudUserId} profiles={allPeople} onSignIn={()=>setAuthOpen(true)} onProfile={openProfile} onPost={(id)=>{const p=posts.find(x=>x.id===id);if(p)void openThread(p);else notify("That post is outside the loaded feed.");}} onMessage={(id)=>{navigate("messages");setChatWith(id);}} prefs={notifyPrefs}/>}
+      {view === "messages" && <DirectInbox userId={cloudUserId} profiles={allPeople} initialRecipient={chatWith} onRecipientChange={setChatWith} onSignIn={()=>setAuthOpen(true)}/>}
+      {view === "opportunities" && <OpportunityHub userId={cloudUserId} profiles={allPeople} onSignIn={()=>setAuthOpen(true)} onProfile={openProfile}/>}
+      {view === "videos" && <section className="video-hub"><PanelTitle>Videos</PanelTitle><div className="video-hub-intro"><Video size={27}/><h2>Watch & discover</h2><p>Short videos shared by the Blumbook community.</p><button className="primary-btn" onClick={()=>{if(requireAccount())setCompose(true);}}><Plus size={17}/> Share video</button></div>
+      {posts.filter(p=>p.video_url&&!blockedAuthors.includes(p.author_id)).length?posts.filter(p=>p.video_url&&!blockedAuthors.includes(p.author_id)).map(p=><PostCard {...postProps(p)}/>):<div className="empty-state"><Video size={29}/><h3>No videos yet</h3><p>Videos will appear here once members start sharing.</p></div>}</section>}
 
       {view === "communities" && <BloomCircles userId={cloudUserId} requestAuth={()=>setAuthOpen(true)} language={language}/>}
 
@@ -858,13 +856,7 @@ export default function BlumbookApp() {
         <div className="feature-rows"><div><UsersRound size={22}/><span><strong>Community talks</strong><small>Meet around shared interests</small></span></div><div><Sparkles size={22}/><span><strong>Creator conversations</strong><small>Speak, listen and share ideas</small></span></div></div>
       </div>}
 
-      {view === "creator" && <div className="feature-page">
-        <PanelTitle>Creator Studio</PanelTitle><div className="creator-heading"><div><span className="feature-overline">YOUR CREATOR OVERVIEW</span><h2>Create with purpose.</h2><p>See your posts and community interactions at a glance.</p></div><ChartNoAxesCombined size={30}/></div>
-        <div className="metric-grid"><div><span>Total posts</span><strong>{posts.filter(p=>p.author_id===me.id).length}</strong></div><div><span>Post likes</span><strong>{shortCount(posts.filter(p=>p.author_id===me.id).reduce((n,p)=>n+p.likes,0))}</strong></div><div><span>Replies</span><strong>{shortCount(posts.filter(p=>p.author_id===me.id).reduce((n,p)=>n+p.replies,0))}</strong></div><div><span>Following</span><strong>{followed.length}</strong></div></div>
-        <div className="creator-activity"><div><strong>Posting activity</strong><small>Last 7 days · Based on posts loaded in this feed</small></div><div className="creator-bars">{Array.from({length:7},(_,i)=>{const date=new Date();date.setDate(date.getDate()-(6-i));const key=date.toLocaleDateString("en-CA");const total=posts.filter(p=>p.author_id===me.id && new Date(p.created_at).toLocaleDateString("en-CA")===key).length;return <div key={key} title={key+": "+total+" posts"}><span style={{height:(total?Math.min(85,total*24+14):4)+"px"}}/><small>{date.toLocaleDateString("en",{weekday:"short"})}</small></div>;})}</div></div>
-        <button className="creator-compose" onClick={()=>requireAccount()&&setCompose(true)}><Feather size={21}/><span><strong>Share something new</strong><small>Ideas are better when shared</small></span><ArrowRight size={21}/></button>
-        <div className="hint-strip">These figures reflect the current feed. Advanced analytics and monetization are not yet enabled.</div>
-      </div>}
+      {view === "creator" && <CreatorStudioPlus posts={posts} me={me} onCompose={(text)=>{if(requireAccount()){setPostText(text||"");setCompose(true);}}}/>}
 
       {view === "help" && <div className="feature-page">
         <PanelTitle>Help Center</PanelTitle><div className="feature-intro"><div className="feature-icon"><CircleHelp size={28}/></div><h2>How can we help?</h2><p>Everything you need to get comfortable on Blumbook.</p></div>
