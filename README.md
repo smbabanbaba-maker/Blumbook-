@@ -63,3 +63,7 @@ Run `supabase/phase4.sql` after phases 1–3 before testing persistent cover ima
 ## Phase 5 — Social features beta
 
 Bloom Opportunities, Direct Messages, real Notifications, video media, Creator Studio drafts and loaded-feed analytics have been added to the code. They require Supabase configuration and the Phase 5 migration to work with actual members. [Read setup and safety notes](docs/PHASE5.md).
+
+## Phase 6 — Blumbook creator and social experience
+
+The Create menu, Blum Clips, 24-hour Stories, one-vote Polls, external-link Live directory, Blum AI drafting/translation, scheduled posts, verification requests and Creator Earnings interest UI are in the app. **Real functionality requires Supabase migrations and optional server services; native streaming and actual payments are not implemented.** Read [Phase 6 setup, limitations and QA](docs/PHASE6.md) before public launch.
