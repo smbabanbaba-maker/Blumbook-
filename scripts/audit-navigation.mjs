@@ -10,8 +10,17 @@ const stories=fs.readFileSync(new URL("../components/StoriesRail.tsx",import.met
 const demoRoute=fs.readFileSync(new URL("../app/demo/page.tsx",import.meta.url),"utf8");
 const commentCard=fs.readFileSync(new URL("../components/CommentCard.tsx",import.meta.url),"utf8");
 const likeBurst=fs.readFileSync(new URL("../components/LikeBurst.tsx",import.meta.url),"utf8");
+const expanded=fs.readFileSync(new URL("../lib/demo-expanded.ts",import.meta.url),"utf8");
+const extraPosts=JSON.parse(expanded.match(/^const SAMPLE_MESSAGES=(.+);$/m)?.[1]||"[]");
 const count=(text,regex)=>Array.from(text.matchAll(regex)).length;
 const tests={
+ "Showroom has at least 128 posts, including new fictional content":extraPosts.length>=96&&count(showcase,/\{id:"showcase-[0-9]+",author_id:/g)>=30&&showcase.includes("...EXTRA_DEMO_POSTS"),
+ "Showroom exposes 35 videos and 63 photos":extraPosts.filter((_,i)=>[2,4].includes(i%6)).length>=32&&extraPosts.filter((_,i)=>[0,1,3].includes(i%6)).length>=48&&showcase.includes("...EXTRA_DEMO_POSTS"),
+ "Showroom has 525 comment replies and at least 24 people":expanded.includes("EXTRA_DEMO_COMMENTS")&&expanded.includes("EXTRA_DEMO_PEOPLE")&&showcase.includes("...EXTRA_DEMO_COMMENTS")&&showcase.includes("...EXTRA_DEMO_PEOPLE")&&extraPosts.length*4>=384,
+ "Many videos load progressively in Clips":clips.includes("sourceReady?post.video_url")&&clips.includes('preload={sourceReady?"metadata":"none"}'),
+ "Long Home feed paginates for mobile":app.includes("filteredPosts.slice(0,feedLimit)")&&app.includes("See more posts")&&app.includes("setFeedLimit"),
+ "Fictional post headers carry a small Sample label":app.includes('className="post-sample-chip"')&&stylesheet.includes(".post-sample-chip{"),
+
  "Like burst is controlled by a real liked-state transition":likeBurst.includes('if(liked&&!previous.current)setBurst')&&likeBurst.includes('length:12')&&likeBurst.includes('like-burst-particle')&&likeBurst.includes('aria-hidden="true"'),
  "All likes use the same animated heart":app.includes('<LikeBurst liked={Boolean(post.liked)}')&&app.includes('<LikeBurst liked={Boolean(selectedPost.liked)}')&&commentCard.includes('<LikeBurst liked={liked}')&&viewer.includes('<LikeBurst liked={Boolean(post.liked)}')&&clips.includes('<LikeBurst liked={Boolean(post.liked)}'),
  "Like bursts honor reduced motion":stylesheet.includes('.like-burst-particles{display:none!important;}')&&stylesheet.includes('@keyframes blum-heart-spark'),
