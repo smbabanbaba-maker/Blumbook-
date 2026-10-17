@@ -371,28 +371,37 @@ export default function BlumbookApp() {
     }
     setBusy(false);
   };
-  const submitPost = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!postText.trim() || postText.length > 500 || !requireAccount()) return;
-    setBusy(true);
-    let imageUrl: string | null = imagePreview || null;
-    if (supabase && cloudUserId) {
-      if (imageFile) {
-        const ext = (imageFile.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "");
-        const path = cloudUserId + "/" + crypto.randomUUID() + "." + ext;
-        const { error: uploadError } = await supabase.storage.from("post-media").upload(path, imageFile, { upsert:false });
-        if (uploadError) { notify("Media upload failed: " + uploadError.message); setBusy(false); return; }
-        imageUrl = supabase.storage.from("post-media").getPublicUrl(path).data.publicUrl;
+  const submitPost=async(e:FormEvent)=>{
+    e.preventDefault();if(!postText.trim()||postText.length>500||!requireAccount()||busy)return;
+    setBusy(true);let imageUrl:string|null=imageFile?imagePreview:null;let videoUrl:string|null=videoFile?videoPreview:null;
+    try {
+      if(supabase&&cloudUserId){
+        if(imageFile){
+          const ext=(imageFile.name.split(".").pop()||"jpg").replace(/[^a-z0-9]/gi,"").toLowerCase();
+          const path=cloudUserId+"/"+crypto.randomUUID()+"."+ext;
+          const {error}=await supabase.storage.from("post-media").upload(path,imageFile,{upsert:false,contentType:imageFile.type});
+          if(error)throw new Error("Image upload failed: "+error.message);
+          imageUrl=supabase.storage.from("post-media").getPublicUrl(path).data.publicUrl;
+        }
+        if(videoFile){
+          const ext=videoFile.type==="video/webm"?"webm":"mp4";
+          const path=cloudUserId+"/"+crypto.randomUUID()+"."+ext;
+          const {error}=await supabase.storage.from("post-videos").upload(path,videoFile,{upsert:false,contentType:videoFile.type});
+          if(error)throw new Error("Video upload failed. Apply the Phase 5 migration: "+error.message);
+          videoUrl=supabase.storage.from("post-videos").getPublicUrl(path).data.publicUrl;
+        }
+        const values:Record<string,string|null>={author_id:cloudUserId,body:postText.trim(),image_url:imageUrl};
+        if(videoUrl)values.video_url=videoUrl;
+        const {error}=await supabase.from("posts").insert(values);
+        if(error)throw new Error("Post was not saved: "+error.message);
+        await loadCloud();
+      }else {
+        setPosts(p=>[{id:"demo-"+Date.now(),author_id:me.id,body:postText.trim(),image_url:imageUrl,video_url:videoUrl,created_at:new Date().toISOString(),likes:0,reposts:0,replies:0,views:0},...p]);
       }
-      const { error } = await supabase.from("posts").insert({ author_id:cloudUserId, body:postText.trim(), image_url:imageUrl });
-      if (error) { notify(error.message); setBusy(false); return; }
-      await loadCloud();
-    } else {
-      const fresh: Post = { id:"demo-" + Date.now(), author_id:me.id, body:postText.trim(), image_url:imageUrl, created_at:new Date().toISOString(), likes:0, reposts:0, replies:0, views:0 };
-      setPosts((old) => [fresh, ...old]);
-    }
-    setPostText(""); setImageFile(null); setImagePreview(""); setCompose(false); setBusy(false); navigate("home");
-    notify("Your post is live! ✨");
+      setPostText("");setImageFile(null);setImagePreview("");setVideoFile(null);setVideoPreview("");
+      setCompose(false);navigate("home");notify(isCloudEnabled?"Post published.":"Demo post added to this session.");
+    }catch(err){notify(err instanceof Error?err.message:"Post failed");}
+    finally{setBusy(false);}
   };
   const authSubmit = async (e: FormEvent) => {
     e.preventDefault();
