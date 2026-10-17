@@ -67,12 +67,12 @@ function Brand({ compact = false }: { compact?: boolean }) {
   return <span className={"brand " + (compact ? "brand-compact" : "")}><img src="/logo.svg" alt="" /><strong>Blumbook</strong></span>;
 }
 function PostCard({
-  post, author, onLike, onRepost, onBookmark, onReply, onProfile, onShare, onMute, onReport,
+  post, author, onLike, onRepost, onBookmark, onReply, onProfile, onShare, onMute, onReport, onViewMedia,
 }: {
   post: Post; author: Profile; onLike: (post: Post) => void; onRepost: (post: Post) => void;
   onBookmark: (post: Post) => void; onReply: (post: Post) => void;
   onProfile: (id: string) => void; onShare: (post: Post) => void;
-  onMute:(id:string)=>void;onReport:(post:Post,reason:string)=>void;
+  onMute:(id:string)=>void;onReport:(post:Post,reason:string)=>void;onViewMedia:(post:Post)=>void;
 }) {
   const [options,setOptions]=useState(false);
   return <article className="post-card">
@@ -91,7 +91,7 @@ function PostCard({
           </div>}</div>
       </div>
       <div className="post-body">{post.body}</div>
-      {post.image_url && <button className="post-image-wrap" aria-label="View post" onClick={() => onReply(post)}><img className="post-image" src={post.image_url} alt="Image shared in post" loading="lazy" /></button>}
+      {post.image_url&&<button className="post-image-wrap" aria-label="Open image viewer" onClick={()=>onViewMedia(post)}><img className="post-image" src={post.image_url} alt="Shared image" loading="lazy"/></button>}{post.video_url&&<button className="post-video-preview" aria-label="Watch video" onClick={()=>onViewMedia(post)}><video src={post.video_url} preload="metadata" muted playsInline/><span><Play size={21}/> Watch video</span></button>}
       <div className="post-actions">
         <button aria-label="Reply" onClick={() => onReply(post)}><MessageCircle size={18}/><span>{shortCount(post.replies)}</span></button>
         <button className={post.reposted ? "reposted" : ""} aria-label="Repost" onClick={() => onRepost(post)}><Repeat2 size={18}/><span>{shortCount(post.reposts)}</span></button>
@@ -174,6 +174,9 @@ export default function BlumbookApp() {
   const [followed, setFollowed] = useState<string[]>([]);
   const [compose, setCompose] = useState(false);
   const [postText, setPostText] = useState("");
+  const [videoFile,setVideoFile]=useState<File|null>(null);
+  const [videoPreview,setVideoPreview]=useState("");
+  const [mediaViewer,setMediaViewer]=useState<Post|null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState("");
   const [authOpen, setAuthOpen] = useState(false);
@@ -234,13 +237,15 @@ export default function BlumbookApp() {
       const [{ data: { user } }, { data: profilesData }, { data: postsData }, { data: likesData }, { data: bookmarksData }, { data: followsData }, { data: repostsData }, { data: commentsData }] = await Promise.all([
         client.auth.getUser(),
         client.from("profiles").select("id, username, display_name, bio, avatar_url, verified, location, created_at").limit(100),
-        client.from("posts").select("id, author_id, body, image_url, created_at").order("created_at", { ascending:false }).limit(60),
+        client.from("posts").select("id, author_id, body, image_url, video_url, created_at").order("created_at", { ascending:false }).limit(60),
         client.from("likes").select("post_id, user_id").limit(1000),
         client.from("bookmarks").select("post_id, user_id").limit(1000),
         client.from("follows").select("follower_id, following_id").limit(1000),
         client.from("reposts").select("post_id, user_id").limit(1000),
         client.from("comments").select("id,post_id,author_id,body,created_at").limit(2000),
       ]);
+      let availablePosts=postsData;
+      if(postsData==null){const old=await client.from("posts").select("id,author_id,body,image_url,created_at").order("created_at",{ascending:false}).limit(60);availablePosts=(old.data||[]).map(p=>({...p,video_url:null}));}
       setCloudUserId(user?.id || null);
       const extraResult=await client.from("profile_extras").select("user_id,headline,skills,portfolio_url,open_to_collab").limit(100);
       const extrasData=extraResult.error
@@ -268,7 +273,7 @@ export default function BlumbookApp() {
       const commentIndex:Record<string,Comment[]>={};
       for(const c of commentsData||[])commentIndex[c.post_id]=[...(commentIndex[c.post_id]||[]),c];
       setComments(commentIndex);
-      setPosts((postsData || []).map((p) => ({
+      setPosts((availablePosts || []).map((p) => ({
         ...p, likes:likesCount[p.id] || 0, reposts:repostsCount[p.id] || 0, replies:repliesCount[p.id] || 0, views:0,
         liked:(likesData || []).some((l) => l.post_id === p.id && l.user_id === user?.id),
         bookmarked:(bookmarksData || []).some((b) => b.post_id === p.id && b.user_id === user?.id),
@@ -477,7 +482,7 @@ export default function BlumbookApp() {
   const profilePosts=posts.filter(p=>p.author_id===activeProfile.id);
   const sortedProfilePosts=[...profilePosts].sort((a,b)=>Number(b.id===activeProfile.pinned_post_id)-Number(a.id===activeProfile.pinned_post_id));
   const profileReplies=Object.values(comments).flat().filter(c=>c.author_id===activeProfile.id).sort((a,b)=>new Date(b.created_at).getTime()-new Date(a.created_at).getTime());
-  const profileMedia=profilePosts.filter(p=>Boolean(p.image_url));
+  const profileMedia=profilePosts.filter(p=>Boolean(p.image_url||p.video_url));
   const profileLikes=activeProfile.id===me.id?posts.filter(p=>p.liked):[];
   useEffect(()=>{
     const slug=new URLSearchParams(window.location.search).get("profile");
@@ -761,7 +766,7 @@ export default function BlumbookApp() {
             </button>) : <div className="empty-state"><MessageCircle size={30}/><h3>No replies yet</h3><p>Replies to posts will appear here.</p></div>}
         </>}
         {profileTab==="media" && <>
-          {profileMedia.length ? <div className="full-profile-media-grid">{profileMedia.map(p=><button key={p.id} onClick={()=>void openThread(p)} aria-label={"View media in post by "+activeProfile.display_name}><img src={p.image_url||""} alt="Shared post media" loading="lazy"/></button>)}</div>
+          {profileMedia.length ? <div className="full-profile-media-grid">{profileMedia.map(p=><button key={p.id} onClick={()=>openMedia(p)} aria-label={"View media in post by "+activeProfile.display_name}>{p.image_url?<img src={p.image_url} alt="Shared media" loading="lazy"/>:<span className="media-video-tile"><Video size={22}/> Video</span>}</button>)}</div>
           : <div className="empty-state"><ImagePlus size={30}/><h3>No photos yet</h3><p>Photos shared in posts will appear here.</p></div>}
         </>}
         {profileTab==="likes" && <>

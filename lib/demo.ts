@@ -5,7 +5,7 @@ export type Profile = {
   headline?: string; skills?: string[]; portfolio_url?: string; open_to_collab?: boolean;
 };
 export type Post = {
-  id: string; author_id: string; body: string; image_url: string | null;
+  id: string; author_id: string; body: string; image_url: string | null; video_url?:string|null;
   created_at: string; likes: number; reposts: number; replies: number;
   views: number; liked?: boolean; bookmarked?: boolean; reposted?: boolean;
 };
