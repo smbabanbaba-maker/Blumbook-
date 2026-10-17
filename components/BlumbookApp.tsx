@@ -27,7 +27,7 @@ import {
   shortCount, timeAgo, type Post, type Profile, type Notice,
 } from "@/lib/demo";
 
-type View = "home" | "explore" | "notifications" | "messages" | "profile" | "communities" | "bookmarks" | "settings" | "thread" | "premium" | "lists" | "creator" | "help" | "opportunities" | "clips" | "polls" | "live" | "ai" | "verification" | "schedule" | "planner" | "earnings";
+type View = "home" | "explore" | "notifications" | "messages" | "profile" | "communities" | "bookmarks" | "settings" | "thread" | "premium" | "lists" | "creator" | "help" | "opportunities" | "clips" | "polls" | "live" | "ai" | "verification" | "schedule" | "planner" | "earnings" | "stories";
 type Theme = "dark" | "light";
 type SettingsPanel = "account" | "security" | "privacy" | "notifications" | "accessibility" | "resources";
 type Tab = "for-you" | "following";
@@ -128,7 +128,6 @@ function Modal({ children, close }: { children: ReactNode; close: () => void }) 
 
 export default function BlumbookApp() {
   const [view, setView] = useState<View>("home");
-  const [welcomeHidden,setWelcomeHidden]=useState(true);
   const [mutedAuthors,setMutedAuthors]=useState<string[]>([]);
   const [blockedAuthors,setBlockedAuthors]=useState<string[]>([]);
   const [profileAlerts,setProfileAlerts]=useState<string[]>([]);
@@ -153,7 +152,6 @@ export default function BlumbookApp() {
   const [listName, setListName] = useState("");
   useEffect(() => {
     if(window.localStorage.getItem("blumbook-language")==="ha")setLanguage("ha");
-    setWelcomeHidden(window.localStorage.getItem("blumbook-onboarded")==="yes");
     try{const m=JSON.parse(window.localStorage.getItem("blumbook-muted")||"[]");if(Array.isArray(m))setMutedAuthors(m.filter(x=>typeof x==="string"));}catch{}
     try{const b=JSON.parse(window.localStorage.getItem("blumbook-hidden-accounts")||"[]");if(Array.isArray(b))setBlockedAuthors(b.filter(x=>typeof x==="string"));}catch{}
     try{const a=JSON.parse(window.localStorage.getItem("blumbook-profile-alerts")||"[]");if(Array.isArray(a))setProfileAlerts(a.filter(x=>typeof x==="string"));}catch{}
@@ -258,7 +256,7 @@ export default function BlumbookApp() {
   const selectCreate=(action:"post"|"photo"|"video"|"poll"|"story"|"live"|"opportunity"|"schedule")=>{
     setCreateMenuOpen(false);
     if(["post","photo","video"].includes(action)){openComposer(action as "post"|"photo"|"video");return;}
-    if(action==="story"){navigate("home");setTab("for-you");setStoryLaunch(k=>k+1);return;}
+    if(action==="story"){navigate("stories");setStoryLaunch(k=>k+1);return;}
     if(action==="poll"){navigate("polls");setPollLaunch(k=>k+1);return;}
     if(action==="live"){navigate("live");setLiveLaunch(k=>k+1);return;}
     if(action==="schedule"){navigate("schedule");setScheduleLaunch(k=>k+1);return;}
@@ -699,6 +697,7 @@ export default function BlumbookApp() {
               <button aria-current={view==="communities"?"page":undefined} onClick={()=>navigate("communities")}><UsersRound size={21}/><span>Bloom Circles</span></button>
               <button aria-current={view==="opportunities"?"page":undefined} onClick={()=>navigate("opportunities")}><Handshake size={21}/><span>Bloom Opportunities</span></button>
               <button aria-current={view==="clips"?"page":undefined} onClick={()=>navigate("clips")}><Play size={21}/><span>Blum Clips</span></button>
+              <button aria-current={view==="stories"?"page":undefined} onClick={()=>navigate("stories")}><ImagePlus size={21}/><span>{menuLabel("Stories","Labarai")}</span></button>
               <button aria-current={view==="live"?"page":undefined} onClick={()=>navigate("live")}><Radio size={21}/><span>Live Sessions</span></button>
               <button aria-current={view==="polls"?"page":undefined} onClick={()=>navigate("polls")}><Vote size={21}/><span>Polls</span></button>
             </section>
@@ -748,48 +747,20 @@ export default function BlumbookApp() {
         </>}
       </div>
 
-      {view === "home" && <section className="premium-home" aria-label="Blumbook home">
-        <header className="premium-home-intro">
-          <div className="premium-home-intro-copy">
-            <span className="premium-home-eyebrow"><span aria-hidden="true"/> BLUMBOOK · YOUR WORLD</span>
-            <h1>Your world,<br/><em>in bloom.</em></h1>
-            <p>Good conversations start here. Share your ideas and discover people worth knowing.</p>
-          </div>
-          <div className="premium-home-orbit" aria-hidden="true"><span/><span/><i>✦</i></div>
-        </header>
-        <section className="premium-publisher" aria-label="Create something">
-          <div className="premium-publisher-top">
-            <Avatar profile={me} size="small"/>
-            <button className="premium-publisher-prompt" onClick={()=>openComposer("post")}>
-              {menuLabel("What's on your mind?","Me ke ranka?")}
-            </button>
-            <button className="premium-publisher-submit" aria-label="Write a post" onClick={()=>openComposer("post")}><Feather size={18}/></button>
-          </div>
-          <div className="premium-publisher-actions">
-            <button onClick={()=>openComposer("photo")}><ImagePlus size={17}/><span>{menuLabel("Photo","Hoto")}</span></button>
-            <button onClick={()=>openComposer("video")}><Video size={17}/><span>{menuLabel("Video","Bidiyo")}</span></button>
-            <button onClick={()=>selectCreate("poll")}><ChartNoAxesCombined size={17}/><span>Poll</span></button>
-            <span className="premium-publisher-signature">TALK · SHARE · BLOOM</span>
-          </div>
-        </section>
-        {!welcomeHidden&&<div className="premium-home-onboarding">
-          <span><Sparkles size={17}/> New to Blumbook? Find your people in Bloom Circles.</span>
-          <div><button onClick={()=>navigate("communities")}>Discover circles <ArrowRight size={14}/></button><button aria-label="Dismiss welcome" onClick={()=>{setWelcomeHidden(true);window.localStorage.setItem("blumbook-onboarded","yes");}}><X size={17}/></button></div>
-        </div>}
-        <StoriesRail userId={cloudUserId} profiles={allPeople} onSignIn={()=>setAuthOpen(true)} launchCreate={storyLaunch}/>
-        <div className="premium-feed-heading">
-          <div><span>YOUR TIMELINE</span><h2>{menuLabel("Latest conversations","Sabbin tattaunawa")}</h2></div>
-          <button onClick={()=>isCloudEnabled?void loadCloud():notify("Demo content is already up to date.")} aria-label="Refresh feed" disabled={loadingCloud}><Repeat2 size={17}/></button>
-        </div>
-        <div className="feed-tabs premium-feed-tabs" aria-label="Choose your feed">
+      {view === "home" && <section className="clean-home" aria-label="Blumbook home">
+        <nav className="feed-tabs clean-home-tabs" aria-label="Choose your feed">
           {([["for-you","For you"],["following","Following"]] as const).map(([id,label])=>
-            <button key={id} aria-pressed={tab===id} className={tab === id ? "selected" : ""} onClick={()=>setTab(id)}>{tr(label)}</button>
+            <button key={id} aria-pressed={tab===id} className={tab===id?"selected":""} onClick={()=>setTab(id)}>{tr(label)}</button>
           )}
-        </div>
-        {!isCloudEnabled&&<p className="feed-demo-indicator"><ShieldCheck size={16}/> Demo preview · Sample content and numbers, not real members</p>}
+        </nav>
+        {!isCloudEnabled&&<p className="feed-demo-indicator"><ShieldCheck size={16}/> Demo preview · Sample posts, not real members</p>}
         {loadingCloud&&<div className="feed-skeleton" role="status" aria-label="Loading posts">{[0,1,2].map(i=><div key={i} className="skeleton-post"><span className="skeleton-avatar"/><div><i/><i/><i/></div></div>)}</div>}
-        {!loadingCloud&&filteredPosts.length===0&&<div className="empty-state premium-empty-feed"><Sparkles size={34}/><h3>{tab === "following" ? "Your feed starts here" : "Be the first to post"}</h3><p>{tab === "following" ? "Follow people in Explore to see what they share." : "Share a thought and start a conversation."}</p><button className="outline-btn" onClick={()=>tab==="following"?navigate("explore"):openComposer("post")}>{tab==="following"?"Discover people":"Create a post"}</button></div>}
-        {!loadingCloud&&filteredPosts.map((post) => <PostCard {...postProps(post)} />)}
+        {!loadingCloud&&filteredPosts.length===0&&<div className="empty-state clean-home-empty"><h3>{tab==="following"?"No posts from people you follow yet":"No posts yet"}</h3><p>{tab==="following"?"Find people to follow in Explore.":"Start the conversation."}</p><button className="outline-btn" onClick={()=>tab==="following"?navigate("explore"):openComposer("post")}>{tab==="following"?"Explore people":"Create post"}</button></div>}
+        {!loadingCloud&&filteredPosts.map(post=><PostCard {...postProps(post)}/>)}
+      </section>}
+
+      {view === "stories" && <section className="stories-destination" aria-label="Blumbook stories">
+        <StoriesRail userId={cloudUserId} profiles={allPeople} onSignIn={()=>setAuthOpen(true)} launchCreate={storyLaunch}/>
       </section>}
 
       {view === "explore" && <>
