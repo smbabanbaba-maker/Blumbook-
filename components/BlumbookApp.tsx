@@ -7,7 +7,8 @@ import {
   Plus, Repeat2, Search, Send, Settings, Share2, ShieldCheck, Smile, Sparkles, Sun, Moon, Crown, List, Radio, ChartNoAxesCombined, CircleHelp, CalendarDays, Wallet, Vote, FilePenLine, MapPin, Pin, UserRound,
   UserRoundPlus, UsersRound, Accessibility, Link2, LockKeyhole, Languages, Download, Type, Handshake, Ban, Flag, Copy, Video, Play, type LucideIcon, X
 } from "lucide-react";
-import { supabase, isCloudEnabled } from "@/lib/supabase";
+import {supabase as configuredSupabase,isCloudEnabled as configuredCloudEnabled} from "@/lib/supabase";
+import {SHOWCASE_POSTS,SHOWCASE_PEOPLE,SHOWCASE_COMMENTS_BY_POST} from "@/lib/demo-showcase";
 import BloomCircles from "@/components/BloomCircles";
 import OpportunityHub from "@/components/OpportunityHub";
 import DirectInbox from "@/components/DirectInbox";
@@ -24,7 +25,7 @@ import BlumAI from "@/components/BlumAI";
 import ScheduledPosts from "@/components/ScheduledPosts";
 import {translate,type AppLanguage} from "@/lib/locale";
 import {
-  COMMUNITIES, DEMO_ME, DEMO_NOTICES, DEMO_PEOPLE, DEMO_POSTS, TRENDS,
+  COMMUNITIES, DEMO_ME, DEMO_NOTICES, TRENDS,
   shortCount, timeAgo, type Post, type Profile, type Notice,
 } from "@/lib/demo";
 
@@ -81,10 +82,10 @@ function Brand({ compact = false }: { compact?: boolean }) {
   return <span className={"brand " + (compact ? "brand-compact" : "")}><img src="/logo.svg" alt="" /><strong>Blumbook</strong></span>;
 }
 function PostCard({
-  post, author, onLike, onRepost, onBookmark, onReply, onOpen, onProfile, onShare, onMute, onReport, onViewMedia, onTranslate,
+  post, author, onLike, onRepost, onBookmark, onReply, onOpen, onProfile, onShare, onMute, onReport, onViewMedia, onTranslate, isDemo,
 }: {
   post: Post; author: Profile; onLike: (post: Post) => void; onRepost: (post: Post) => void;
-  onBookmark: (post: Post) => void; onReply: (post: Post) => void; onOpen:(post:Post)=>void;
+  onBookmark: (post: Post) => void; onReply: (post: Post) => void; onOpen:(post:Post)=>void; isDemo:boolean;
   onProfile: (id: string) => void; onShare: (post: Post) => void;
   onMute:(id:string)=>void;onReport:(post:Post,reason:string)=>void;onViewMedia:(post:Post)=>void;onTranslate:(post:Post)=>void;
 }) {
@@ -110,7 +111,7 @@ function PostCard({
         <button aria-label="Reply" onClick={() => onReply(post)}><MessageCircle size={18}/><span>{shortCount(post.replies)}</span></button>
         <button className={post.reposted ? "reposted" : ""} aria-label="Repost" onClick={() => onRepost(post)}><Repeat2 size={18}/><span>{shortCount(post.reposts)}</span></button>
         <button className={post.liked ? "liked" : ""} aria-label="Like" onClick={() => onLike(post)}><Heart size={18} fill={post.liked ? "currentColor" : "none"}/><span>{shortCount(post.likes)}</span></button>
-        {!isCloudEnabled&&<button aria-label="Sample views (demo only)" onClick={() => onReply(post)}><span className="view-icon">▥</span><span>{shortCount(post.views)}</span></button>}
+        {isDemo&&<button aria-label="Sample views (demo only)" onClick={() => onReply(post)}><span className="view-icon">▥</span><span>{shortCount(post.views)}</span></button>}
         <div className="post-end-actions">
           <button className={post.bookmarked ? "bookmarked" : ""} aria-label="Bookmark" onClick={() => onBookmark(post)}><Bookmark size={18} fill={post.bookmarked ? "currentColor" : "none"}/></button>
           <button aria-label="Share" onClick={() => onShare(post)}><Share2 size={18}/></button>
@@ -127,7 +128,10 @@ function Modal({ children, close }: { children: ReactNode; close: () => void }) 
   return <div className="modal-shade" onMouseDown={(e) => { if (e.target === e.currentTarget) close(); }}><div className="dialog" role="dialog" aria-modal="true">{children}</div></div>;
 }
 
-export default function BlumbookApp() {
+export default function BlumbookApp({forceDemo=false}:{forceDemo?:boolean}={}) {
+  // Sandbox mode replaces the cloud client for the entire app. No demo action writes to production tables.
+  const supabase=forceDemo?null:configuredSupabase;
+  const isCloudEnabled=forceDemo?false:configuredCloudEnabled;
   const [view, setView] = useState<View>("home");
   const [mutedAuthors,setMutedAuthors]=useState<string[]>([]);
   const [blockedAuthors,setBlockedAuthors]=useState<string[]>([]);
@@ -183,8 +187,8 @@ export default function BlumbookApp() {
   const [threadLoading,setThreadLoading]=useState(false);
   const [threadError,setThreadError]=useState("");
   const [query, setQuery] = useState("");
-  const [posts, setPosts] = useState<Post[]>(DEMO_POSTS);
-  const [people, setPeople] = useState<Profile[]>(DEMO_PEOPLE);
+  const [posts, setPosts] = useState<Post[]>(SHOWCASE_POSTS);
+  const [people, setPeople] = useState<Profile[]>(SHOWCASE_PEOPLE);
   const [member, setMember] = useState<Profile | null>(null);
   const [cloudUserId, setCloudUserId] = useState<string | null>(null);
   const [demoSignedIn, setDemoSignedIn] = useState(false);
@@ -204,7 +208,7 @@ export default function BlumbookApp() {
   const [selectedProfile, setSelectedProfile] = useState("demo-me");
   const [profileTab,setProfileTab] = useState<ProfileTab>("posts");
   const [threadId, setThreadId] = useState<string | null>(null);
-  const [comments, setComments] = useState<Record<string, Comment[]>>({});
+  const [comments, setComments] = useState<Record<string, Comment[]>>(SHOWCASE_COMMENTS_BY_POST);
   const [replyText, setReplyText] = useState("");
   const [chatWith, setChatWith] = useState<string | null>(null);
   const [chatText, setChatText] = useState("");
@@ -661,7 +665,7 @@ export default function BlumbookApp() {
     if(error){notify(error.code==="23505"?"You have already reported this account.":"Could not submit report. Check the Phase 3 migration.");return;}
     setProfileReport(null);notify("Report saved for future moderation. A human review queue is not active yet.");
   };
-  const postProps = (p: Post) => ({ key:p.id, post:p, author:lookup(p.author_id), onLike:toggleLike, onRepost:toggleRepost, onBookmark:toggleBookmark, onReply:openThread, onOpen:openThread, onProfile:openProfile, onShare:share,onMute:mute,onReport:report,onViewMedia:openMedia,onTranslate:(post:Post)=>{setAiSeed(post.body);setAiTask("translate");navigate("ai");} });
+  const postProps = (p: Post) => ({ key:p.id, post:p, isDemo:!isCloudEnabled, author:lookup(p.author_id), onLike:toggleLike, onRepost:toggleRepost, onBookmark:toggleBookmark, onReply:openThread, onOpen:openThread, onProfile:openProfile, onShare:share,onMute:mute,onReport:report,onViewMedia:openMedia,onTranslate:(post:Post)=>{setAiSeed(post.body);setAiTask("translate");navigate("ai");} });
   const pickImage = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (!f) return;
@@ -801,7 +805,7 @@ export default function BlumbookApp() {
       </div>
 
       {(view === "home" || view === "stories") && <section className={view === "home" ? "home-status-strip" : "stories-destination"} aria-label="Blumbook stories">
-        <StoriesRail compact={view === "home"} userId={cloudUserId} profiles={allPeople} onSignIn={()=>setAuthOpen(true)} launchCreate={storyLaunch}/>
+        <StoriesRail compact={view === "home"} forceDemo={forceDemo} userId={cloudUserId} profiles={allPeople} onSignIn={()=>setAuthOpen(true)} launchCreate={storyLaunch}/>
       </section>}
 
       {view === "home" && <section className="clean-home" aria-label="Blumbook home">
@@ -810,7 +814,7 @@ export default function BlumbookApp() {
             <button key={id} aria-pressed={tab===id} className={tab===id?"selected":""} onClick={()=>setTab(id)}>{tr(label)}</button>
           )}
         </nav>
-        {!isCloudEnabled&&<p className="feed-demo-indicator"><ShieldCheck size={16}/> Demo preview · Sample posts, not real members</p>}
+        {!isCloudEnabled&&<p className="feed-demo-indicator"><ShieldCheck size={16}/> DEMO CONTENT · Fictional profiles, posts and engagement — nothing is published to real accounts</p>}
         {loadingCloud&&<div className="feed-skeleton" role="status" aria-label="Loading posts">{[0,1,2].map(i=><div key={i} className="skeleton-post"><span className="skeleton-avatar"/><div><i/><i/><i/></div></div>)}</div>}
         {!loadingCloud&&filteredPosts.length===0&&<div className="empty-state clean-home-empty"><h3>{tab==="following"?"No posts from people you follow yet":"No posts yet"}</h3><p>{tab==="following"?"Find people to follow in Explore.":"Start the conversation."}</p><button className="outline-btn" onClick={()=>tab==="following"?navigate("explore"):openComposer("post")}>{tab==="following"?"Explore people":"Create post"}</button></div>}
         {!loadingCloud&&filteredPosts.map(post=><PostCard {...postProps(post)}/>)}
