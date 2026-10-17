@@ -533,81 +533,38 @@ export default function BlumbookApp() {
           <Avatar profile={me}/><span><strong>{me.display_name}</strong><small>@{me.username}</small></span><Ellipsis size={20}/>
         </button>
       </div>
-      <div className="mobile-drawer-content bb-mobile-drawer">
-        <header className="bb-drawer-header">
-          <button className="bb-drawer-brand" onClick={() => navigate("home")} aria-label="Blumbook home">
-            <span className="bb-drawer-brandmark"><img src="/logo.svg" alt="" /></span>
-            <span className="bb-drawer-brandword"><strong>Blumbook</strong><small>TALK. SHARE. BLOOM.</small></span>
-          </button>
-          <button className="bb-drawer-dismiss" aria-label="Close navigation" onClick={() => setMenuOpen(false)}><X size={21}/></button>
+      <div className="mobile-drawer-content simple-drawer-shell">
+        <header className="simple-drawer-header">
+          <div className="simple-drawer-brand"><img src="/logo.svg" alt=""/><strong>Blumbook</strong></div>
+          <button aria-label="Close menu" className="simple-drawer-close" onClick={()=>setMenuOpen(false)}><X size={23}/></button>
         </header>
-        <div className="bb-drawer-scroll">
-          <section className="bb-account-card" aria-label="Your account">
-            <div className="bb-account-orbit" aria-hidden="true"/>
-            <div className="bb-account-top">
-              <button className="bb-account-avatar" onClick={() => openProfile(me.id)} aria-label="View profile"><Avatar profile={me}/></button>
-              <span className="bb-account-identity">{me.open_to_collab ? <><Handshake size={12}/> OPEN TO COLLABORATE</> : isCloudEnabled && !cloudUserId ? "WELCOME TO BLUMBOOK" : "YOUR SPACE"}</span>
-            </div>
-            <button className="bb-account-name" onClick={() => openProfile(me.id)}>{me.display_name}</button>
-            <p className="bb-account-handle">@{me.username}</p>
-            {me.headline ? <p className="bb-account-bio">{me.headline}</p> : <p className="bb-account-bio">{language==="ha"?"Labarinka. Mutanenka. Damammakinka.":"Your story. Your people. Your possibilities."}</p>}
-            <div className="bb-account-stats">
-              <span><strong>{followCounts[me.id]?.following ?? (cloudUserId ? followed.length : 0)}</strong> {language==="ha"?"Ina bi":"Following"}</span>
-              <span><strong>{followCounts[me.id]?.followers ?? (isCloudEnabled && cloudUserId ? "—" : 0)}</strong> {language==="ha"?"Masu bi":"Followers"}</span>
-            </div>
-            {isCloudEnabled && !cloudUserId ?
-              <button className="bb-account-view" onClick={() => {setMenuOpen(false);setSignUp(true);setAuthOpen(true);}}>{language==="ha"?"Buɗe asusu":"Join Blumbook"}<ArrowRight size={17}/></button> :
-              <div className="bb-account-actions">
-                <button className="bb-account-view" onClick={() => openProfile(me.id)}>{language==="ha"?"Duba profile":"View profile"}<ArrowRight size={17}/></button>
-                <button className="bb-account-edit" onClick={() => {setMenuOpen(false);openEdit();}}>{language==="ha"?"Gyara":"Edit"}<Feather size={15}/></button>
-              </div>
-            }
-          </section>
-
-          <button className="bb-compose-quick" onClick={() => {setMenuOpen(false);if(requireAccount())setCompose(true);}}>
-            <span className="bb-compose-symbol"><Plus size={20}/></span>
-            <span className="bb-compose-copy"><strong>{language==="ha"?"Wallafa wani abu":"Share something new"}</strong><small>{language==="ha"?"Fara da ra'ayi guda":"Start with a single idea"}</small></span>
-            <ArrowRight size={18} className="bb-compose-arrow"/>
+        <div className="simple-drawer-body">
+          <button className="simple-drawer-account" onClick={()=>openProfile(me.id)}>
+            <Avatar profile={me}/>
+            <span><strong>{me.display_name}</strong><small>@{me.username}</small></span>
+            <ArrowRight size={18}/>
           </button>
-
-          <nav className="bb-drawer-groups" aria-label="Menu">
-            <section className="bb-nav-group">
-              <div className="bb-nav-heading"><span>{language==="ha"?"SARARINKA":"YOUR SPACE"}</span></div>
-              <button className={"bb-nav-item "+(view==="profile"?"bb-nav-active":"")} onClick={()=>openProfile(me.id)}><span className="bb-nav-icon"><UserRound size={21}/></span><span>{tr("Profile")}</span><ArrowRight className="bb-nav-chevron" size={17}/></button>
-              <button className={"bb-nav-item "+(view==="bookmarks"?"bb-nav-active":"")} onClick={()=>navigate("bookmarks")}><span className="bb-nav-icon"><Bookmark size={21}/></span><span>{tr("Bookmarks")}</span><ArrowRight className="bb-nav-chevron" size={17}/></button>
-              <button className={"bb-nav-item "+(view==="lists"?"bb-nav-active":"")} onClick={()=>navigate("lists")}><span className="bb-nav-icon"><List size={21}/></span><span>{language==="ha"?"Jerin abubuwa":"My Lists"}</span><small className="bb-nav-stage">Local</small></button>
-            </section>
-            <section className="bb-nav-group">
-              <div className="bb-nav-heading"><span>{language==="ha"?"HAƊUWA":"DISCOVER & CONNECT"}</span></div>
-              <button className={"bb-nav-item bb-nav-featured "+(view==="communities"?"bb-nav-active":"")} onClick={()=>navigate("communities")}><span className="bb-nav-icon"><UsersRound size={21}/></span><span className="bb-featured-copy"><strong>Bloom Circles</strong><small>{language==="ha"?"Ra'ayoyi su zama damammaki":"Turn ideas into opportunities"}</small></span><ArrowRight className="bb-nav-chevron" size={18}/></button>
-              <button className={"bb-nav-item "+(view==="messages"?"bb-nav-active":"")} onClick={()=>navigate("messages")}><span className="bb-nav-icon"><Mail size={21}/></span><span>{tr("Messages")}</span><small className="bb-nav-stage">Preview</small></button>
-              <button className={"bb-nav-item "+(view==="spaces"?"bb-nav-active":"")} onClick={()=>navigate("spaces")}><span className="bb-nav-icon"><Radio size={21}/></span><span>Spaces</span><small className="bb-nav-stage">Soon</small></button>
-            </section>
-            <section className="bb-nav-group">
-              <div className="bb-nav-heading"><span>{language==="ha"?"ƘIRƘIRA DA CI GABA":"CREATE & GROW"}</span></div>
-              <button className={"bb-nav-item "+(view==="creator"?"bb-nav-active":"")} onClick={()=>navigate("creator")}><span className="bb-nav-icon"><ChartNoAxesCombined size={21}/></span><span>{tr("Creator Studio")}</span><small className="bb-nav-stage">Beta</small></button>
-              <button className={"bb-nav-item "+(view==="premium"?"bb-nav-active":"")} onClick={()=>navigate("premium")}><span className="bb-nav-icon"><Crown size={21}/></span><span>Blumbook Premium</span><small className="bb-nav-stage">Soon</small></button>
-            </section>
+          <div className="simple-drawer-stats">
+            <span><b>{followCounts[me.id]?.following??followed.length}</b> Following</span>
+            <span><b>{followCounts[me.id]?.followers??(isCloudEnabled&&cloudUserId?"—":0)}</b> Followers</span>
+          </div>
+          <div className="simple-drawer-divider"/>
+          <nav className="simple-drawer-links" aria-label="More places">
+            <button onClick={()=>openProfile(me.id)}><UserRound size={23}/><span>{tr("Profile")}</span></button>
+            <button onClick={()=>navigate("bookmarks")}><Bookmark size={23}/><span>{tr("Bookmarks")}</span></button>
+            <button onClick={()=>navigate("communities")}><UsersRound size={23}/><span>Bloom Circles</span></button>
+            <button onClick={()=>navigate("creator")}><ChartNoAxesCombined size={23}/><span>{tr("Creator Studio")}</span></button>
+            <button onClick={()=>navigate("settings")}><Settings size={23}/><span>{tr("Settings")}</span></button>
+            <button onClick={()=>navigate("help")}><CircleHelp size={23}/><span>{tr("Help Center")}</span></button>
           </nav>
-
-          <section className="bb-drawer-tools" aria-label="Preferences and support">
-            <div className="bb-nav-heading"><span>{language==="ha"?"SARRAFAWA":"PREFERENCES"}</span></div>
-            <button className="bb-tool-row" onClick={()=>navigate("settings")}><Settings size={20}/><span>{tr("Settings")}</span><ArrowRight size={16}/></button>
-            <button className="bb-tool-row" onClick={()=>navigate("help")}><CircleHelp size={20}/><span>{tr("Help Center")}</span><ArrowRight size={16}/></button>
-            <div className="bb-appearance-row">
-              <div className="bb-setting-caption"><Moon size={19}/><span>{tr("Appearance")}</span></div>
-              <div className="bb-theme-picker" role="group" aria-label="Choose appearance">
-                <button aria-pressed={theme==="dark"} className={theme==="dark"?"is-selected":""} onClick={()=>setTheme("dark")}><Moon size={16}/><span>{tr("Dark")}</span></button>
-                <button aria-pressed={theme==="light"} className={theme==="light"?"is-selected":""} onClick={()=>setTheme("light")}><Sun size={16}/><span>{tr("Light")}</span></button>
-              </div>
+          <section className="simple-drawer-preferences">
+            <div className="simple-drawer-preference-title"><Moon size={19}/><span>{tr("Appearance")}</span></div>
+            <div className="simple-drawer-themes" role="group" aria-label="Appearance">
+              <button aria-pressed={theme==="dark"} className={theme==="dark"?"selected":""} onClick={()=>setTheme("dark")}><Moon size={16}/>{tr("Dark")}</button>
+              <button aria-pressed={theme==="light"} className={theme==="light"?"selected":""} onClick={()=>setTheme("light")}><Sun size={16}/>{tr("Light")}</button>
             </div>
-            <label className="bb-language-row"><Languages size={19}/><span>{tr("Language")}</span><select aria-label="App language" value={language} onChange={e=>setLanguage(e.target.value as AppLanguage)}><option value="en">English</option><option value="ha">Hausa (Beta)</option></select></label>
-            {cloudUserId && <button className="bb-tool-row bb-logout" onClick={()=>{setMenuOpen(false);void logOut();}}><LogOut size={20}/><span>{tr("Log out")}</span><ArrowRight size={16}/></button>}
           </section>
-          <footer className="bb-drawer-footer">
-            <span>BLUMBOOK <strong>•</strong> PREVIEW 0.1</span>
-            <span>{isCloudEnabled?"Talk. Share. Bloom.":"Interactive demo • Not a live social account"}</span>
-          </footer>
+          <p className="simple-drawer-footer">Blumbook · Preview v0.1</p>
         </div>
       </div>
     </aside>
@@ -620,7 +577,7 @@ export default function BlumbookApp() {
         </> : <>
           <button className="avatar-action" onClick={() => setMenuOpen(!menuOpen)} aria-label="Open menu"><Avatar profile={me} size="small"/></button>
           <button onClick={() => navigate("home")} className="mobile-brand"><img src="/logo.svg" alt="Blumbook"/><strong>Blumbook</strong></button>
-          <button aria-label="New post" className="icon-button" onClick={() => { if (requireAccount()) setCompose(true); }}><Plus size={25}/></button>
+          <button aria-label="Open more menu" aria-expanded={menuOpen} className="icon-button top-more-button" onClick={()=>setMenuOpen(true)}><MoreHorizontal size={25}/></button>
         </>}
       </div>
 
@@ -845,7 +802,7 @@ export default function BlumbookApp() {
     </aside>
 
     <nav className={"mobile-bottom "+(view==="settings"?"mobile-bottom-hidden":"")+(menuOpen?" bb-behind-menu":"")} aria-label="Main navigation">
-      {NAV.filter((n)=>["home","explore","communities","notifications","messages"].includes(n.id)).map(({id,label,Icon})=><button aria-label={label} key={id} className={view===id?"active":""} onClick={()=>navigate(id)}><Icon size={25} strokeWidth={view===id?2.7:1.9}/>{id==="notifications"&&<span className="nav-dot"/>}</button>)}
+      {NAV.filter((n)=>["home","explore","notifications","messages","profile"].includes(n.id)).map(({id,label,Icon})=><button aria-label={label} key={id} className={view===id?"active":""} onClick={()=>id==="profile"?openProfile(me.id):navigate(id)}><Icon size={25} strokeWidth={view===id?2.7:1.9}/>{id==="notifications"&&<span className="nav-dot"/>}</button>)}
     </nav>
     <button aria-label="Create post" className={"floating-compose "+(view==="settings"?"floating-compose-hidden":"")+(menuOpen?" bb-behind-menu":"")} onClick={()=>{if(requireAccount())setCompose(true);}}><Plus size={28}/></button>
     {menuOpen && <button aria-label="Close menu" className="menu-shade" onClick={()=>setMenuOpen(false)}/>}
