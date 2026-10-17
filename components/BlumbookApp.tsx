@@ -27,7 +27,7 @@ import {
   shortCount, timeAgo, type Post, type Profile, type Notice,
 } from "@/lib/demo";
 
-type View = "home" | "explore" | "notifications" | "messages" | "profile" | "communities" | "bookmarks" | "settings" | "thread" | "premium" | "lists" | "creator" | "help" | "opportunities" | "clips" | "polls" | "live" | "ai" | "verification" | "schedule" | "planner" | "earnings";
+type View = "home" | "explore" | "notifications" | "messages" | "profile" | "communities" | "bookmarks" | "settings" | "thread" | "premium" | "lists" | "creator" | "help" | "opportunities" | "clips" | "polls" | "live" | "ai" | "verification" | "schedule" | "planner" | "earnings" | "stories";
 type Theme = "dark" | "light";
 type SettingsPanel = "account" | "security" | "privacy" | "notifications" | "accessibility" | "resources";
 type Tab = "for-you" | "following";
@@ -128,7 +128,6 @@ function Modal({ children, close }: { children: ReactNode; close: () => void }) 
 
 export default function BlumbookApp() {
   const [view, setView] = useState<View>("home");
-  const [welcomeHidden,setWelcomeHidden]=useState(true);
   const [mutedAuthors,setMutedAuthors]=useState<string[]>([]);
   const [blockedAuthors,setBlockedAuthors]=useState<string[]>([]);
   const [profileAlerts,setProfileAlerts]=useState<string[]>([]);
@@ -153,7 +152,6 @@ export default function BlumbookApp() {
   const [listName, setListName] = useState("");
   useEffect(() => {
     if(window.localStorage.getItem("blumbook-language")==="ha")setLanguage("ha");
-    setWelcomeHidden(window.localStorage.getItem("blumbook-onboarded")==="yes");
     try{const m=JSON.parse(window.localStorage.getItem("blumbook-muted")||"[]");if(Array.isArray(m))setMutedAuthors(m.filter(x=>typeof x==="string"));}catch{}
     try{const b=JSON.parse(window.localStorage.getItem("blumbook-hidden-accounts")||"[]");if(Array.isArray(b))setBlockedAuthors(b.filter(x=>typeof x==="string"));}catch{}
     try{const a=JSON.parse(window.localStorage.getItem("blumbook-profile-alerts")||"[]");if(Array.isArray(a))setProfileAlerts(a.filter(x=>typeof x==="string"));}catch{}
@@ -258,7 +256,7 @@ export default function BlumbookApp() {
   const selectCreate=(action:"post"|"photo"|"video"|"poll"|"story"|"live"|"opportunity"|"schedule")=>{
     setCreateMenuOpen(false);
     if(["post","photo","video"].includes(action)){openComposer(action as "post"|"photo"|"video");return;}
-    if(action==="story"){navigate("home");setTab("for-you");setStoryLaunch(k=>k+1);return;}
+    if(action==="story"){navigate("stories");setStoryLaunch(k=>k+1);return;}
     if(action==="poll"){navigate("polls");setPollLaunch(k=>k+1);return;}
     if(action==="live"){navigate("live");setLiveLaunch(k=>k+1);return;}
     if(action==="schedule"){navigate("schedule");setScheduleLaunch(k=>k+1);return;}
@@ -699,6 +697,7 @@ export default function BlumbookApp() {
               <button aria-current={view==="communities"?"page":undefined} onClick={()=>navigate("communities")}><UsersRound size={21}/><span>Bloom Circles</span></button>
               <button aria-current={view==="opportunities"?"page":undefined} onClick={()=>navigate("opportunities")}><Handshake size={21}/><span>Bloom Opportunities</span></button>
               <button aria-current={view==="clips"?"page":undefined} onClick={()=>navigate("clips")}><Play size={21}/><span>Blum Clips</span></button>
+              <button aria-current={view==="stories"?"page":undefined} onClick={()=>navigate("stories")}><ImagePlus size={21}/><span>{menuLabel("Stories","Labarai")}</span></button>
               <button aria-current={view==="live"?"page":undefined} onClick={()=>navigate("live")}><Radio size={21}/><span>Live Sessions</span></button>
               <button aria-current={view==="polls"?"page":undefined} onClick={()=>navigate("polls")}><Vote size={21}/><span>Polls</span></button>
             </section>
@@ -748,18 +747,21 @@ export default function BlumbookApp() {
         </>}
       </div>
 
-      {view === "home" && <>
-        <div className="feed-tabs">
-          {([["for-you","For you"],["following","Following"]] as const).map(([id,label])=><button key={id} className={tab === id ? "selected" : ""} onClick={()=>setTab(id)}>{label==="For you"?tr("For you"):label==="Following"?tr("Following"):tr("Communities")}</button>)}
-        </div>
-          {!welcomeHidden&&<section className="onboard-card"><div><span className="feature-overline">WELCOME TO BLUMBOOK</span><h2>Ideas grow better together.</h2><p>Explore stories, discover a Bloom Circle, and introduce yourself. This is an early interactive preview.</p><div><button onClick={()=>navigate("communities")}>Explore Bloom Circles <ArrowRight size={16}/></button><button onClick={()=>{setWelcomeHidden(true);window.localStorage.setItem("blumbook-onboarded","yes");}}>Got it</button></div></div><button className="icon-button" aria-label="Dismiss welcome" onClick={()=>{setWelcomeHidden(true);window.localStorage.setItem("blumbook-onboarded","yes");}}><X size={20}/></button></section>}
-          <StoriesRail userId={cloudUserId} profiles={allPeople} onSignIn={()=>setAuthOpen(true)} launchCreate={storyLaunch}/>
-          {!isCloudEnabled&&<p className="feed-demo-indicator"><ShieldCheck size={16}/> Demo preview · Sample content and numbers, not real members</p>}
-          <div className="feed-status-actions"><button onClick={()=>isCloudEnabled?void loadCloud():notify("Demo content is already up to date.")}><Repeat2 size={15}/> Refresh feed</button></div>
-          {loadingCloud&&<div className="feed-skeleton" role="status" aria-label="Loading posts">{[0,1,2].map(i=><div key={i} className="skeleton-post"><span className="skeleton-avatar"/><div><i/><i/><i/></div></div>)}</div>}
-          {!loadingCloud && filteredPosts.length === 0 && <div className="empty-state"><Sparkles size={34}/><h3>{tab === "following" ? "Your feed starts here" : "Be the first to post"}</h3><p>{tab === "following" ? "Follow people in Explore to see what they share." : "Share a thought and start a conversation."}</p><button className="outline-btn" onClick={()=>navigate("explore")}>Discover people</button></div>}
-          {filteredPosts.map((post) => <PostCard {...postProps(post)} />)}
-      </>}
+      {(view === "home" || view === "stories") && <section className={view === "home" ? "home-status-strip" : "stories-destination"} aria-label="Blumbook stories">
+        <StoriesRail compact={view === "home"} userId={cloudUserId} profiles={allPeople} onSignIn={()=>setAuthOpen(true)} launchCreate={storyLaunch}/>
+      </section>}
+
+      {view === "home" && <section className="clean-home" aria-label="Blumbook home">
+        <nav className="feed-tabs clean-home-tabs" aria-label="Choose your feed">
+          {([["for-you","For you"],["following","Following"]] as const).map(([id,label])=>
+            <button key={id} aria-pressed={tab===id} className={tab===id?"selected":""} onClick={()=>setTab(id)}>{tr(label)}</button>
+          )}
+        </nav>
+        {!isCloudEnabled&&<p className="feed-demo-indicator"><ShieldCheck size={16}/> Demo preview · Sample posts, not real members</p>}
+        {loadingCloud&&<div className="feed-skeleton" role="status" aria-label="Loading posts">{[0,1,2].map(i=><div key={i} className="skeleton-post"><span className="skeleton-avatar"/><div><i/><i/><i/></div></div>)}</div>}
+        {!loadingCloud&&filteredPosts.length===0&&<div className="empty-state clean-home-empty"><h3>{tab==="following"?"No posts from people you follow yet":"No posts yet"}</h3><p>{tab==="following"?"Find people to follow in Explore.":"Start the conversation."}</p><button className="outline-btn" onClick={()=>tab==="following"?navigate("explore"):openComposer("post")}>{tab==="following"?"Explore people":"Create post"}</button></div>}
+        {!loadingCloud&&filteredPosts.map(post=><PostCard {...postProps(post)}/>)}
+      </section>}
 
       {view === "explore" && <>
         <div className="search-header"><Search size={19}/><input aria-label="Search Blumbook" placeholder="Search Blumbook" value={query} onChange={(e)=>setQuery(e.target.value)}/>{query && <button aria-label="Clear search" onClick={()=>setQuery("")}><X size={18}/></button>}</div>
