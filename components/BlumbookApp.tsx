@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNo
 import {
   ArrowLeft, ArrowRight, Bell, Bookmark, Check, CheckCircle2, ChevronDown, Compass, Ellipsis,
   Feather, Heart, Home, ImagePlus, LogIn, LogOut, Mail, Menu, MessageCircle, MoreHorizontal,
-  Plus, Repeat2, Search, Send, Settings, Share2, ShieldCheck, Smile, Sparkles, Sun, Moon, Crown, List, Radio, ChartNoAxesCombined, CircleHelp, CalendarDays, MapPin, Pin, UserRound,
+  Plus, Repeat2, Search, Send, Settings, Share2, ShieldCheck, Smile, Sparkles, Sun, Moon, Crown, List, Radio, ChartNoAxesCombined, CircleHelp, CalendarDays, Wallet, Vote, FilePenLine, MapPin, Pin, UserRound,
   UserRoundPlus, UsersRound, Accessibility, Link2, LockKeyhole, Languages, Download, Type, Handshake, Ban, Flag, Copy, Video, Play, type LucideIcon, X
 } from "lucide-react";
 import { supabase, isCloudEnabled } from "@/lib/supabase";
@@ -27,7 +27,7 @@ import {
   shortCount, timeAgo, type Post, type Profile, type Notice,
 } from "@/lib/demo";
 
-type View = "home" | "explore" | "notifications" | "messages" | "profile" | "communities" | "bookmarks" | "settings" | "thread" | "premium" | "lists" | "creator" | "help" | "opportunities" | "clips" | "polls" | "live" | "ai" | "verification" | "schedule";
+type View = "home" | "explore" | "notifications" | "messages" | "profile" | "communities" | "bookmarks" | "settings" | "thread" | "premium" | "lists" | "creator" | "help" | "opportunities" | "clips" | "polls" | "live" | "ai" | "verification" | "schedule" | "planner" | "earnings";
 type Theme = "dark" | "light";
 type SettingsPanel = "account" | "security" | "privacy" | "notifications" | "accessibility" | "resources";
 type Tab = "for-you" | "following";
@@ -142,6 +142,7 @@ export default function BlumbookApp() {
   const [followCounts,setFollowCounts]=useState<Record<string,{following:number;followers:number}>>({});
   const [language,setLanguage] = useState<AppLanguage>("en");
   const tr=(key:Parameters<typeof translate>[0])=>translate(key,language);
+  const menuLabel=(en:string,ha:string)=>language==="ha"?ha:en;
   const [theme, setTheme] = useState<Theme>("dark");
   const [themeLoaded, setThemeLoaded] = useState(false);
   const [settingsPanel, setSettingsPanel] = useState<SettingsPanel | null>(null);
@@ -646,6 +647,18 @@ export default function BlumbookApp() {
     else { setDemoSignedIn(false); setMember(null); }
     navigate("home"); notify("Signed out");
   };
+  const inviteFriends=async()=>{
+    setMenuOpen(false);
+    const url=window.location.origin;
+    try{
+      if(navigator.share){await navigator.share({title:"Join Blumbook",text:"Talk. Share. Bloom.",url});return;}
+      await navigator.clipboard.writeText(url);notify("Invitation link copied.");
+    }catch(error){
+      if(error instanceof DOMException && error.name==="AbortError")return;
+      try{await navigator.clipboard.writeText(url);notify("Blumbook link copied.");}
+      catch{window.prompt("Copy your Blumbook invitation link:",url);}
+    }
+  };
 
   return <div className={"app-shell "+(compactText?"large-type":"")}>
     <aside className={"sidebar " + (menuOpen ? "sidebar-open" : "")} aria-label="Blumbook navigation">
@@ -674,14 +687,35 @@ export default function BlumbookApp() {
           </div>
           <div className="simple-drawer-divider"/>
           <nav className="simple-drawer-links" aria-label="More places">
-            <button aria-current={view==="bookmarks"?"page":undefined} onClick={()=>navigate("bookmarks")}><Bookmark size={23}/><span>{tr("Bookmarks")}</span></button>
-            <button aria-current={view==="communities"?"page":undefined} onClick={()=>navigate("communities")}><UsersRound size={23}/><span>Bloom Circles</span></button>
-            <button aria-current={view==="opportunities"?"page":undefined} onClick={()=>navigate("opportunities")}><Handshake size={23}/><span>Bloom Opportunities</span></button>
-            <button aria-current={view==="creator"?"page":undefined} onClick={()=>navigate("creator")}><ChartNoAxesCombined size={23}/><span>{tr("Creator Studio")}</span></button>
-            <button aria-current={view==="polls"?"page":undefined} onClick={()=>navigate("polls")}><ChartNoAxesCombined size={23}/><span>Polls</span></button>
-            <button aria-current={view==="live"?"page":undefined} onClick={()=>navigate("live")}><Radio size={23}/><span>Live Sessions</span></button>
-            <button aria-current={view==="settings"?"page":undefined} onClick={()=>navigate("settings")}><Settings size={23}/><span>{tr("Settings")}</span></button>
-            <button aria-current={view==="help"?"page":undefined} onClick={()=>navigate("help")}><CircleHelp size={23}/><span>{tr("Help Center")}</span></button>
+            <section className="simple-drawer-section" aria-label="Your space">
+              <h3 className="simple-drawer-section-title">{menuLabel("YOUR SPACE","NAKA")}</h3>
+              <button aria-current={view==="profile"&&activeProfile.id===me.id?"page":undefined} onClick={()=>openProfile(me.id)}><UserRound size={21}/><span>{menuLabel("My Profile","Bayanan kaina")}</span></button>
+              <button aria-current={view==="bookmarks"?"page":undefined} onClick={()=>navigate("bookmarks")}><Bookmark size={21}/><span>{tr("Bookmarks")}</span></button>
+              <button aria-current={view==="planner"?"page":undefined} onClick={()=>navigate("planner")}><FilePenLine size={21}/><span>{menuLabel("Drafts & Scheduled Posts","Rubutun ajiya da jadawali")}</span></button>
+              <button aria-current={view==="lists"?"page":undefined} onClick={()=>navigate("lists")}><List size={21}/><span>{menuLabel("My Lists","Jerin abubuwana")}</span></button>
+            </section>
+            <section className="simple-drawer-section" aria-label="Community and discovery">
+              <h3 className="simple-drawer-section-title">{menuLabel("COMMUNITY & DISCOVERY","AL’UMMA DA BINCIKE")}</h3>
+              <button aria-current={view==="communities"?"page":undefined} onClick={()=>navigate("communities")}><UsersRound size={21}/><span>Bloom Circles</span></button>
+              <button aria-current={view==="opportunities"?"page":undefined} onClick={()=>navigate("opportunities")}><Handshake size={21}/><span>Bloom Opportunities</span></button>
+              <button aria-current={view==="clips"?"page":undefined} onClick={()=>navigate("clips")}><Play size={21}/><span>Blum Clips</span></button>
+              <button aria-current={view==="live"?"page":undefined} onClick={()=>navigate("live")}><Radio size={21}/><span>Live Sessions</span></button>
+              <button aria-current={view==="polls"?"page":undefined} onClick={()=>navigate("polls")}><Vote size={21}/><span>Polls</span></button>
+            </section>
+            <section className="simple-drawer-section" aria-label="Creator tools">
+              <h3 className="simple-drawer-section-title">{menuLabel("CREATOR TOOLS","KAYAN MASU ƘIRƘIRA")}</h3>
+              <button aria-current={view==="creator"?"page":undefined} onClick={()=>navigate("creator")}><ChartNoAxesCombined size={21}/><span>{tr("Creator Studio")}</span></button>
+              <button aria-current={view==="ai"?"page":undefined} onClick={()=>navigate("ai")}><Sparkles size={21}/><span>Blum AI</span></button>
+              <button aria-current={view==="verification"||view==="premium"?"page":undefined} onClick={()=>navigate("verification")}><ShieldCheck size={21}/><span>{menuLabel("Verification & Premium","Tabbatarwa da Premium")}</span></button>
+              <button aria-current={view==="earnings"?"page":undefined} onClick={()=>navigate("earnings")}><Wallet size={21}/><span>{menuLabel("Creator Earnings","Kuɗin masu ƙirƙira")}</span><small className="simple-drawer-beta">{menuLabel("Planned","Ana shiryawa")}</small></button>
+            </section>
+            <section className="simple-drawer-section" aria-label="Account and support">
+              <h3 className="simple-drawer-section-title">{menuLabel("ACCOUNT & SUPPORT","ASUSU DA TAIMAKO")}</h3>
+              <button aria-current={view==="settings"&&!settingsPanel?"page":undefined} onClick={()=>navigate("settings")}><Settings size={21}/><span>{tr("Settings")}</span></button>
+              <button aria-current={view==="settings"&&settingsPanel==="privacy"?"page":undefined} onClick={()=>{navigate("settings");setSettingsPanel("privacy");}}><ShieldCheck size={21}/><span>{menuLabel("Privacy & Safety","Sirri da tsaro")}</span></button>
+              <button aria-current={view==="help"?"page":undefined} onClick={()=>navigate("help")}><CircleHelp size={21}/><span>{tr("Help Center")}</span></button>
+              <button onClick={()=>void inviteFriends()}><UserRoundPlus size={21}/><span>{menuLabel("Invite Friends","Gayyaci abokai")}</span></button>
+            </section>
           </nav>
           <section className="simple-drawer-preferences">
             <div className="simple-drawer-preference-title"><Moon size={19}/><span>{tr("Appearance")}</span></div>
@@ -689,7 +723,14 @@ export default function BlumbookApp() {
               <button aria-pressed={theme==="dark"} className={theme==="dark"?"selected":""} onClick={()=>setTheme("dark")}><Moon size={16}/>{tr("Dark")}</button>
               <button aria-pressed={theme==="light"} className={theme==="light"?"selected":""} onClick={()=>setTheme("light")}><Sun size={16}/>{tr("Light")}</button>
             </div>
+            <label className="simple-drawer-language"><span><Languages size={19}/>{tr("Language")}</span>
+              <select aria-label="Language" value={language} onChange={e=>setLanguage(e.target.value as AppLanguage)}><option value="en">English</option><option value="ha">Hausa</option></select>
+            </label>
           </section>
+          <button className="simple-drawer-session" onClick={()=>((isCloudEnabled&&!cloudUserId)||(!isCloudEnabled&&!demoSignedIn))?(setMenuOpen(false),setSignUp(false),setAuthOpen(true)):void logOut()}>
+            {((isCloudEnabled&&!cloudUserId)||(!isCloudEnabled&&!demoSignedIn))?<LogIn size={20}/>:<LogOut size={20}/>}
+            <span>{((isCloudEnabled&&!cloudUserId)||(!isCloudEnabled&&!demoSignedIn))?tr("Log in"):tr("Log out")}</span>
+          </button>
           <p className="simple-drawer-footer">Blumbook · Preview v0.1</p>
         </div>
       </div>
@@ -745,7 +786,9 @@ export default function BlumbookApp() {
       {view==="live"&&<LiveSessions userId={cloudUserId} profiles={allPeople} onSignIn={()=>setAuthOpen(true)} launchCreate={liveLaunch}/>}
       {view==="ai"&&<BlumAI userId={cloudUserId} onSignIn={()=>setAuthOpen(true)} seedText={aiSeed} seedTask={aiTask} onCompose={text=>openComposer("post",text)}/>}
       {view==="schedule"&&<ScheduledPosts userId={cloudUserId} onSignIn={()=>setAuthOpen(true)} launchCreate={scheduleLaunch} onCompose={text=>openComposer("post",text)}/>}
-      {view==="verification"&&<CreatorAccess userId={cloudUserId} profile={me} onSignIn={()=>setAuthOpen(true)}/>}
+      {view==="verification"&&<><CreatorAccess mode="verification" userId={cloudUserId} profile={me} onSignIn={()=>setAuthOpen(true)}/><div className="drawer-verification-premium"><button onClick={()=>navigate("premium")}><Crown size={21}/><span>Explore Blumbook Premium <small>Coming in a future release</small></span><ArrowRight size={17}/></button></div></>}
+      {view==="earnings"&&<CreatorAccess mode="earnings" userId={cloudUserId} profile={me} onSignIn={()=>setAuthOpen(true)}/>}
+      {view==="planner"&&<section className="drawer-planner"><PanelTitle>Drafts & Scheduled Posts</PanelTitle><p className="drawer-planner-note">Drafts stay on this device. Scheduling requires account setup and an active publishing service.</p><CreatorStudioPlus draftsOnly posts={posts} me={me} onCompose={text=>openComposer("post",text||"")}/><ScheduledPosts userId={cloudUserId} onSignIn={()=>setAuthOpen(true)} onCompose={text=>openComposer("post",text)}/></section>}
 
 
       {view === "communities" && <BloomCircles userId={cloudUserId} requestAuth={()=>setAuthOpen(true)} language={language}/>}
@@ -857,7 +900,7 @@ export default function BlumbookApp() {
             {settingsPanel==="privacy"&&<>
               <h2>Privacy and safety</h2><p className="settings-description">Decide what you share and how you participate.</p>
               <div className="settings-detail-row settings-static-row"><UserRound size={22}/><span><strong>Post visibility</strong><small>Posts are public in this preview. Private accounts are planned.</small></span></div>
-              <div className="settings-detail-row settings-static-row"><ShieldCheck size={22}/><span><strong>Block and report</strong><small>User blocking and content reporting are not available yet. These are required before public launch.</small></span></div>
+              <div className="settings-detail-row settings-static-row"><ShieldCheck size={22}/><span><strong>Block and report</strong><small>Account hiding is device-only. Reporting requires a configured backend, and human moderation is not yet operational.</small></span></div>
               {mutedAuthors.length>0&&<div className="muted-accounts"><strong>Muted on this device</strong>{mutedAuthors.map(id=><div key={id}><span>{lookup(id).display_name}</span><button onClick={()=>{const v=mutedAuthors.filter(x=>x!==id);setMutedAuthors(v);window.localStorage.setItem("blumbook-muted",JSON.stringify(v));}}>Unmute</button></div>)}</div>}
               <div className="settings-info-card"><strong>Your privacy matters.</strong><p>Do not publish sensitive information while Blumbook is being tested. Privacy policies and moderation controls must be in place before public registration.</p></div>
             </>}
