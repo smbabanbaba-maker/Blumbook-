@@ -6,10 +6,17 @@ const viewer=fs.readFileSync(new URL("../components/ImmersiveVideoViewer.tsx",im
 const clips=fs.readFileSync(new URL("../components/BlumClips.tsx",import.meta.url),"utf8");
 const showcase=fs.readFileSync(new URL("../lib/demo-showcase.ts",import.meta.url),"utf8");
 const stories=fs.readFileSync(new URL("../components/StoriesRail.tsx",import.meta.url),"utf8");
+const styles=fs.readFileSync(new URL("../app/globals.css",import.meta.url),"utf8");
 const demoRoute=fs.readFileSync(new URL("../app/demo/page.tsx",import.meta.url),"utf8");
 const commentCard=fs.readFileSync(new URL("../components/CommentCard.tsx",import.meta.url),"utf8");
 const count=(text,regex)=>Array.from(text.matchAll(regex)).length;
 const tests={
+ "Status circles sized for the mobile reference":styles.includes('width:84px;height:84px')&&styles.includes('story-tile{flex:0 0 91px'),
+ "Unviewed statuses have colorful gradient and viewed statuses soften":styles.includes('.story-gradient-ring{background:conic-gradient')&&styles.includes('story-ring-seen'),
+ "Your Story has profile photo and independent add button":stories.includes('className="story-own-avatar"')&&stories.includes('className="story-plus-badge"')&&stories.includes('displayAvatar(mine'),
+ "Status shows one circle per author and readable usernames":stories.includes('firstStoryIndexes.map')&&stories.includes('seenAuthors.has(story.author_id)')&&stories.includes('person?.username'),
+ "Stories keep a scrollable carousel above the clean Home feed":styles.includes('scroll-snap-type:x proximity')&&app.includes('home-status-strip')&&app.indexOf('home-status-strip')<app.indexOf('clean-home-tabs'),
+
  "Cinematic player has black screen, floating back and More controls":viewer.includes('className="immersive-video cinematic-video"')&&viewer.includes('className="cinematic-video-header"')&&viewer.includes('aria-label="More video options"'),
  "Cinematic video has author identity and connected Follow":viewer.includes('className="cinematic-video-author"')&&viewer.includes('isFollowing')&&viewer.includes('onFollow')&&app.includes('onFollow={()=>void toggleFollow(mediaViewer.author_id)}'),
  "Video interactions display real post counters and repost":viewer.includes('className="cinematic-video-reactions"')&&viewer.includes('shortCount(post.reposts)')&&viewer.includes('onRepost')&&app.includes('onRepost={()=>void toggleRepost('),
