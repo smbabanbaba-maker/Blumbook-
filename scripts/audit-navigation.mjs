@@ -2,8 +2,15 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 const app=fs.readFileSync(new URL("../components/BlumbookApp.tsx",import.meta.url),"utf8");
 const studio=fs.readFileSync(new URL("../components/CreatorStudioPlus.tsx",import.meta.url),"utf8");
+const viewer=fs.readFileSync(new URL("../components/ImmersiveVideoViewer.tsx",import.meta.url),"utf8");
+const clips=fs.readFileSync(new URL("../components/BlumClips.tsx",import.meta.url),"utf8");
 const count=(text,regex)=>Array.from(text.matchAll(regex)).length;
 const tests={
+ "Scroll-aware nav hides on down-scroll and returns on idle":app.includes('setNavHidden(true)')&&app.includes('setNavHidden(false),1100')&&app.includes('auto-hide-nav')&&app.includes('auto-hide-compose'),
+ "Video viewer uses dedicated full-screen player":count(app,/<ImmersiveVideoViewer\b/g)===1&&viewer.includes('className="immersive-video"')&&viewer.includes('object-fit')===false,
+ "Player supports seek and sound with media action buttons":viewer.includes('aria-label="Seek video"')&&viewer.includes('Mute video')&&viewer.includes('onReply')&&viewer.includes('onBookmark'),
+ "Video player supports swipe navigation":viewer.includes('onTouchStart')&&viewer.includes('onTouchEnd')&&app.includes('const nextVideo='),
+ "Clips provides a minimal exit and audio toggle":clips.includes('className="clips-back"')&&clips.includes('className="clip-audio"')&&app.includes('mobile-bottom-hidden'),
  "Blum Clips has one canonical destination":count(app,/<BlumClips\b/g)===1&&!app.includes('navigate("videos")'),
  "Live Sessions has one canonical destination":count(app,/<LiveSessions\b/g)===1&&!app.includes('navigate("spaces")'),
  "Bloom Circles mounted once":count(app,/<BloomCircles\b/g)===1,
