@@ -17,7 +17,7 @@ export default function ScheduledPosts({userId,onSignIn,onCompose,launchCreate=0
   if(supabase&&userId){
     const {error}=await supabase.from("scheduled_posts").insert({author_id:userId,body:body.trim(),publish_at:new Date(when).toISOString()});
     if(error){setBusy(false);setMessage(error.message);return;}await load();
-  }else setEntries(p=>[...p,{id:"demo-"+Date.now(),author_id:"demo-me",body:body.trim(),publish_at:new Date(when).toISOString(),status:"pending",created_at:new Date().toISOString()}].sort((a,b)=>a.publish_at.localeCompare(b.publish_at)));
+  }else setEntries(p=>[...p,{id:"demo-"+Date.now(),author_id:"demo-me",body:body.trim(),publish_at:new Date(when).toISOString(),status:"pending" as const,created_at:new Date().toISOString()}].sort((a,b)=>a.publish_at.localeCompare(b.publish_at)));
   setBusy(false);setOpen(false);setBody("");setDate("");
   setMessage(supabase?"Saved. Automatic publishing requires the server scheduler to be activated.":"Demo reminder only — no automatic publishing.");
  }
