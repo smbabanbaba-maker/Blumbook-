@@ -84,12 +84,12 @@ function Brand({ compact = false }: { compact?: boolean }) {
   return <span className={"brand " + (compact ? "brand-compact" : "")}><img src="/logo.svg" alt="" /><strong>Blumbook</strong></span>;
 }
 function PostCard({
-  post, author, onLike, onRepost, onBookmark, onReply, onOpen, onProfile, onShare, onMute, onReport, onViewMedia, onTranslate, isDemo,
+  post, author, onLike, onRepost, onBookmark, onReply, onOpen, onProfile, onShare, onMute, onReport, onViewVideo, onTranslate, isDemo,
 }: {
   post: Post; author: Profile; onLike: (post: Post) => void; onRepost: (post: Post) => void;
   onBookmark: (post: Post) => void; onReply: (post: Post) => void; onOpen:(post:Post)=>void; isDemo:boolean;
   onProfile: (id: string) => void; onShare: (post: Post) => void;
-  onMute:(id:string)=>void;onReport:(post:Post,reason:string)=>void;onViewMedia:(post:Post)=>void;onTranslate:(post:Post)=>void;
+  onMute:(id:string)=>void;onReport:(post:Post,reason:string)=>void;onViewVideo:(post:Post)=>void;onTranslate:(post:Post)=>void;
 }) {
   const [options,setOptions]=useState(false);
   return <article className="post-card" onClick={e=>{const el=e.target;if(el instanceof Element&&!el.closest("button,a,input,textarea,select"))onOpen(post);}}>
@@ -108,7 +108,7 @@ function PostCard({
           </div>}</div>
       </div>
       <button className="post-body post-body-open" aria-label="Open post conversation" onClick={()=>onOpen(post)}>{post.body}</button><button className="post-translate-link" onClick={()=>onTranslate(post)}><Languages size={14}/> Translate / Blum AI</button>
-      {post.image_url&&<button className="post-image-wrap" aria-label="Open image viewer" onClick={()=>onViewMedia(post)}><img className="post-image" src={post.image_url} alt="Shared image" loading="lazy"/></button>}{post.video_url&&<button className="post-video-preview" aria-label="Watch video" onClick={()=>onViewMedia(post)}><video src={post.video_url} preload="metadata" muted playsInline/><span><Play size={21}/> Watch video</span></button>}
+      {post.image_url&&<button className="post-image-wrap" aria-label="Open post details" onClick={()=>onOpen(post)}><img className="post-image" src={post.image_url} alt="Image in this post" loading="lazy"/></button>}{post.video_url&&<button className="post-video-preview" aria-label="Watch video" onClick={()=>onViewVideo(post)}><video src={post.video_url} preload="metadata" muted playsInline/><span><Play size={21}/> Watch video</span></button>}
       <div className="post-actions">
         <button aria-label="Reply" onClick={() => onReply(post)}><MessageCircle size={18}/><span>{shortCount(post.replies)}</span></button>
         <button className={post.reposted ? "reposted" : ""} aria-label="Repost" onClick={() => onRepost(post)}><Repeat2 size={18}/><span>{shortCount(post.reposts)}</span></button>
@@ -760,7 +760,7 @@ export default function BlumbookApp({forceDemo=false}:{forceDemo?:boolean}={}) {
       onShare={item=>void shareComment(item)}
       onMute={mute}>{children}</CommentCard>;
   };
-  const postProps = (p: Post) => ({ key:p.id, post:p, isDemo:!isCloudEnabled, author:lookup(p.author_id), onLike:toggleLike, onRepost:toggleRepost, onBookmark:toggleBookmark, onReply:openThread, onOpen:openThread, onProfile:openProfile, onShare:share,onMute:mute,onReport:report,onViewMedia:openMedia,onTranslate:(post:Post)=>{setAiSeed(post.body);setAiTask("translate");navigate("ai");} });
+  const postProps = (p: Post) => ({ key:p.id, post:p, isDemo:!isCloudEnabled, author:lookup(p.author_id), onLike:toggleLike, onRepost:toggleRepost, onBookmark:toggleBookmark, onReply:openThread, onOpen:openThread, onProfile:openProfile, onShare:share,onMute:mute,onReport:report,onViewVideo:openVideo,onTranslate:(post:Post)=>{setAiSeed(post.body);setAiTask("translate");navigate("ai");} });
   const pickImage = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (!f) return;
@@ -772,9 +772,8 @@ export default function BlumbookApp({forceDemo=false}:{forceDemo?:boolean}={}) {
    if(!["video/mp4","video/webm"].includes(f.type)||f.size>30*1024*1024){notify("Choose MP4 or WebM under 30 MB.");return;}
    setImageFile(null);setImagePreview("");setVideoFile(f);setVideoPreview(URL.createObjectURL(f));
   };
-  const openMedia=(p:Post)=>{if(p.image_url||p.video_url)setMediaViewer(p);};
-  const mediaPosts=posts.filter(p=>Boolean(p.image_url||p.video_url)&&!blockedAuthors.includes(p.author_id));
-  const nextMedia=(offset:-1|1)=>{if(!mediaViewer||mediaPosts.length<2)return;const i=mediaPosts.findIndex(p=>p.id===mediaViewer.id);if(i>=0)setMediaViewer(mediaPosts[(i+offset+mediaPosts.length)%mediaPosts.length]);};
+  // Photos remain in the post-detail conversation; only real video content opens the immersive player.
+  const openVideo=(post:Post)=>{if(post.video_url)setMediaViewer(post);};
   const nextVideo=(offset:-1|1)=>{
     if(!mediaViewer)return;
     const videos=posts.filter(p=>Boolean(p.video_url)&&!blockedAuthors.includes(p.author_id));
@@ -1011,7 +1010,7 @@ export default function BlumbookApp({forceDemo=false}:{forceDemo?:boolean}={}) {
             </button>) : <div className="empty-state"><MessageCircle size={30}/><h3>No replies yet</h3><p>Replies to posts will appear here.</p></div>}
         </>}
         {profileTab==="media" && <>
-          {profileMedia.length ? <div className="full-profile-media-grid">{profileMedia.map(p=><button key={p.id} onClick={()=>openMedia(p)} aria-label={"View media in post by "+activeProfile.display_name}>{p.image_url?<img src={p.image_url} alt="Shared media" loading="lazy"/>:<span className="media-video-tile"><Video size={22}/> Video</span>}</button>)}</div>
+          {profileMedia.length ? <div className="full-profile-media-grid">{profileMedia.map(p=><button key={p.id} onClick={()=>p.image_url?void openThread(p):openVideo(p)} aria-label={(p.image_url?"Open photo post":"Watch post video")+" by "+activeProfile.display_name}>{p.image_url?<img src={p.image_url} alt="Image in post" loading="lazy"/>:<span className="media-video-tile"><Video size={22}/> Video</span>}</button>)}</div>
           : <div className="empty-state"><ImagePlus size={30}/><h3>No photos yet</h3><p>Photos shared in posts will appear here.</p></div>}
         </>}
         {profileTab==="likes" && <>
@@ -1038,8 +1037,8 @@ export default function BlumbookApp({forceDemo=false}:{forceDemo?:boolean}={}) {
             {selectedPost.author_id!==me.id&&<button className="thread-follow" onClick={()=>void toggleFollow(selectedPost.author_id)}>{followed.includes(selectedPost.author_id)?"Following":"Follow"}</button>}
           </div>
           <p className="thread-original-text">{selectedPost.body}</p>
-          {selectedPost.image_url&&<button className="thread-main-image" onClick={()=>openMedia(selectedPost)} aria-label="View post photo"><img src={selectedPost.image_url} alt="Photo in post" loading="lazy"/></button>}
-          {selectedPost.video_url&&<button className="thread-main-video" onClick={()=>openMedia(selectedPost)} aria-label="Play post video"><video src={selectedPost.video_url} preload="metadata" playsInline muted/><span><Play size={22} fill="currentColor"/></span></button>}
+          {selectedPost.image_url&&<div className="thread-main-image"><img src={selectedPost.image_url} alt="Photo in post" loading="lazy"/></div>}
+          {selectedPost.video_url&&<button className="thread-main-video" onClick={()=>openVideo(selectedPost)} aria-label="Play post video"><video src={selectedPost.video_url} preload="metadata" playsInline muted/><span><Play size={22} fill="currentColor"/></span></button>}
           <div className="thread-published">
             <time dateTime={selectedPost.created_at}>{new Date(selectedPost.created_at).toLocaleTimeString(language==="ha"?"ha-NG":"en-US",{hour:"numeric",minute:"2-digit"})} · {new Date(selectedPost.created_at).toLocaleDateString(language==="ha"?"ha-NG":"en-US",{month:"short",day:"numeric",year:"numeric"})}</time>
             {!isCloudEnabled&&<span> · <strong>{shortCount(selectedPost.views)}</strong> sample views</span>}
@@ -1211,11 +1210,6 @@ export default function BlumbookApp({forceDemo=false}:{forceDemo?:boolean}={}) {
       onNext={()=>nextVideo(1)}
       onPrevious={()=>nextVideo(-1)}
     />}
-    {mediaViewer&&!mediaViewer.video_url&&<Modal close={()=>setMediaViewer(null)}><div className="media-dialog">
-      <div className="media-dialog-head"><button onClick={()=>setMediaViewer(null)} aria-label="Close"><ArrowLeft size={21}/></button><strong>Photo</strong><button onClick={()=>{const p=mediaViewer;setMediaViewer(null);void openThread(p);}}><MessageCircle size={17}/> Conversation</button></div>
-      <div className="media-dialog-main"><img src={mediaViewer.image_url||""} alt="Shared photo"/></div>
-      <div className="media-dialog-foot"><button onClick={()=>nextMedia(-1)} disabled={mediaPosts.length<2}><ArrowLeft size={17}/> Previous</button><span>{lookup(mediaViewer.author_id).display_name}</span><button onClick={()=>nextMedia(1)} disabled={mediaPosts.length<2}>Next <ArrowRight size={17}/></button></div>
-    </div></Modal>}
     {compose && <Modal close={()=>setCompose(false)}>
       <div className="dialog-head"><button className="icon-button" onClick={()=>setCompose(false)} aria-label="Close"><X size={22}/></button><strong>{composeMode==="video"?"Create video / clip":composeMode==="photo"?"Share a photo":"Create post"}</strong><button form="compose-form" className="primary-btn" disabled={busy||!postText.trim()||postText.length>500}>{busy?"Posting...":"Post"}</button></div>
       <form id="compose-form" onSubmit={submitPost}><div className="compose-body"><Avatar profile={me}/><div className="compose-fields"><span className="audience">🌐 Everyone</span><textarea autoFocus aria-label="Write a post" placeholder={composeMode==="video"?"Add a caption to your clip...":composeMode==="photo"?"Describe your photo...":"What\u0027s happening?"} rows={5} maxLength={500} value={postText} onChange={(e)=>setPostText(e.target.value)}/>{imagePreview&&<div className="preview-wrap"><img src={imagePreview} alt="Image preview"/><button type="button" onClick={()=>{setImageFile(null);setImagePreview("");}} aria-label="Remove image"><X size={19}/></button></div>}
