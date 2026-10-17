@@ -35,7 +35,7 @@ function ClipCard({post,author,following,onProfile,onLike,onBookmark,onComment,o
         {author.id!=="demo-me" && <button className="clip-follow" onClick={()=>onFollow(author.id)}><UserPlus size={14}/>{following?"Following":"Follow"}</button>}
       </div>
       <aside className="clip-actions" aria-label="Video actions">
-        <button aria-label={post.liked?"Unlike clip":"Like clip"} className={post.liked?"clip-selected clip-like-action":"clip-like-action"} onClick={()=>onLike(post)}><LikeBurst liked={post.liked} size={25}/><small>{post.likes}</small></button>
+        <button aria-label={post.liked?"Unlike clip":"Like clip"} className={post.liked?"clip-selected clip-like-action":"clip-like-action"} onClick={()=>onLike(post)}><LikeBurst liked={Boolean(post.liked)} size={25}/><small>{post.likes}</small></button>
         <button aria-label="View comments" onClick={()=>onComment(post)}><MessageCircle size={25}/><small>{post.replies}</small></button>
         <button aria-label="Save clip" className={post.bookmarked?"clip-selected":""} onClick={()=>onBookmark(post)}><Bookmark size={24} fill={post.bookmarked?"currentColor":"none"}/></button>
         <button aria-label="Share clip" onClick={()=>onShare(post)}><Share2 size={24}/></button>
