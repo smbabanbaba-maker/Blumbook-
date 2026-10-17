@@ -7,8 +7,17 @@ const clips=fs.readFileSync(new URL("../components/BlumClips.tsx",import.meta.ur
 const showcase=fs.readFileSync(new URL("../lib/demo-showcase.ts",import.meta.url),"utf8");
 const stories=fs.readFileSync(new URL("../components/StoriesRail.tsx",import.meta.url),"utf8");
 const demoRoute=fs.readFileSync(new URL("../app/demo/page.tsx",import.meta.url),"utf8");
+const commentCard=fs.readFileSync(new URL("../components/CommentCard.tsx",import.meta.url),"utf8");
 const count=(text,regex)=>Array.from(text.matchAll(regex)).length;
 const tests={
+ "Comment actions are present per reply":commentCard.includes('className="comment-card-actions"')&&["onReply(comment)","onLike(comment)","onRepost(comment)","onBookmark(comment)","onShare(comment)"].every(x=>commentCard.includes(x)),
+ "Comment likes and repost counts never pretend to be live views":commentCard.includes('viewCount!==undefined')&&commentCard.includes('Fictional demo views')&&app.includes('const sampleViews=!isCloudEnabled'),
+ "Threaded responses have real parent IDs":app.includes('parent_comment_id:parent')&&app.includes('replyingTo.parent_comment_id||replyingTo.id'),
+ "Nested reply controls are expanded and collapsed":app.includes('comment-nested-list')&&app.includes('comment-show-replies')&&app.includes('expandedCommentThreads'),
+ "Reactions and bookmarks use real tables if provisioned":app.includes('"comment_likes"')&&app.includes('"comment_reposts"')&&app.includes('"comment_bookmarks"')&&app.includes('commentFeaturesReady'),
+ "Demo replies have sample interaction metrics":showcase.includes('SHOWCASE_COMMENT_METRICS')&&showcase.includes('parent_comment_id:'),
+ "Sharing comments creates a link to the matching post":app.includes('const shareComment=async(comment:Comment)=>')&&app.includes('encodeURIComponent(comment.id)'),
+
  "Showroom has at least 30 fictional posts":count(showcase,/\{id:"showcase-[0-9]+",author_id:/g)>=30,
  "Showroom has at least 120 seeded comments":count(showcase,/id:"showcase-[0-9]+-reply-[0-9]+"/g)>=120,
  "Showroom has 8 sample 24h stories":count(showcase,/id:"demo-story-[0-9]+"/g)===8,
