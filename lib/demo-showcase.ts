@@ -8,20 +8,20 @@ import type {Post,Profile} from "./demo";
 export type ShowcaseComment={id:string;post_id:string;author_id:string;body:string;created_at:string;parent_comment_id?:string|null};
 
 export const SHOWCASE_PEOPLE:Profile[]=[
-  {id:"amina",username:"aminacreates",display_name:"Amina Yusuf",bio:"Creative storyteller • Art & technology",location:"Kano, Nigeria",open_to_collab:true},
-  {id:"daniel",username:"danielkim",display_name:"Daniel Kim",bio:"Product designer & design systems enthusiast",location:"Lagos, Nigeria",open_to_collab:false},
-  {id:"zara",username:"zaralawal",display_name:"Zara Lawal",bio:"Digital creator and visual storyteller",location:"Abuja, Nigeria",open_to_collab:false},
-  {id:"ibrahim",username:"ibrahimmusa",display_name:"Ibrahim Musa",bio:"Software engineer exploring AgriTech",location:"Kano, Nigeria",open_to_collab:true},
-  {id:"sarah",username:"sarahchen",display_name:"Sarah Chen",bio:"Educator, curious mind and lifelong learner",location:"Toronto, Canada",open_to_collab:false},
-  {id:"alex",username:"alexj",display_name:"Alex Johnson",bio:"Community builder and mentor",location:"London, UK",open_to_collab:false},
-  {id:"habiba",username:"habibatech",display_name:"Habiba Bello",bio:"Teaching young people digital skills",location:"Kaduna, Nigeria",open_to_collab:true},
-  {id:"musa",username:"musaembedded",display_name:"Musa Garba",bio:"Embedded systems engineer",location:"Kano, Nigeria",open_to_collab:false},
-  {id:"chioma",username:"chiomapixels",display_name:"Chioma Obi",bio:"Photographer and creative explorer",location:"Port Harcourt, Nigeria",open_to_collab:false},
-  {id:"yusuf",username:"yusufbuilds",display_name:"Yusuf Ahmed",bio:"Startup founder and product thinker",location:"Lagos, Nigeria",open_to_collab:true},
-  {id:"fatima",username:"fatimafarms",display_name:"Fatima Sule",bio:"Greenhouse grower and sustainability enthusiast",location:"Kano, Nigeria",open_to_collab:false},
-  {id:"peter",username:"petercreates",display_name:"Peter Cole",bio:"Independent maker and web developer",location:"Accra, Ghana",open_to_collab:false},
-  {id:"grace",username:"graceconnects",display_name:"Grace Mensah",bio:"Community events and collaborations",location:"Accra, Ghana",open_to_collab:true},
-  {id:"salim",username:"salimfilms",display_name:"Salim Ali",bio:"Video creator and editor",location:"Abuja, Nigeria",open_to_collab:false},
+  {id:"amina",username:"aminacreates",display_name:"Amina Yusuf",avatar_url:"https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=160&h=160&fit=crop&crop=faces&auto=format&q=75",bio:"Creative storyteller • Art & technology",location:"Kano, Nigeria",open_to_collab:true},
+  {id:"daniel",username:"danielkim",display_name:"Daniel Kim",avatar_url:"https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=160&h=160&fit=crop&crop=faces&auto=format&q=75",bio:"Product designer & design systems enthusiast",location:"Lagos, Nigeria",open_to_collab:false},
+  {id:"zara",username:"zaralawal",display_name:"Zara Lawal",avatar_url:"https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=160&h=160&fit=crop&crop=faces&auto=format&q=75",bio:"Digital creator and visual storyteller",location:"Abuja, Nigeria",open_to_collab:false},
+  {id:"ibrahim",username:"ibrahimmusa",display_name:"Ibrahim Musa",avatar_url:"https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=160&h=160&fit=crop&crop=faces&auto=format&q=75",bio:"Software engineer exploring AgriTech",location:"Kano, Nigeria",open_to_collab:true},
+  {id:"sarah",username:"sarahchen",display_name:"Sarah Chen",avatar_url:"https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=160&h=160&fit=crop&crop=faces&auto=format&q=75",bio:"Educator, curious mind and lifelong learner",location:"Toronto, Canada",open_to_collab:false},
+  {id:"alex",username:"alexj",display_name:"Alex Johnson",avatar_url:"https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=160&h=160&fit=crop&crop=faces&auto=format&q=75",bio:"Community builder and mentor",location:"London, UK",open_to_collab:false},
+  {id:"habiba",username:"habibatech",display_name:"Habiba Bello",avatar_url:"https://images.unsplash.com/photo-1548142813-c348350df52b?w=160&h=160&fit=crop&crop=faces&auto=format&q=75",bio:"Teaching young people digital skills",location:"Kaduna, Nigeria",open_to_collab:true},
+  {id:"musa",username:"musaembedded",display_name:"Musa Garba",avatar_url:"https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=160&h=160&fit=crop&crop=faces&auto=format&q=75",bio:"Embedded systems engineer",location:"Kano, Nigeria",open_to_collab:false},
+  {id:"chioma",username:"chiomapixels",display_name:"Chioma Obi",avatar_url:"https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=160&h=160&fit=crop&crop=faces&auto=format&q=75",bio:"Photographer and creative explorer",location:"Port Harcourt, Nigeria",open_to_collab:false},
+  {id:"yusuf",username:"yusufbuilds",display_name:"Yusuf Ahmed",avatar_url:"https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=160&h=160&fit=crop&crop=faces&auto=format&q=75",bio:"Startup founder and product thinker",location:"Lagos, Nigeria",open_to_collab:true},
+  {id:"fatima",username:"fatimafarms",display_name:"Fatima Sule",avatar_url:"https://images.unsplash.com/photo-1517841905240-472988babdf9?w=160&h=160&fit=crop&crop=faces&auto=format&q=75",bio:"Greenhouse grower and sustainability enthusiast",location:"Kano, Nigeria",open_to_collab:false},
+  {id:"peter",username:"petercreates",display_name:"Peter Cole",avatar_url:"https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=160&h=160&fit=crop&crop=faces&auto=format&q=75",bio:"Independent maker and web developer",location:"Accra, Ghana",open_to_collab:false},
+  {id:"grace",username:"graceconnects",display_name:"Grace Mensah",avatar_url:"https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=160&h=160&fit=crop&crop=faces&auto=format&q=75",bio:"Community events and collaborations",location:"Accra, Ghana",open_to_collab:true},
+  {id:"salim",username:"salimfilms",display_name:"Salim Ali",avatar_url:"https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=160&h=160&fit=crop&crop=faces&auto=format&q=75",bio:"Video creator and editor",location:"Abuja, Nigeria",open_to_collab:false},
 ];
 
 export const SHOWCASE_POSTS:Post[]=[
