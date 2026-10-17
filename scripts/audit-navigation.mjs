@@ -16,7 +16,7 @@ const tests={
  "Nested reply controls are expanded and collapsed":app.includes('comment-nested-list')&&app.includes('comment-show-replies')&&app.includes('expandedCommentThreads'),
  "Reactions and bookmarks use real tables if provisioned":app.includes('"comment_likes"')&&app.includes('"comment_reposts"')&&app.includes('"comment_bookmarks"')&&app.includes('commentFeaturesReady'),
  "Demo replies have sample interaction metrics":showcase.includes('SHOWCASE_COMMENT_METRICS')&&showcase.includes('parent_comment_id:'),
- "Sharing comments creates a link to the matching post":app.includes('async(comment:Comment)=>')===false&&app.includes('const shareComment=async(comment:Comment)=>')&&app.includes('encodeURIComponent(comment.id)'),
+ "Sharing comments creates a link to the matching post":app.includes('const shareComment=async(comment:Comment)=>')&&app.includes('encodeURIComponent(comment.id)'),
 
  "Showroom has at least 30 fictional posts":count(showcase,/\{id:"showcase-[0-9]+",author_id:/g)>=30,
  "Showroom has at least 120 seeded comments":count(showcase,/id:"showcase-[0-9]+-reply-[0-9]+"/g)>=120,
