@@ -10,6 +10,12 @@ const demoRoute=fs.readFileSync(new URL("../app/demo/page.tsx",import.meta.url),
 const commentCard=fs.readFileSync(new URL("../components/CommentCard.tsx",import.meta.url),"utf8");
 const count=(text,regex)=>Array.from(text.matchAll(regex)).length;
 const tests={
+ "Feed photos open post detail directly":app.includes('className="post-image-wrap" aria-label="Open post details" onClick={()=>onOpen(post)}'),
+ "Post detail displays photos inline without another modal":app.includes('<div className="thread-main-image"><img')&&!app.includes('onClick={()=>openMedia(selectedPost)}'),
+ "Profile photo grid opens post conversations":app.includes('p.image_url?void openThread(p):openVideo(p)'),
+ "Old photo gallery and previous/next controls are removed":!["media-dialog","nextMedia(","mediaPosts","Open image viewer"].some(x=>app.includes(x)),
+ "Immersive viewer remains video-only":app.includes('const openVideo=(post:Post)=>{if(post.video_url)setMediaViewer(post);}')&&app.includes('mediaViewer?.video_url&&<ImmersiveVideoViewer')&&app.includes('className="thread-main-video" onClick={()=>openVideo(selectedPost)}'),
+
  "Comment actions are present per reply":commentCard.includes('className="comment-card-actions"')&&["onReply(comment)","onLike(comment)","onRepost(comment)","onBookmark(comment)","onShare(comment)"].every(x=>commentCard.includes(x)),
  "Comment likes and repost counts never pretend to be live views":commentCard.includes('viewCount!==undefined')&&commentCard.includes('Fictional demo views')&&app.includes('const sampleViews=!isCloudEnabled'),
  "Threaded responses have real parent IDs":app.includes('parent_comment_id:parent')&&app.includes('replyingTo.parent_comment_id||replyingTo.id'),
