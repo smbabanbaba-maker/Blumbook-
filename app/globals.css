@@ -2,23 +2,33 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Blumbook semantic palette — X-inspired, still branded as Blumbook.
+   Accent hues indicate actions, not decoration; dark and light share the same meaning. */
 :root {
   color-scheme: dark;
-  --bg:#000; --surface:#070707; --surface2:#121212; --line:#272727;
-  --text:#fafafa; --muted:#929292; --brand:#fafafa; --brand-bright:#fff; --hover:#171717;
-  --pink:#fafafa; --green:#fafafa; --subtext:#d4d4d4; --ink:#050505; --paper:#fff;
-  --veil:rgba(0,0,0,.90); --shadow:rgba(0,0,0,.3);
-  --tone-0:#050505; --tone-1:#101010; --tone-2:#1b1b1b; --tone-3:#333;
-  --tone-4:#626262; --tone-5:#a2a2a2; --tone-6:#d6d6d6; --tone-7:#fff;
+  --bg:#000000; --surface:#16181C; --surface2:#202327; --line:#2F3336;
+  --text:#E7E9EA; --muted:#8B9298; --subtext:#D2D6D9; --ink:#000000; --paper:#FFFFFF;
+  --brand:#1D9BF0; --brand-bright:#1D9BF0; --brand-strong:#1577B5;
+  --brand-soft:rgba(29,155,240,.14); --brand-on:#FFFFFF;
+  --pink:#F91880; --green:#00BA7C; --danger:#F4212E;
+  --premium:#FFD400; --verified:#1D9BF0;
+  --like-soft:rgba(249,24,128,.13); --repost-soft:rgba(0,186,124,.14);
+  --hover:#101418; --veil:rgba(0,0,0,.93); --shadow:rgba(0,0,0,.3);
+  --tone-0:#050505; --tone-1:#16181C; --tone-2:#202327; --tone-3:#2F3336;
+  --tone-4:#71767B; --tone-5:#9BA1A6; --tone-6:#D2D6D9; --tone-7:#E7E9EA;
 }
 :root[data-theme="light"] {
   color-scheme: light;
-  --bg:#fff; --surface:#fff; --surface2:#f5f5f5; --line:#e5e5e5;
-  --text:#111; --muted:#686868; --brand:#111; --brand-bright:#111; --hover:#f4f4f4;
-  --pink:#111; --green:#111; --subtext:#383838; --ink:#fff; --paper:#111;
-  --veil:rgba(255,255,255,.95); --shadow:rgba(0,0,0,.09);
-  --tone-0:#fff; --tone-1:#fafafa; --tone-2:#f5f5f5; --tone-3:#e1e1e1;
-  --tone-4:#c5c5c5; --tone-5:#777; --tone-6:#333; --tone-7:#111;
+  --bg:#FFFFFF; --surface:#FFFFFF; --surface2:#F7F9F9; --line:#EFF3F4;
+  --text:#0F1419; --muted:#536471; --subtext:#33424C; --ink:#FFFFFF; --paper:#0F1419;
+  --brand:#1D9BF0; --brand-bright:#1D9BF0; --brand-strong:#1577B5;
+  --brand-soft:rgba(29,155,240,.10); --brand-on:#FFFFFF;
+  --pink:#D81470; --green:#008F62; --danger:#D91F28;
+  --premium:#B88A00; --verified:#1D9BF0;
+  --like-soft:rgba(249,24,128,.09); --repost-soft:rgba(0,186,124,.10);
+  --hover:#F2F5F6; --veil:rgba(255,255,255,.95); --shadow:rgba(0,0,0,.09);
+  --tone-0:#FFFFFF; --tone-1:#F7F9F9; --tone-2:#EFF3F4; --tone-3:#D6DDE2;
+  --tone-4:#86929B; --tone-5:#536471; --tone-6:#33424C; --tone-7:#0F1419;
 }
 * { box-sizing:border-box; }
 html { scroll-behavior:smooth; }
@@ -449,20 +459,20 @@ body { font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Se
 
 /* Blumbook premium system v2 — tokens built around clear editorial monochrome */
 :root {
-  --settings-surface:#101010;
-  --settings-title:#f4f4f4;
-  --settings-copy:#777777;
-  --settings-outline:#262626;
-  --settings-icon:#898989;
-  --settings-active:#ededed;
+  --settings-surface:#16181C;
+  --settings-title:#E7E9EA;
+  --settings-copy:#8B9298;
+  --settings-outline:#2F3336;
+  --settings-icon:#9BA1A6;
+  --settings-active:#1D9BF0;
 }
 :root[data-theme="light"] {
-  --settings-surface:#f6f6f6;
-  --settings-title:#111111;
-  --settings-copy:#636363;
-  --settings-outline:#ededed;
-  --settings-icon:#6c6c6c;
-  --settings-active:#111111;
+  --settings-surface:#F7F9F9;
+  --settings-title:#0F1419;
+  --settings-copy:#536471;
+  --settings-outline:#EFF3F4;
+  --settings-icon:#536471;
+  --settings-active:#1577B5;
 }
 body { -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility; }
 .main-column { background:var(--bg); }
@@ -1807,4 +1817,123 @@ button.settings-detail-row:hover { background:var(--hover); }
 }
 @media(prefers-reduced-motion:reduce){
   .home-status-strip .fb-story-card,.stories-destination .fb-story-card{transition:none;}
+}
+
+
+/* Global semantic color contract: interactive states, profiles, chat and content.
+   Keep photos/video canvases black and prioritize text contrast in both themes. */
+.primary-btn,.follow-btn,.chat-send button,.thread-compose-row>button,
+.opp-head>button,.opp-card-bottom button:last-child{
+  background:var(--brand-strong);
+  color:var(--brand-on);
+  box-shadow:none;
+}
+.primary-btn:hover:not(:disabled),.follow-btn:hover:not(:disabled),
+.chat-send button:hover:not(:disabled),.opp-head>button:hover,
+.opp-card-bottom button:last-child:hover{background:#12669d;color:#FFFFFF;}
+.side-post,.create-post-button{background:var(--brand-strong);color:#FFFFFF;}
+.floating-compose{background:var(--brand-strong);color:#FFFFFF;}
+.floating-compose:hover{background:#12669d;}
+button:focus-visible,a:focus-visible,input:focus-visible,
+textarea:focus-visible,select:focus-visible{outline:2px solid var(--brand);outline-offset:3px;}
+::selection{background:var(--brand-soft);}
+.feed-tabs button.selected:after,.clean-home .premium-feed-tabs button.selected:after,
+.premium-home .premium-feed-tabs button.selected:after{background:var(--brand);}
+.feed-tabs button.selected,.mobile-bottom button.active,.side-link.active{
+  color:var(--text);
+}
+.side-link.active svg,.mobile-bottom button.active svg,.mobile-bottom button.active,
+.simple-drawer-links button[aria-current="page"] svg{
+  color:var(--brand);
+}
+.notification-pip,.nav-dot{background:var(--brand);}
+.verified{color:var(--verified);stroke:#FFFFFF;stroke-width:2px;}
+.post-actions>button:hover,.post-end-actions button:hover,.panel-link,
+.post-translate-link,.auth-switch,.studio-panel-head>button:hover,
+.comment-show-replies:hover,.thread-reply-shortcut:hover{color:var(--brand);}
+.post-actions .liked,.post-actions .liked:hover{color:var(--pink);}
+.post-actions .reposted,.post-actions .reposted:hover{color:var(--green);}
+.post-actions .bookmarked,.post-actions .bookmarked:hover{color:var(--brand);}
+.post-actions>button[aria-label="Like"]:hover,.post-actions>button[aria-label="Unlike"]:hover{color:var(--pink);}
+.post-actions>button[aria-label^="Repost"]:hover,.post-actions>button[aria-label^="Undo repost"]:hover{color:var(--green);}
+.thread-actions button:nth-child(2).is-active,
+.thread-actions button:nth-child(2):hover{color:var(--green);}
+.thread-actions button:nth-child(3).is-active,
+.thread-actions button:nth-child(3):hover{color:var(--pink);}
+.thread-actions button:nth-child(4).is-active,
+.thread-actions button:nth-child(4):hover{color:var(--brand);}
+.thread-actions button:first-child:hover,.thread-actions button:last-child:hover{color:var(--brand);}
+.comment-card-actions>button:nth-child(2).is-active,
+.comment-card-actions>button:nth-child(2):hover{color:var(--green);}
+.comment-card-actions>button:nth-child(3).is-active,
+.comment-card-actions>button:nth-child(3):hover{color:var(--pink);}
+.comment-card-actions>button[aria-label^="Bookmark"].is-active,
+.comment-card-actions>button[aria-label^="Remove comment bookmark"].is-active,
+.comment-card-actions>button[aria-label^="Bookmark"]:hover,
+.comment-card-actions>button[aria-label^="Remove comment bookmark"]:hover{color:var(--brand);}
+.comment-card-actions>button:first-child:hover,.comment-card-actions>button:last-child:hover{color:var(--brand);}
+.comment-card-actions>button:nth-child(2):hover{background:var(--repost-soft);}
+.comment-card-actions>button:nth-child(3):hover{background:var(--like-soft);}
+.comment-card-actions .comment-card-demo-views{color:var(--muted);}
+.thread-follow,.full-profile-top-actions>.profile-follow-primary,
+.thread-composer .thread-compose-row>button{background:var(--brand-strong);color:#FFFFFF;border-color:var(--brand-strong);}
+.thread-follow:hover,.full-profile-top-actions>.profile-follow-primary:hover{background:#12669d;color:#FFFFFF;}
+.notice-like{color:var(--pink);}
+.notice-repost{color:var(--green);}
+.notice-follow,.notice-reply,.notice-mark{color:var(--brand);}
+.follow-btn,.primary-btn{font-weight:750;}
+.studio-chart>div>span{background:var(--brand);}
+.access-card-heading svg,.creator-access-hero>svg,.bloom-kinds button[aria-pressed="true"] svg,
+.earnings-zero>strong,.creation-choice:hover .creation-icon{color:var(--brand);}
+.access-success{color:var(--green);}
+.drawer-verification-premium>button>svg:first-child{color:var(--premium);}
+.stories-dialog .story-file-pick:hover,.story-file-pick:focus-within{border-color:var(--brand);}
+.fb-story-profile-ring{border-color:var(--brand);}
+.fb-story-create-badge{background:var(--brand-strong);}
+:root[data-theme="light"] .fb-story-create-badge{color:#FFFFFF;}
+:root[data-theme="light"] .fb-story-profile-ring{border-color:var(--brand);}
+.simple-drawer-language select:focus-visible{border-color:var(--brand);}
+.settings-search-wrap:focus-within,.search-header:focus-within,
+.right-search:focus-within{outline:2px solid var(--brand);outline-offset:1px;}
+.simple-drawer-links .simple-drawer-section>button[aria-current="page"],
+.simple-drawer-links .simple-drawer-section>button[aria-current="page"]:hover{
+  background:var(--brand-soft);
+}
+.simple-drawer-session:hover,.panel-link:hover{color:var(--brand);}
+
+/* Immersive video remains dark regardless of the rest of the app theme.
+   Reactions use semantic accents; playback controls remain white for clarity. */
+.cinematic-video{--brand:#1D9BF0;--pink:#F91880;--green:#00BA7C;--muted:#AAB3B9;}
+.cinematic-video .cinematic-video-reactions>button:nth-child(2).is-active,
+.cinematic-video .cinematic-video-reactions>button:nth-child(2):hover{color:var(--green);}
+.cinematic-video .cinematic-video-reactions>button:nth-child(3).is-active,
+.cinematic-video .cinematic-video-reactions>button:nth-child(3):hover{color:var(--pink);}
+.cinematic-video .cinematic-video-reactions>button:nth-child(4).is-active,
+.cinematic-video .cinematic-video-reactions>button:nth-child(4):hover{color:var(--brand);}
+.cinematic-video .cinematic-video-reactions>button:first-child:hover,
+.cinematic-video .cinematic-video-reactions>button:last-child:hover{color:var(--brand);}
+.cinematic-video .cinematic-video-follow:not(:disabled){background:var(--brand-strong);color:#FFFFFF;}
+.cinematic-video .cinematic-video-follow:hover:not(:disabled){background:#12669d;}
+.cinematic-video .cinematic-video-progress input{accent-color:var(--brand);}
+.cinematic-video .cinematic-video-progress input::-webkit-slider-thumb{background:#FFFFFF;}
+.cinematic-video .cinematic-video-progress input::-moz-range-thumb{background:#FFFFFF;}
+.clip-actions button[aria-label="Like clip"].clip-selected,
+.clip-actions button[aria-label="Like clip"]:hover{color:#F91880;}
+.clip-actions button[aria-label="Save clip"].clip-selected,
+.clip-actions button[aria-label="Save clip"]:hover{color:#1D9BF0;}
+.clip-actions button[aria-label="View comments"]:hover,
+.clip-actions button[aria-label="Share clip"]:hover{color:#1D9BF0;}
+.blum-clips-page .clip-follow{border-color:#1D9BF0;color:#FFFFFF;background:#1577B5;}
+.blum-clips-page .clip-follow:hover{background:#12669d;}
+.blum-clips-page .clip-audio:focus-visible{outline-color:#1D9BF0;}
+
+/* Keep contrast in the inverted Light theme, including disabled controls. */
+:root[data-theme="light"] .right-panel{background:var(--surface2);}
+:root[data-theme="light"] .post-card:hover{background:var(--hover);}
+:root[data-theme="light"] .thread-actions button:hover{background:var(--brand-soft);}
+:root[data-theme="light"] .comment-card-actions button:hover{background:var(--brand-soft);}
+:root[data-theme="light"] .primary-btn,
+:root[data-theme="light"] .follow-btn{color:#FFFFFF;}
+@media(prefers-reduced-motion:reduce){
+ .side-link,.floating-compose,.primary-btn{transition:none;}
 }
