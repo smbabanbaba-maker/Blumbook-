@@ -10,6 +10,10 @@ const demoRoute=fs.readFileSync(new URL("../app/demo/page.tsx",import.meta.url),
 const commentCard=fs.readFileSync(new URL("../components/CommentCard.tsx",import.meta.url),"utf8");
 const count=(text,regex)=>Array.from(text.matchAll(regex)).length;
 const tests={
+ "Facebook story rail has portrait photo cards and prominent create tile":stories.includes('className="stories-row facebook-stories-row"')&&stories.includes('className="story-tile fb-story-card fb-story-create"')&&stories.includes('className="story-tile fb-story-card fb-story-active"'),
+ "Story cards have author avatar and visible name":stories.includes('className="fb-story-profile-ring"')&&stories.includes('className="fb-story-name"')&&stories.includes('aria-label={"View story by "+name}'),
+ "Creating and opening Stories still have working handlers":stories.includes('else setCreating(true);')&&stories.includes('onClick={()=>void open(i)}')&&stories.includes('forceDemo'),
+
  "Cinematic player has black screen, floating back and More controls":viewer.includes('className="immersive-video cinematic-video"')&&viewer.includes('className="cinematic-video-header"')&&viewer.includes('aria-label="More video options"'),
  "Cinematic video has author identity and connected Follow":viewer.includes('className="cinematic-video-author"')&&viewer.includes('isFollowing')&&viewer.includes('onFollow')&&app.includes('onFollow={()=>void toggleFollow(mediaViewer.author_id)}'),
  "Video interactions display real post counters and repost":viewer.includes('className="cinematic-video-reactions"')&&viewer.includes('shortCount(post.reposts)')&&viewer.includes('onRepost')&&app.includes('onRepost={()=>void toggleRepost('),
