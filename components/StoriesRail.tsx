@@ -3,17 +3,18 @@ import {useCallback,useEffect,useState,type FormEvent} from "react";
 import {Camera,ChevronLeft,ChevronRight,Clock3,Plus,Trash2,X} from "lucide-react";
 import {supabase,isCloudEnabled} from "@/lib/supabase";
 import type {Profile} from "@/lib/demo";
+import {SHOWCASE_STORIES} from "@/lib/demo-showcase";
 type Story={id:string;author_id:string;media_url:string;media_type:"image"|"video";caption:string;created_at:string;expires_at:string};
 const valid=(f:File)=>{const image=["image/jpeg","image/png","image/webp","image/gif"].includes(f.type);const video=["video/mp4","video/webm"].includes(f.type);return (image&&f.size<=5*1024*1024)||(video&&f.size<=30*1024*1024);};
-export default function StoriesRail({userId,profiles,onSignIn,launchCreate=0,compact=false}:{userId:string|null;profiles:Profile[];onSignIn:()=>void;launchCreate?:number;compact?:boolean}){
- const [stories,setStories]=useState<Story[]>([]),[selected,setSelected]=useState<number|null>(null),[creating,setCreating]=useState(false);
+export default function StoriesRail({userId,profiles,onSignIn,launchCreate=0,compact=false,forceDemo=false}:{userId:string|null;profiles:Profile[];onSignIn:()=>void;launchCreate?:number;compact?:boolean;forceDemo?:boolean}){
+ const [stories,setStories]=useState<Story[]>(forceDemo?SHOWCASE_STORIES:[]),[selected,setSelected]=useState<number|null>(null),[creating,setCreating]=useState(false);
  const [file,setFile]=useState<File|null>(null),[preview,setPreview]=useState(""),[caption,setCaption]=useState(""),[busy,setBusy]=useState(false),[message,setMessage]=useState("");
  const me=userId||"demo-me";
  const load=useCallback(async()=>{
-  if(!supabase)return;
+  if(!supabase||forceDemo)return;
   const {data,error}=await supabase.from("stories").select("id,author_id,media_url,media_type,caption,created_at,expires_at").gt("expires_at",new Date().toISOString()).order("created_at",{ascending:false}).limit(80);
   if(error){setMessage("Stories need the Phase 6 migration.");return;}setStories((data||[]) as Story[]);
- },[]);
+ },[forceDemo]);
  useEffect(()=>{void load();},[load,userId]);
  useEffect(()=>{if(launchCreate>0){if(isCloudEnabled&&!userId)onSignIn();else setCreating(true);}},[launchCreate,userId]);
  const live=stories.filter(s=>new Date(s.expires_at).getTime()>Date.now());
@@ -27,7 +28,7 @@ export default function StoriesRail({userId,profiles,onSignIn,launchCreate=0,com
   try{
    const media_type:Story["media_type"]=file.type.startsWith("image/")?"image":"video";
    let url=preview;
-   if(supabase&&userId){
+   if(supabase&&userId&&!forceDemo){
     const ext=file.type==="image/png"?"png":file.type==="image/webp"?"webp":file.type==="image/gif"?"gif":file.type==="video/webm"?"webm":file.type==="video/mp4"?"mp4":"jpg";
     const path=userId+"/stories/"+crypto.randomUUID()+"."+ext;
     const bucket=media_type==="video"?"post-videos":"post-media";
@@ -48,13 +49,13 @@ export default function StoriesRail({userId,profiles,onSignIn,launchCreate=0,com
  }
  async function open(i:number){
   const item=live[i];if(!item)return;setSelected(i);
-  if(supabase&&userId&&item.author_id!==userId){
+  if(supabase&&userId&&!forceDemo&&item.author_id!==userId){
    await supabase.from("story_views").upsert({story_id:item.id,viewer_id:userId},{onConflict:"story_id,viewer_id",ignoreDuplicates:true});
   }
  }
  async function remove(item:Story){
   if(item.author_id!==me)return;
-  if(supabase&&userId){const {error}=await supabase.from("stories").delete().eq("id",item.id).eq("author_id",userId);if(error){setMessage(error.message);return;}}
+  if(supabase&&userId&&!forceDemo){const {error}=await supabase.from("stories").delete().eq("id",item.id).eq("author_id",userId);if(error){setMessage(error.message);return;}}
   setStories(p=>p.filter(s=>s.id!==item.id));setSelected(null);
  }
  return <section className="blum-stories" aria-label="Stories">
