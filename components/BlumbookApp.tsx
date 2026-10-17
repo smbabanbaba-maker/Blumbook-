@@ -996,7 +996,7 @@ export default function BlumbookApp({forceDemo=false}:{forceDemo?:boolean}={}) {
             </div>
           </div>
           <div className="full-profile-name">
-            <h2><Name profile={activeProfile}/></h2>
+            <h2><Name profile={activeProfile}/>{SAMPLE_PROFILE_IDS.has(activeProfile.id)&&<span className="post-sample-chip">Sample profile</span>}</h2>
             <span>@{activeProfile.username}</span>
           </div>
           {activeProfile.headline&&<p className="full-profile-headline">{activeProfile.headline}</p>}
