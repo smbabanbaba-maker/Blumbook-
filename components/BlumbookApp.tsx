@@ -565,7 +565,7 @@ export default function BlumbookApp({forceDemo=false}:{forceDemo?:boolean}={}) {
     window.history.replaceState({},"",url.pathname+url.search);
   };
   const share = async (post: Post) => {
-    const url = window.location.origin + "/?post=" + encodeURIComponent(post.id);
+    const url = window.location.origin + (forceDemo?"/demo":"/") + "?post=" + encodeURIComponent(post.id);
     try { await navigator.clipboard.writeText(url); notify("Link copied to clipboard"); }
     catch { notify("Share this post: " + url); }
   };
