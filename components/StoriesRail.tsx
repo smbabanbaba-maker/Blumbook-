@@ -61,9 +61,34 @@ export default function StoriesRail({userId,profiles,onSignIn,launchCreate=0,com
  return <section className="blum-stories" aria-label="Stories">
   {!compact&&<div className="stories-head"><h2>Stories <span>24-hour moments</span></h2><button onClick={()=>{if(isCloudEnabled&&!userId)onSignIn();else setCreating(true);}}><Plus size={17}/> Add</button></div>}
   {message&&<p className="feature-disclaimer" role="status">{message} <button onClick={()=>setMessage("")} aria-label="Dismiss"><X size={14}/></button></p>}
-  <div className="stories-row">
-   <button className="story-tile story-create" onClick={()=>{if(isCloudEnabled&&!userId)onSignIn();else setCreating(true);}}><span className="story-circle"><span className="story-create-avatar">{profiles.find(p=>p.id===me)?.avatar_url?<img src={profiles.find(p=>p.id===me)?.avatar_url||""} alt=""/>:<span>{(profiles.find(p=>p.id===me)?.display_name||"You").slice(0,1).toUpperCase()}</span>}</span><span className="story-create-plus"><Plus size={17} strokeWidth={3}/></span></span><small>Your story</small></button>
-   {live.map((item,i)=>{const person=owner(item.author_id);return <button className="story-tile" key={item.id} onClick={()=>void open(i)}><span className="story-circle story-circle-active">{person?.avatar_url?<img src={person.avatar_url} loading="lazy" alt=""/>:item.media_type==="image"?<img src={item.media_url} loading="lazy" alt=""/>:<Camera size={25}/>}</span><small>{item.author_id===me?"You":person?.username||person?.display_name||"Member"}</small></button>;})}
+  <div className="stories-row facebook-stories-row" aria-label="Browse stories">
+   <button className="story-tile fb-story-card fb-story-create" aria-label="Create your story" onClick={()=>{if(isCloudEnabled&&!userId)onSignIn();else setCreating(true);}}>
+     <span className="fb-story-create-cover">
+       {profiles.find(p=>p.id===me)?.avatar_url?
+        <img src={profiles.find(p=>p.id===me)?.avatar_url||""} loading="lazy" alt=""/>:
+        <span className="fb-story-create-initial">{(profiles.find(p=>p.id===me)?.display_name||"You").slice(0,1).toUpperCase()}</span>}
+     </span>
+     <span className="fb-story-create-footer">
+       <span className="fb-story-create-badge"><Plus size={18} strokeWidth={3}/></span>
+       <span>Create story</span>
+     </span>
+   </button>
+   {live.map((item,i)=>{
+     const person=owner(item.author_id);
+     const name=item.author_id===me?"Your story":person?.display_name||"Member";
+     return <button className="story-tile fb-story-card fb-story-active" key={item.id} aria-label={"View story by "+name} onClick={()=>void open(i)}>
+       <span className="fb-story-media">
+         {item.media_type==="image"?<img src={item.media_url} loading="lazy" alt=""/>:
+           <span className="fb-story-video-cover"><Camera size={27}/></span>}
+       </span>
+       <span className="fb-story-shade" aria-hidden="true"/>
+       <span className="fb-story-profile-ring">
+         {person?.avatar_url?<img src={person.avatar_url} loading="lazy" alt=""/>:
+           <span>{name.slice(0,1).toUpperCase()}</span>}
+       </span>
+       <span className="fb-story-name">{name}</span>
+     </button>;
+   })}
    {!compact&&!live.length&&<span className="stories-empty">Be the first to share a moment.</span>}
   </div>
   {creating&&<div className="stories-overlay" onMouseDown={e=>{if(e.target===e.currentTarget)closeForm();}}><form className="stories-dialog" onSubmit={publish} aria-label="Create story"><header><strong>New story</strong><button type="button" aria-label="Close" onClick={closeForm}><X size={22}/></button></header><p>Share a moment that disappears from the story feed after 24 hours.</p><label className="story-file-pick"><Camera size={19}/> Choose photo or video<input type="file" hidden accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm" onChange={e=>pick(e.target.files?.[0])}/></label>{preview&&(file?.type.startsWith("video/")?<video src={preview} controls playsInline/>:<img src={preview} alt="Story preview"/>)}<textarea value={caption} maxLength={180} onChange={e=>setCaption(e.target.value)} placeholder="Add a caption (optional)"/><button className="primary-btn" disabled={!file||busy}>{busy?"Sharing...":"Share story"}</button></form></div>}
