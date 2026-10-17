@@ -661,6 +661,13 @@ export default function BlumbookApp() {
   const openMedia=(p:Post)=>{if(p.image_url||p.video_url)setMediaViewer(p);};
   const mediaPosts=posts.filter(p=>Boolean(p.image_url||p.video_url)&&!blockedAuthors.includes(p.author_id));
   const nextMedia=(offset:-1|1)=>{if(!mediaViewer||mediaPosts.length<2)return;const i=mediaPosts.findIndex(p=>p.id===mediaViewer.id);if(i>=0)setMediaViewer(mediaPosts[(i+offset+mediaPosts.length)%mediaPosts.length]);};
+  const nextVideo=(offset:-1|1)=>{
+    if(!mediaViewer)return;
+    const videos=posts.filter(p=>Boolean(p.video_url)&&!blockedAuthors.includes(p.author_id));
+    if(videos.length<2)return;
+    const index=videos.findIndex(p=>p.id===mediaViewer.id);
+    if(index>=0)setMediaViewer(videos[(index+offset+videos.length)%videos.length]);
+  };
   const settingsConfig: {id:SettingsPanel;title:string;description:string;Icon:LucideIcon}[] = [
     {id:"account",title:"Your account",description:"See your account information, manage your profile, and learn about data controls.",Icon:UserRound},
     {id:"security",title:"Security and account access",description:"Manage your sign-in, account protection, and connected devices.",Icon:LockKeyhole},
@@ -1021,6 +1028,8 @@ export default function BlumbookApp() {
       onLike={()=>void toggleLike(posts.find(p=>p.id===mediaViewer.id)||mediaViewer)}
       onBookmark={()=>void toggleBookmark(posts.find(p=>p.id===mediaViewer.id)||mediaViewer)}
       onShare={()=>void share(mediaViewer)}
+      onNext={()=>nextVideo(1)}
+      onPrevious={()=>nextVideo(-1)}
     />}
     {mediaViewer&&!mediaViewer.video_url&&<Modal close={()=>setMediaViewer(null)}><div className="media-dialog">
       <div className="media-dialog-head"><button onClick={()=>setMediaViewer(null)} aria-label="Close"><ArrowLeft size={21}/></button><strong>Photo</strong><button onClick={()=>{const p=mediaViewer;setMediaViewer(null);void openThread(p);}}><MessageCircle size={17}/> Conversation</button></div>
