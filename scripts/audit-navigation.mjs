@@ -14,6 +14,11 @@ const tests={
  "Feed has no duplicated Community tab":!app.includes('tab === "communities"'),
  "Home has one primary Create flow":!app.includes('className="compose-inline"'),
  "No repeated Home or Explore shortcut rows":!/(className="home-mini-links"|className="home-opportunity-link"|className="explore-mini-tools"|className="explore-feature-links")/.test(app),
+ "Mobile drawer keeps four named groups":count(app,/className="simple-drawer-section"/g)===4&&["YOUR SPACE","COMMUNITY & DISCOVERY","CREATOR TOOLS","ACCOUNT & SUPPORT"].every(x=>app.includes(x)),
+ "Planner and earnings have their own views":app.includes('view==="planner"')&&app.includes('view==="earnings"'),
+ "Privacy opens its real settings panel":app.includes('navigate("settings");setSettingsPanel("privacy");'),
+ "Invite friends opens native sharing or copies a URL":app.includes('const inviteFriends=async()=>')&&app.includes('navigator.share')&&app.includes('navigator.clipboard.writeText(url)'),
+ "Language chooser is accessible from the drawer":app.includes('className="simple-drawer-language"')&&app.includes('aria-label="Language"'),
  "Creator Studio drafts do not falsely schedule posts":!studio.includes('<input type="date"'),
  "Own profile Edit and Share are not repeated in More":!app.includes('Share profile</button>\n                  {activeProfile.id===me.id'),
 };
