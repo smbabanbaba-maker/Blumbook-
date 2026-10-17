@@ -25,7 +25,7 @@ export default function StoriesRail({userId,profiles,onSignIn,launchCreate=0,com
  // Show fictional *labeled* Story previews only when the real feed is empty.
  // Never seed live database tables or count sample story views.
  const previewStories=!forceDemo&&showcaseWhenEmpty&&!storiesLoading&&live.length===0;
- const visibleStories:Story[]=previewStories?SHOWCASE_STORIES.slice(0,6):live;
+ const visibleStories:Story[]=previewStories?SHOWCASE_STORIES.slice(0,8):live;
  const current=selected===null?null:visibleStories[selected]||null;
  const owner=(id:string)=>profiles.find(p=>p.id===id)||(previewStories?SHOWCASE_PEOPLE.find(p=>p.id===id):undefined);
  function pick(f:File|undefined){if(!f)return;if(!valid(f)){setMessage("Use an image under 5 MB or an MP4/WebM under 30 MB.");return;}if(preview.startsWith("blob:"))URL.revokeObjectURL(preview);setFile(f);setPreview(URL.createObjectURL(f));setMessage("");}
