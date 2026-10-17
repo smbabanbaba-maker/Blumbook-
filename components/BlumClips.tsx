@@ -10,12 +10,13 @@ function ClipCard({post,author,following,onProfile,onLike,onBookmark,onComment,o
  const frame=useRef<HTMLElement>(null);
  const [paused,setPaused]=useState(true);
  const [muted,setMuted]=useState(true);
+ const [sourceReady,setSourceReady]=useState(false);
  useEffect(()=>{
    const node=frame.current,player=video.current;
    if(!node||!player)return;
    const observer=new IntersectionObserver(entries=>{
      const visible=entries[0]?.isIntersecting && entries[0].intersectionRatio>=0.65 && !document.hidden;
-     if(visible){void player.play().then(()=>setPaused(false)).catch(()=>setPaused(true));}
+     if(visible){setSourceReady(true);if(player.readyState>1)void player.play().then(()=>setPaused(false)).catch(()=>setPaused(true));}
      else{player.pause();setPaused(true);}
    },{threshold:[0,0.65,1]});
    observer.observe(node);
@@ -23,9 +24,18 @@ function ClipCard({post,author,following,onProfile,onLike,onBookmark,onComment,o
    document.addEventListener("visibilitychange",visibility);
    return()=>{observer.disconnect();document.removeEventListener("visibilitychange",visibility);player.pause();};
  },[post.id]);
+ useEffect(()=>{
+   if(!sourceReady)return;
+   const player=video.current,card=frame.current;
+   if(!player||!card)return;
+   const bounds=card.getBoundingClientRect();
+   if(bounds.top<window.innerHeight*.65&&bounds.bottom>window.innerHeight*.35){
+     void player.play().then(()=>setPaused(false)).catch(()=>setPaused(true));
+   }
+ },[sourceReady,post.id]);
  const toggle=()=>{const player=video.current;if(!player)return;if(player.paused){void player.play().then(()=>setPaused(false)).catch(()=>{});}else{player.pause();setPaused(true);}};
  return <article ref={frame} className="blum-clip" aria-label={"Video from "+author.display_name}>
-    <video ref={video} src={post.video_url||""} playsInline loop muted={muted} preload="metadata" onClick={toggle} onPause={()=>setPaused(true)} onPlay={()=>setPaused(false)} aria-label="Video" />
+    <video ref={video} src={sourceReady?post.video_url||"":undefined} playsInline loop muted={muted} preload={sourceReady?"metadata":"none"} onClick={toggle} onPause={()=>setPaused(true)} onPlay={()=>setPaused(false)} aria-label="Video" />
     <button className="clip-audio" onClick={()=>setMuted(v=>!v)} aria-label={muted?"Unmute clip":"Mute clip"}>{muted?<VolumeX size={19}/>:<Volume2 size={19}/>}</button>
     {paused&&<button type="button" className="clip-play" onClick={toggle} aria-label="Play video"><Play size={30} fill="currentColor"/></button>}
     <div className="clip-overlay">
