@@ -713,7 +713,7 @@ export default function BlumbookApp() {
 
       {view === "notifications" && <NotificationsPanel userId={cloudUserId} profiles={allPeople} onSignIn={()=>setAuthOpen(true)} onProfile={openProfile} onPost={(id)=>{const p=posts.find(x=>x.id===id);if(p)void openThread(p);else notify("That post is outside the loaded feed.");}} onMessage={(id)=>{navigate("messages");setChatWith(id);}} prefs={notifyPrefs}/>}
       {view === "messages" && <DirectInbox userId={cloudUserId} profiles={allPeople} initialRecipient={chatWith} onRecipientChange={setChatWith} onSignIn={()=>setAuthOpen(true)}/>}
-      {view === "opportunities" && <OpportunityHub userId={cloudUserId} profiles={allPeople} onSignIn={()=>setAuthOpen(true)} onProfile={openProfile}/>}
+      {view === "opportunities" && <OpportunityHub userId={cloudUserId} profiles={allPeople} onSignIn={()=>setAuthOpen(true)} onProfile={openProfile} onMessage={(id)=>{navigate("messages");setChatWith(id);}}/>}
       {view === "videos" && <section className="video-hub"><PanelTitle>Videos</PanelTitle><div className="video-hub-intro"><Video size={27}/><h2>Watch & discover</h2><p>Short videos shared by the Blumbook community.</p><button className="primary-btn" onClick={()=>{if(requireAccount())setCompose(true);}}><Plus size={17}/> Share video</button></div>
       {posts.filter(p=>p.video_url&&!blockedAuthors.includes(p.author_id)).length?posts.filter(p=>p.video_url&&!blockedAuthors.includes(p.author_id)).map(p=><PostCard {...postProps(p)}/>):<div className="empty-state"><Video size={29}/><h3>No videos yet</h3><p>Videos will appear here once members start sharing.</p></div>}</section>}
 

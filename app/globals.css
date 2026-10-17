@@ -1125,3 +1125,11 @@ button.settings-detail-row:hover { background:var(--hover); }
 .skeleton-post .skeleton-avatar,.skeleton-post i { animation:skeleton-blink 1.5s ease-in-out infinite; }
 @keyframes skeleton-blink { 0%,100%{opacity:.45} 50%{opacity:1} }
 @media(prefers-reduced-motion:reduce) { .skeleton-post .skeleton-avatar,.skeleton-post i {animation:none;} }
+
+.opp-applications {padding:14px 18px 28px; max-height:70vh; overflow-y:auto;}
+.opp-applications>article {padding:17px 0;border-bottom:1px solid var(--line);}
+.opp-applications strong {font-size:15px;}
+.opp-applications p {color:var(--subtext);font-size:13px;line-height:1.65;white-space:pre-wrap;margin:10px 0;}
+.opp-applications small {display:block;color:var(--muted);font-size:11px;}
+.opp-applications button {display:inline-flex;align-items:center;gap:6px;padding:9px 13px;border-radius:20px;background:var(--text);color:var(--ink);font-size:12px;font-weight:800;margin:12px 0 0;}
+.opp-applications>p {color:var(--muted);font-size:13px;line-height:1.65;}
