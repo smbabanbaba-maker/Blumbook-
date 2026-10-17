@@ -700,55 +700,78 @@ export default function BlumbookApp() {
       {view === "bookmarks" && <><PanelTitle>Bookmarks</PanelTitle><p className="muted-intro">@{me.username} · Your saved posts</p>{posts.filter((p)=>p.bookmarked).length===0?<div className="empty-state"><Bookmark size={34}/><h3>Save posts for later</h3><p>Tap the bookmark icon on any post to keep it here.</p></div>:posts.filter((p)=>p.bookmarked).map((p)=><PostCard {...postProps(p)}/>)}</>}
 
       {view === "profile" && <>
-        <PanelTitle onBack={()=>navigate("home")} extra={<span className="mini-post-count">{posts.filter(p=>p.author_id===activeProfile.id).length} posts</span>}>{activeProfile.display_name}</PanelTitle>
-        <div className="profile-banner"><span className="banner-glow"/></div>
-        <section className="profile-summary">
-          <div className="profile-identity">
+        <PanelTitle onBack={()=>navigate("home")} extra={<span className="mini-post-count">{profilePosts.length} {profilePosts.length===1?"post":"posts"}</span>}>{activeProfile.display_name}</PanelTitle>
+        <div className="full-profile-cover">
+          {activeProfile.banner_url ? <img src={activeProfile.banner_url} alt={activeProfile.display_name+"'s cover photo"}/> : <div className="full-profile-default-cover" aria-hidden="true"><span/><span/><span/></div>}
+          {activeProfile.id===me.id&&<button className="cover-edit-shortcut" aria-label="Edit cover photo" onClick={openEdit}><ImagePlus size={19}/></button>}
+        </div>
+        <section className="full-profile-content">
+          <div className="full-profile-avatar-line">
             <Avatar profile={activeProfile} size="large"/>
-            <div className="profile-identity-name"><h2><Name profile={activeProfile}/></h2><span className="profile-handle">@{activeProfile.username}</span></div>
-          </div>
-          <div className="profile-button-bar">
-            {activeProfile.id===me.id?
-              <><button className="profile-action-primary" onClick={openEdit}><UserRound size={17}/> Edit Profile</button>
-                <button className="profile-action-secondary" onClick={()=>void shareProfile(activeProfile)}><Share2 size={17}/> Share</button>
-                <button className="profile-action-secondary" onClick={openEdit}><Handshake size={17}/> Collaborate</button></>
-              : <>
-                <button className="profile-action-primary" onClick={()=>toggleFollow(activeProfile.id)}><UserRoundPlus size={17}/>{followed.includes(activeProfile.id)?"Following":"Follow"}</button>
-                <button className="profile-action-secondary" onClick={()=>openMessagePreview(activeProfile)}><Mail size={17}/> Message</button>
-                <button className="profile-action-secondary" onClick={()=>openCollab(activeProfile)}><Handshake size={17}/> Collaborate</button>
-                <button className="profile-action-icon" onClick={()=>void shareProfile(activeProfile)} aria-label="Share profile" title="Share profile"><Share2 size={19}/></button></>
-            }
-            <div className="profile-more-wrap">
-              <button className="profile-action-icon" aria-label="More profile options" aria-expanded={profileMore} onClick={()=>setProfileMore(v=>!v)}><MoreHorizontal size={21}/></button>
-              {profileMore&&<div className="profile-more-panel" role="group" aria-label="Profile actions">
-                <button onClick={()=>void shareProfile(activeProfile)}><Share2 size={17}/> Share profile</button>
-                {activeProfile.id===me.id?
-                  <><button onClick={()=>{setProfileMore(false);openEdit();}}><UserRound size={17}/> Edit profile</button>
-                    <button onClick={()=>navigate("settings")}><Settings size={17}/> Settings & privacy</button></>
-                  : <>
-                    <button onClick={()=>toggleProfileAlerts(activeProfile)}><Bell size={17}/>{profileAlerts.includes(activeProfile.id)?"Turn off alerts (preview)":"Post alerts (preview)"}</button>
+            <div className="full-profile-top-actions">
+              {activeProfile.id===me.id
+                ? <><button onClick={()=>void shareProfile(activeProfile)}><Share2 size={17}/> Share</button><button onClick={openEdit}>Edit profile</button></>
+                : <><button onClick={()=>toggleFollow(activeProfile.id)} className="profile-follow-primary">{followed.includes(activeProfile.id)?"Following":"Follow"}</button><button onClick={()=>openMessagePreview(activeProfile)}><Mail size={17}/> Message</button></>}
+              <div className="profile-more-wrap">
+                <button className="profile-action-icon" aria-label="More profile options" aria-expanded={profileMore} onClick={()=>setProfileMore(x=>!x)}><MoreHorizontal size={20}/></button>
+                {profileMore&&<div className="profile-more-panel" role="group" aria-label="Profile options">
+                  <button onClick={()=>void shareProfile(activeProfile)}><Share2 size={17}/> Share profile</button>
+                  {activeProfile.id===me.id
+                  ? <><button onClick={()=>{setProfileMore(false);openEdit();}}><Feather size={17}/> Edit profile</button><button onClick={()=>navigate("settings")}><Settings size={17}/> Settings & privacy</button></>
+                  : <><button onClick={()=>openCollab(activeProfile)}><Handshake size={17}/> Collaborate</button>
+                    <button onClick={()=>toggleProfileAlerts(activeProfile)}><Bell size={17}/> {profileAlerts.includes(activeProfile.id)?"Turn off alerts":"Post alerts (preview)"}</button>
                     <button onClick={()=>{mute(activeProfile.id);setProfileMore(false);}}><Bell size={17}/> Mute @{activeProfile.username}</button>
-                    <button onClick={()=>{setBlockTarget(activeProfile);setProfileMore(false);}}><Ban size={17}/>{blockedAuthors.includes(activeProfile.id)?"Unhide account":"Block (device preview)"}</button>
-                    <button onClick={()=>{setReportReason("Spam");setProfileReport(activeProfile);setProfileMore(false);}}><Flag size={17}/> Report account (beta)</button>
-                  </>
-                }
-              </div>}
+                    <button onClick={()=>{setBlockTarget(activeProfile);setProfileMore(false);}}><Ban size={17}/>{blockedAuthors.includes(activeProfile.id)?"Unhide account":"Hide account (preview)"}</button>
+                    <button onClick={()=>{setReportReason("Spam");setProfileReport(activeProfile);setProfileMore(false);}}><Flag size={17}/> Report account (beta)</button></>}
+                </div>}
+              </div>
             </div>
           </div>
-          {blockedAuthors.includes(activeProfile.id)&&activeProfile.id!==me.id&&<div className="profile-info-note"><Ban size={18}/><span>Hidden on your device only. This is not an account-level block.</span><button onClick={()=>toggleHidden(activeProfile)}>Unhide</button></div>}
-          {activeProfile.open_to_collab&&<div className="profile-collab-status"><Handshake size={17}/> Open to collaboration</div>}
-          {activeProfile.headline&&<p className="profile-headline">{activeProfile.headline}</p>}
-          <p className="profile-bio">{activeProfile.bio || "Here to share, learn, and connect."}</p>
-          {Boolean(activeProfile.skills?.length)&&<div className="profile-skills">{activeProfile.skills?.map(s=><span key={s}>{s}</span>)}</div>}
-          {activeProfile.portfolio_url?.startsWith("https://")&&<a className="profile-portfolio" href={activeProfile.portfolio_url} target="_blank" rel="noopener noreferrer">View portfolio ↗</a>}
-          <div className="profile-extra"><Compass size={15}/>{activeProfile.location || "Blumbook community"}</div>
-          <div className="follow-stats">
-            <span><b>{activeProfile.id===me.id?followed.length:followCounts[activeProfile.id]?.following??0}</b> Following</span>
-            <span><b>{followCounts[activeProfile.id]?.followers??0}</b> Followers</span>
+          <div className="full-profile-name">
+            <h2><Name profile={activeProfile}/></h2>
+            <span>@{activeProfile.username}</span>
           </div>
+          {activeProfile.headline&&<p className="full-profile-headline">{activeProfile.headline}</p>}
+          <p className="full-profile-bio">{activeProfile.bio || (activeProfile.id===me.id?"Add a bio to introduce yourself.":"No bio yet.")}</p>
+          <div className="full-profile-meta">
+            {activeProfile.location&&<span><MapPin size={16}/>{activeProfile.location}</span>}
+            {activeProfile.portfolio_url?.startsWith("https://")&&<a href={activeProfile.portfolio_url} target="_blank" rel="noopener noreferrer"><Link2 size={16}/><span>{(()=>{try{return new URL(activeProfile.portfolio_url as string).hostname}catch{return "Website"}})()}</span></a>}
+            {activeProfile.created_at&&<span><CalendarDays size={16}/>Joined {new Date(activeProfile.created_at).toLocaleDateString("en",{month:"long",year:"numeric"})}</span>}
+          </div>
+          <div className="full-profile-stats">
+            <span><strong>{followCounts[activeProfile.id]?.following ?? (activeProfile.id===me.id?followed.length:0)}</strong> Following</span>
+            <span><strong>{followCounts[activeProfile.id]?.followers ?? 0}</strong> Followers</span>
+          </div>
+          {activeProfile.open_to_collab&&<button className="full-profile-collaboration" onClick={()=>activeProfile.id===me.id?openEdit():openCollab(activeProfile)}><Handshake size={16}/> Open to collaboration <ArrowRight size={15}/></button>}
+          {blockedAuthors.includes(activeProfile.id)&&activeProfile.id!==me.id&&<div className="profile-info-note"><Ban size={17}/><span>Hidden on this device only.</span><button onClick={()=>toggleHidden(activeProfile)}>Unhide</button></div>}
         </section>
-        <div className="feed-tabs"><button className="selected">Posts</button><button onClick={()=>notify("Replies tab is coming soon")}>Replies</button><button onClick={()=>notify("Media tab is coming soon")}>Media</button><button onClick={()=>notify("Project portfolios are being developed")}>Projects</button></div>
-        {posts.filter(p=>p.author_id===activeProfile.id).length===0?<div className="empty-state"><Feather size={30}/><h3>No posts yet</h3><p>When this person posts, it will appear here.</p></div>:posts.filter(p=>p.author_id===activeProfile.id).map(p=><PostCard {...postProps(p)}/>)}
+        <div className="full-profile-tabs" role="tablist" aria-label="Profile content">
+          {(["posts","replies","media","likes"] as ProfileTab[]).map(t=><button key={t} role="tab" aria-selected={profileTab===t} className={profileTab===t?"selected":""} onClick={()=>setProfileTab(t)}>{t[0].toUpperCase()+t.slice(1)}</button>)}
+        </div>
+        {profileTab==="posts" && <>
+          {sortedProfilePosts.length===0?<div className="empty-state"><Feather size={31}/><h3>No posts yet</h3><p>{activeProfile.id===me.id?"Create your first post to start sharing your story.":"Posts from this member will appear here."}</p></div>
+          :sortedProfilePosts.map(p=><div key={p.id}>
+            {activeProfile.pinned_post_id===p.id&&<div className="full-profile-pin-heading"><Pin size={14}/> Pinned</div>}
+            {activeProfile.id===me.id&&<div className="full-profile-pin-actions"><button onClick={()=>void pinPost(p)}><Pin size={13}/>{activeProfile.pinned_post_id===p.id?"Unpin":"Pin to profile"}</button></div>}
+            <PostCard {...postProps(p)}/>
+          </div>)}
+        </>}
+        {profileTab==="replies" && <>
+          {profileReplies.length ? profileReplies.map(reply=><button key={reply.id} className="full-profile-reply" onClick={()=>{const original=posts.find(p=>p.id===reply.post_id);if(original)void openThread(original);else notify("Original post isn't in the loaded feed.");}}>
+              <Avatar profile={activeProfile} size="small"/>
+              <span><strong>{activeProfile.display_name}</strong><small> · {timeAgo(reply.created_at)}</small><p>{reply.body}</p><em>View conversation <ArrowRight size={14}/></em></span>
+            </button>) : <div className="empty-state"><MessageCircle size={30}/><h3>No replies yet</h3><p>Replies to posts will appear here.</p></div>}
+        </>}
+        {profileTab==="media" && <>
+          {profileMedia.length ? <div className="full-profile-media-grid">{profileMedia.map(p=><button key={p.id} onClick={()=>void openThread(p)} aria-label={"View media in post by "+activeProfile.display_name}><img src={p.image_url||""} alt="Shared post media" loading="lazy"/></button>)}</div>
+          : <div className="empty-state"><ImagePlus size={30}/><h3>No photos yet</h3><p>Photos shared in posts will appear here.</p></div>}
+        </>}
+        {profileTab==="likes" && <>
+          {activeProfile.id!==me.id
+            ? <div className="empty-state"><Heart size={30}/><h3>Likes are private</h3><p>Only you can see posts you've liked on Blumbook.</p></div>
+            :profileLikes.length?profileLikes.map(p=><PostCard {...postProps(p)}/>)
+            :<div className="empty-state"><Heart size={30}/><h3>No liked posts yet</h3><p>Posts you like will be collected here.</p></div>}
+        </>}
       </>}
 
       {view === "thread" && selectedPost && <>
