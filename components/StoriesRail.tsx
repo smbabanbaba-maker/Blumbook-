@@ -16,14 +16,14 @@ export default function StoriesRail({userId,profiles,onSignIn,launchCreate=0,com
   if(error){setMessage("Stories need the Phase 6 migration.");return;}setStories((data||[]) as Story[]);
  },[forceDemo]);
  useEffect(()=>{void load();},[load,userId]);
- useEffect(()=>{if(launchCreate>0){if(isCloudEnabled&&!userId)onSignIn();else setCreating(true);}},[launchCreate,userId]);
+ useEffect(()=>{if(launchCreate>0){if(isCloudEnabled&&!forceDemo&&!userId)onSignIn();else setCreating(true);}},[launchCreate,userId,forceDemo]);
  const live=stories.filter(s=>new Date(s.expires_at).getTime()>Date.now());
  const current=selected===null?null:live[selected]||null;
  const owner=(id:string)=>profiles.find(p=>p.id===id);
  function pick(f:File|undefined){if(!f)return;if(!valid(f)){setMessage("Use an image under 5 MB or an MP4/WebM under 30 MB.");return;}if(preview.startsWith("blob:"))URL.revokeObjectURL(preview);setFile(f);setPreview(URL.createObjectURL(f));setMessage("");}
  function closeForm(){setCreating(false);setFile(null);setCaption("");if(preview.startsWith("blob:"))URL.revokeObjectURL(preview);setPreview("");}
  async function publish(e:FormEvent){
-  e.preventDefault();if(!file||busy)return;if(isCloudEnabled&&!userId){onSignIn();return;}
+  e.preventDefault();if(!file||busy)return;if(isCloudEnabled&&!forceDemo&&!userId){onSignIn();return;}
   setBusy(true);
   try{
    const media_type:Story["media_type"]=file.type.startsWith("image/")?"image":"video";
@@ -59,10 +59,10 @@ export default function StoriesRail({userId,profiles,onSignIn,launchCreate=0,com
   setStories(p=>p.filter(s=>s.id!==item.id));setSelected(null);
  }
  return <section className="blum-stories" aria-label="Stories">
-  {!compact&&<div className="stories-head"><h2>Stories <span>24-hour moments</span></h2><button onClick={()=>{if(isCloudEnabled&&!userId)onSignIn();else setCreating(true);}}><Plus size={17}/> Add</button></div>}
+  {!compact&&<div className="stories-head"><h2>Stories <span>24-hour moments</span></h2><button onClick={()=>{if(isCloudEnabled&&!forceDemo&&!userId)onSignIn();else setCreating(true);}}><Plus size={17}/> Add</button></div>}
   {message&&<p className="feature-disclaimer" role="status">{message} <button onClick={()=>setMessage("")} aria-label="Dismiss"><X size={14}/></button></p>}
   <div className="stories-row facebook-stories-row" aria-label="Browse stories">
-   <button className="story-tile fb-story-card fb-story-create" aria-label="Create your story" onClick={()=>{if(isCloudEnabled&&!userId)onSignIn();else setCreating(true);}}>
+   <button className="story-tile fb-story-card fb-story-create" aria-label="Create your story" onClick={()=>{if(isCloudEnabled&&!forceDemo&&!userId)onSignIn();else setCreating(true);}}>
      <span className="fb-story-create-cover">
        {profiles.find(p=>p.id===me)?.avatar_url?
         <img src={profiles.find(p=>p.id===me)?.avatar_url||""} loading="lazy" alt=""/>:
