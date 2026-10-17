@@ -55,3 +55,8 @@ Blumbook is not a clone of X or Facebook. The original value is **Bloom Circles*
 **Not included yet:** actual paid features, staffed moderation, verified analytics, AI translation, video processing, or fully real-time direct messaging.
 
 Do not publicly launch or advertise paid services while required dependencies are incomplete.
+
+## Profile actions (Phase 3)
+
+Run `supabase/phase3.sql` after Phase 2 to enable `open_to_collab`, persistent collaboration requests and account-report intake. The recipient must opt in before the database accepts requests. There is no delivered-message inbox yet. Message button, profile alerts and local hide actions are explicitly previews; not live services or complete safety protections.
+

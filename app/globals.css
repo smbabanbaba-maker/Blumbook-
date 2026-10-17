@@ -670,3 +670,51 @@ button.settings-detail-row:hover { background:var(--hover); }
 .muted-accounts>strong{display:block;font-size:14px;margin-bottom:10px;}
 .muted-accounts>div{display:flex;align-items:center;justify-content:space-between;padding:12px 0;gap:10px;}
 .muted-accounts button{font-size:12px;border:1px solid var(--line);border-radius:22px;padding:9px 12px;}
+
+
+/* Premium profile actions — accessible, neutral, thumb-friendly */
+.profile-identity{display:flex;align-items:center;gap:15px;min-height:72px;}
+.profile-identity .avatar-large{margin-top:-40px;z-index:1;position:relative;}
+.profile-identity-name{min-width:0;align-self:center;padding-top:9px;}
+.profile-identity-name h2{font-size:19px;margin:0 0 6px;overflow-wrap:anywhere;}
+.profile-button-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;position:relative;margin:8px 0 18px;}
+.profile-action-primary,.profile-action-secondary,.profile-action-icon{min-height:43px;border-radius:24px;display:inline-flex;align-items:center;justify-content:center;gap:7px;font-size:13px;font-weight:740;border:1px solid var(--line);padding:9px 13px;white-space:nowrap;}
+.profile-action-primary{background:var(--text);color:var(--ink);border-color:var(--text);}
+.profile-action-secondary,.profile-action-icon{background:var(--bg);color:var(--text);}
+.profile-action-primary:hover{opacity:.88;}
+.profile-action-secondary:hover,.profile-action-icon:hover{background:var(--hover);}
+.profile-action-icon{width:43px;padding:0;}
+.profile-more-wrap{position:relative;}
+.profile-more-panel{position:absolute;right:0;top:49px;width:min(290px,84vw);border:1px solid var(--line);background:var(--surface);z-index:30;border-radius:15px;box-shadow:0 8px 28px var(--shadow);padding:8px;display:flex;flex-direction:column;gap:2px;}
+.profile-more-panel button{padding:13px 11px;border-radius:9px;display:flex;align-items:center;gap:11px;width:100%;text-align:left;font-size:13px;line-height:1.4;}
+.profile-more-panel button:hover{background:var(--hover);}
+.profile-collab-status{display:inline-flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--line);border-radius:20px;padding:10px 13px;font-size:12px;font-weight:780;}
+.profile-info-note{display:flex;align-items:flex-start;gap:10px;background:var(--surface2);color:var(--muted);padding:13px;border-radius:11px;font-size:13px;line-height:1.5;}
+.profile-info-note button{color:var(--text);text-decoration:underline;}
+.profile-collab-edit{flex-direction:row!important;align-items:flex-start;gap:14px!important;}
+.profile-collab-edit input{flex:none;width:19px;height:19px;margin-top:4px;accent-color:var(--text);}
+.profile-collab-edit span{display:flex;flex-direction:column;gap:5px;}
+.profile-collab-edit small{font-weight:400;color:var(--muted);line-height:1.4;}
+.profile-dialog-body{display:flex;flex-direction:column;gap:17px;padding:10px 25px 26px;}
+.profile-dialog-emblem{width:55px;height:55px;display:grid;place-items:center;background:var(--surface2);border:1px solid var(--line);border-radius:15px;}
+.profile-dialog-body h3{font-size:24px;letter-spacing:-.8px;line-height:1.2;margin:0;}
+.profile-dialog-body p{color:var(--muted);font-size:14px;line-height:1.55;margin:0;}
+.profile-dialog-body label{display:flex;flex-direction:column;gap:8px;font-size:13px;font-weight:700;}
+.profile-dialog-body select,.profile-dialog-body textarea{border:1px solid var(--line);border-radius:11px;background:var(--surface2);color:var(--text);padding:13px;font-size:14px;resize:vertical;}
+.profile-dialog-body>.primary-btn{align-self:flex-end;}
+.profile-dialog-controls{display:flex;justify-content:flex-end;gap:10px;}
+@media(max-width:700px){
+.profile-identity{align-items:flex-end;min-height:75px;}
+.profile-identity .avatar-large{margin-top:-39px;}
+.profile-identity-name{padding:0 0 8px;}
+.profile-button-bar{gap:6px;flex-wrap:nowrap;justify-content:space-between;}
+.profile-action-primary,.profile-action-secondary{padding:9px 10px;min-width:0;font-size:11.5px;gap:5px;}
+.profile-action-primary svg,.profile-action-secondary svg{width:15px;height:15px;}
+.profile-action-icon{width:37px;height:41px;min-height:41px;flex-shrink:0;}
+.profile-more-panel{right:0;}
+.profile-dialog-body{padding:8px 18px 30px;}
+}
+@media(max-width:360px){
+.profile-button-bar{flex-wrap:wrap;}
+.profile-action-primary,.profile-action-secondary{flex:1;}
+}

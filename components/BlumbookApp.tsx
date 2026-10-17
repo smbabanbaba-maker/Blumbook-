@@ -5,7 +5,7 @@ import {
   ArrowLeft, ArrowRight, Bell, Bookmark, Check, CheckCircle2, ChevronDown, Compass, Ellipsis,
   Feather, Heart, Home, ImagePlus, LogIn, LogOut, Mail, Menu, MessageCircle, MoreHorizontal,
   Plus, Repeat2, Search, Send, Settings, Share2, ShieldCheck, Smile, Sparkles, Sun, Moon, Crown, List, Radio, ChartNoAxesCombined, CircleHelp, UserRound,
-  UserRoundPlus, UsersRound, Accessibility, Link2, LockKeyhole, Languages, Download, Type, X, type LucideIcon
+  UserRoundPlus, UsersRound, Accessibility, Link2, LockKeyhole, Languages, Download, Type, Handshake, Ban, Flag, Copy, type LucideIcon, X
 } from "lucide-react";
 import { supabase, isCloudEnabled } from "@/lib/supabase";
 import BloomCircles from "@/components/BloomCircles";
@@ -110,6 +110,16 @@ export default function BlumbookApp() {
   const [view, setView] = useState<View>("home");
   const [welcomeHidden,setWelcomeHidden]=useState(true);
   const [mutedAuthors,setMutedAuthors]=useState<string[]>([]);
+  const [blockedAuthors,setBlockedAuthors]=useState<string[]>([]);
+  const [profileAlerts,setProfileAlerts]=useState<string[]>([]);
+  const [profileMore,setProfileMore]=useState(false);
+  const [collabTarget,setCollabTarget]=useState<Profile|null>(null);
+  const [collabKind,setCollabKind]=useState("Project");
+  const [collabMessage,setCollabMessage]=useState("");
+  const [profileReport,setProfileReport]=useState<Profile|null>(null);
+  const [reportReason,setReportReason]=useState("Spam");
+  const [blockTarget,setBlockTarget]=useState<Profile|null>(null);
+  const [followCounts,setFollowCounts]=useState<Record<string,{following:number;followers:number}>>({});
   const [language,setLanguage] = useState<AppLanguage>("en");
   const tr=(key:Parameters<typeof translate>[0])=>translate(key,language);
   const [theme, setTheme] = useState<Theme>("dark");
@@ -124,6 +134,8 @@ export default function BlumbookApp() {
     if(window.localStorage.getItem("blumbook-language")==="ha")setLanguage("ha");
     setWelcomeHidden(window.localStorage.getItem("blumbook-onboarded")==="yes");
     try{const m=JSON.parse(window.localStorage.getItem("blumbook-muted")||"[]");if(Array.isArray(m))setMutedAuthors(m.filter(x=>typeof x==="string"));}catch{}
+    try{const b=JSON.parse(window.localStorage.getItem("blumbook-hidden-accounts")||"[]");if(Array.isArray(b))setBlockedAuthors(b.filter(x=>typeof x==="string"));}catch{}
+    try{const a=JSON.parse(window.localStorage.getItem("blumbook-profile-alerts")||"[]");if(Array.isArray(a))setProfileAlerts(a.filter(x=>typeof x==="string"));}catch{}
     const saved = window.localStorage.getItem("blumbook-theme");
     if (saved === "light") setTheme("light");
     const savedPrefs = window.localStorage.getItem("blumbook-notification-prefs");
@@ -176,6 +188,7 @@ export default function BlumbookApp() {
   const [editHeadline,setEditHeadline]=useState("");
   const [editSkills,setEditSkills]=useState("");
   const [editPortfolio,setEditPortfolio]=useState("");
+  const [editAvailable,setEditAvailable]=useState(false);
   const [toast, setToast] = useState("");
   const [busy, setBusy] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -186,7 +199,7 @@ export default function BlumbookApp() {
   const lookup = useCallback((id: string) => allPeople.find((p) => p.id === id) || { id, display_name:"Blumbook member", username:"member", bio:"" }, [allPeople]);
   const isMember = !isCloudEnabled || Boolean(cloudUserId);
   const notify = (message: string) => { setToast(message); window.setTimeout(() => setToast(""), 3400); };
-  const navigate = (target: View) => { setView(target); if (target === "settings") { setSettingsPanel(null); setSettingsSearch(""); } setMenuOpen(false); setChatWith(null); window.scrollTo({ top: 0, behavior:"smooth" }); };
+  const navigate = (target: View) => { setProfileMore(false); if(target!=="profile" && typeof window!=="undefined" && new URLSearchParams(window.location.search).has("profile")){const url=new URL(window.location.href);url.searchParams.delete("profile");window.history.replaceState({},"",url.pathname+url.search);} setView(target); if (target === "settings") { setSettingsPanel(null); setSettingsSearch(""); } setMenuOpen(false); setChatWith(null); window.scrollTo({ top: 0, behavior:"smooth" }); };
   const requireAccount = () => {
     if (!isMember) { setAuthOpen(true); notify("Sign in to interact with the community."); return false; }
     return true;
@@ -208,13 +221,21 @@ export default function BlumbookApp() {
         client.from("comments").select("post_id").limit(2000),
       ]);
       setCloudUserId(user?.id || null);
-      const {data:extrasData}=await client.from("profile_extras").select("user_id,headline,skills,portfolio_url").limit(100);
+      let extraResult=await client.from("profile_extras").select("user_id,headline,skills,portfolio_url,open_to_collab").limit(100);
+      if(extraResult.error)extraResult=await client.from("profile_extras").select("user_id,headline,skills,portfolio_url").limit(100);
+      const extrasData=extraResult.data;
       const extras=new Map((extrasData||[]).map(x=>[x.user_id,x]));
-      const cleanProfiles: Profile[] = (profilesData || []).map((p) => ({ id:p.id, username:p.username, display_name:p.display_name, bio:p.bio || "", avatar_url:p.avatar_url, verified:p.verified, location:p.location,headline:extras.get(p.id)?.headline||"",skills:extras.get(p.id)?.skills||[],portfolio_url:extras.get(p.id)?.portfolio_url||"" }));
+      const cleanProfiles: Profile[] = (profilesData || []).map((p) => ({ id:p.id, username:p.username, display_name:p.display_name, bio:p.bio || "", avatar_url:p.avatar_url, verified:p.verified, location:p.location,headline:extras.get(p.id)?.headline||"",skills:extras.get(p.id)?.skills||[],portfolio_url:extras.get(p.id)?.portfolio_url||"",open_to_collab:extras.get(p.id)?.open_to_collab===true }));
       setPeople(cleanProfiles);
       const mine = cleanProfiles.find((p) => p.id === user?.id);
       setMember(user ? (mine || { id:user.id, username:(user.email || "member").split("@")[0], display_name:user.user_metadata?.full_name || "Blumbook member", bio:"" }) : null);
       setFollowed((followsData || []).filter((f) => f.follower_id === user?.id).map((f) => f.following_id));
+      const tally:Record<string,{following:number;followers:number}>={};
+      for(const f of (followsData||[])){
+        const following=tally[f.follower_id]||{following:0,followers:0};following.following++;tally[f.follower_id]=following;
+        const followers=tally[f.following_id]||{following:0,followers:0};followers.followers++;tally[f.following_id]=followers;
+      }
+      setFollowCounts(tally);
       const counts = (rows: { post_id: string }[] | null) => {
         const out: Record<string, number> = {};
         (rows || []).forEach((r) => { out[r.post_id] = (out[r.post_id] || 0) + 1; }); return out;
@@ -352,7 +373,7 @@ export default function BlumbookApp() {
     if (action.error) notify(action.error.message);
     else { setAuthOpen(false); notify(signUp ? "Account created. Check your email if confirmation is enabled." : "Welcome back!"); void loadCloud(); }
   };
-  const openEdit = () => { setEditName(me.display_name); setEditBio(me.bio);setEditHeadline(me.headline||"");setEditSkills((me.skills||[]).join(", "));setEditPortfolio(me.portfolio_url||"");setEditProfile(true); };
+  const openEdit = () => { setEditName(me.display_name); setEditBio(me.bio);setEditHeadline(me.headline||"");setEditSkills((me.skills||[]).join(", "));setEditPortfolio(me.portfolio_url||"");setEditAvailable(Boolean(me.open_to_collab));setEditProfile(true); };
   const saveProfile = async (e: FormEvent) => {
     e.preventDefault();
     if (!requireAccount()) return;
@@ -363,13 +384,17 @@ export default function BlumbookApp() {
     if (supabase && cloudUserId) {
       const { error } = await supabase.from("profiles").update({ display_name:editName.trim(), bio:editBio.trim() }).eq("id", cloudUserId);
       if (error) { notify(error.message); setBusy(false); return; }
-      const {error:ex}=await supabase.from("profile_extras").upsert({user_id:cloudUserId,headline:editHeadline.trim(),skills,portfolio_url:portfolio});
+      const {error:ex}=await supabase.from("profile_extras").upsert({user_id:cloudUserId,headline:editHeadline.trim(),skills,portfolio_url:portfolio,open_to_collab:editAvailable});
       if(ex)notify("Professional profile fields need the Phase 2 migration.");
       await loadCloud();
-    } else setMember({ ...me, display_name:editName.trim(), bio:editBio.trim(),headline:editHeadline.trim(),skills,portfolio_url:portfolio });
+    } else setMember({ ...me, display_name:editName.trim(), bio:editBio.trim(),headline:editHeadline.trim(),skills,portfolio_url:portfolio,open_to_collab:editAvailable });
     setBusy(false); setEditProfile(false); notify("Profile updated");
   };
-  const openProfile = (id: string) => { setSelectedProfile(id); navigate("profile"); };
+  const openProfile = (id: string) => {
+    const p=lookup(id);setSelectedProfile(id);navigate("profile");
+    const url=new URL(window.location.href);url.searchParams.set("profile",p.username);url.searchParams.delete("post");
+    window.history.replaceState({},"",url.pathname+url.search);
+  };
   const share = async (post: Post) => {
     const url = window.location.origin + "/?post=" + encodeURIComponent(post.id);
     try { await navigator.clipboard.writeText(url); notify("Link copied to clipboard"); }
@@ -377,8 +402,14 @@ export default function BlumbookApp() {
   };
   const activeProfile = lookup(selectedProfile === "demo-me" ? me.id : selectedProfile);
   const selectedPost = posts.find((p) => p.id === threadId);
-  const filteredPosts = posts.filter((p) => !mutedAuthors.includes(p.author_id) && (tab !== "following" || p.author_id === me.id || followed.includes(p.author_id)));
-  const searchPosts = posts.filter((p) => !mutedAuthors.includes(p.author_id) && (p.body.toLowerCase().includes(query.toLowerCase()) || lookup(p.author_id).display_name.toLowerCase().includes(query.toLowerCase())));
+  useEffect(()=>{
+    const slug=new URLSearchParams(window.location.search).get("profile");
+    if(!slug)return;
+    const person=allPeople.find(p=>p.username.toLowerCase()===slug.toLowerCase());
+    if(person){setSelectedProfile(person.id);setView("profile");}
+  },[allPeople]);
+  const filteredPosts = posts.filter((p) => !blockedAuthors.includes(p.author_id) && !mutedAuthors.includes(p.author_id) && (tab !== "following" || p.author_id === me.id || followed.includes(p.author_id)));
+  const searchPosts = posts.filter((p) => !blockedAuthors.includes(p.author_id) && !mutedAuthors.includes(p.author_id) && (p.body.toLowerCase().includes(query.toLowerCase()) || lookup(p.author_id).display_name.toLowerCase().includes(query.toLowerCase())));
   const searchProfiles = people.filter((p) => p.display_name.toLowerCase().includes(query.toLowerCase()) || p.username.toLowerCase().includes(query.toLowerCase()));
   const mute=(id:string)=>{if(id===me.id){notify("Cannot mute yourself.");return;}const next=[...new Set([...mutedAuthors,id])];setMutedAuthors(next);window.localStorage.setItem("blumbook-muted",JSON.stringify(next));notify("Muted in this browser. You can undo in Settings.");};
   const report=async(p:Post,reason:string)=>{
@@ -386,6 +417,79 @@ export default function BlumbookApp() {
     const {error}=await supabase.from("content_reports").insert({reporter_id:cloudUserId,post_id:p.id,reason});
     if(error)notify(error.code==="23505"?"Already reported.":error.message);
     else notify("Report stored. Staff review is not operational yet.");
+  };
+
+  const profileUrl=(p:Profile)=>{
+    const address=new URL(window.location.href);
+    address.searchParams.delete("post");
+    address.searchParams.set("profile",p.username);
+    return address.toString();
+  };
+  const shareProfile=async(p:Profile)=>{
+    setProfileMore(false);
+    const link=profileUrl(p);
+    try {
+      if(navigator.share){await navigator.share({title:p.display_name+" on Blumbook",url:link});return;}
+      await navigator.clipboard.writeText(link);
+      notify("Profile link copied.");
+    }catch(error){
+      if(error instanceof DOMException && error.name==="AbortError")return;
+      try{await navigator.clipboard.writeText(link);notify("Profile link copied.");}
+      catch{window.prompt("Copy profile link:",link);}
+    }
+  };
+  const openMessagePreview=(p:Profile)=>{
+    setProfileMore(false);
+    if(!requireAccount())return;
+    navigate("messages");setChatWith(p.id);
+    notify("Messages are a preview and are not delivered to other users.");
+  };
+  const openCollab=(p:Profile)=>{
+    setProfileMore(false);
+    if(!requireAccount())return;
+    setCollabTarget(p);setCollabKind("Project");setCollabMessage("");
+  };
+  const sendCollab=async(e:FormEvent)=>{
+    e.preventDefault();
+    if(!collabTarget||!collabMessage.trim()||!requireAccount()||busy)return;
+    if(!supabase||!cloudUserId){
+      notify("Preview only — no collaboration request was sent.");
+      setCollabTarget(null);return;
+    }
+    if(!collabTarget.open_to_collab){notify("This member isn't accepting collaboration requests.");return;}
+    setBusy(true);
+    const {error}=await supabase.from("collaboration_requests").insert({
+      sender_id:cloudUserId,recipient_id:collabTarget.id,kind:collabKind,message:collabMessage.trim()
+    });
+    setBusy(false);
+    if(error){notify("Could not deliver request. Check the Phase 3 migration.");return;}
+    notify("Collaboration request saved. Inbox notifications are still in development.");
+    setCollabTarget(null);setCollabMessage("");
+  };
+  const toggleProfileAlerts=(p:Profile)=>{
+    if(!requireAccount())return;
+    const next=profileAlerts.includes(p.id)?profileAlerts.filter(x=>x!==p.id):[...profileAlerts,p.id];
+    setProfileAlerts(next);window.localStorage.setItem("blumbook-profile-alerts",JSON.stringify(next));
+    setProfileMore(false);notify("Alert preference saved on this device. Push alerts aren't active yet.");
+  };
+  const toggleHidden=(p:Profile)=>{
+    if(p.id===me.id)return;
+    const already=blockedAuthors.includes(p.id);
+    const next=already?blockedAuthors.filter(x=>x!==p.id):[...blockedAuthors,p.id];
+    setBlockedAuthors(next);window.localStorage.setItem("blumbook-hidden-accounts",JSON.stringify(next));
+    setBlockTarget(null);setProfileMore(false);
+    notify(already?"Account unhidden on this device.":"Account hidden on this device only. This does not block contact or protect your posts.");
+  };
+  const submitProfileReport=async(e:FormEvent)=>{
+    e.preventDefault();if(!profileReport)return;
+    if(!supabase||!cloudUserId){notify("Profile reporting is unavailable in demo mode.");return;}
+    setBusy(true);
+    const {error}=await supabase.from("profile_reports").insert({
+      reporter_id:cloudUserId,reported_id:profileReport.id,reason:reportReason
+    });
+    setBusy(false);
+    if(error){notify(error.code==="23505"?"You have already reported this account.":"Could not submit report. Check the Phase 3 migration.");return;}
+    setProfileReport(null);notify("Report saved for future moderation. A human review queue is not active yet.");
   };
   const postProps = (p: Post) => ({ key:p.id, post:p, author:lookup(p.author_id), onLike:toggleLike, onRepost:toggleRepost, onBookmark:toggleBookmark, onReply:openThread, onProfile:openProfile, onShare:share,onMute:mute,onReport:report });
   const pickImage = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -532,20 +636,55 @@ export default function BlumbookApp() {
       {view === "bookmarks" && <><PanelTitle>Bookmarks</PanelTitle><p className="muted-intro">@{me.username} · Your saved posts</p>{posts.filter((p)=>p.bookmarked).length===0?<div className="empty-state"><Bookmark size={34}/><h3>Save posts for later</h3><p>Tap the bookmark icon on any post to keep it here.</p></div>:posts.filter((p)=>p.bookmarked).map((p)=><PostCard {...postProps(p)}/>)}</>}
 
       {view === "profile" && <>
-        <PanelTitle onBack={()=>navigate("home")} extra={<span className="mini-post-count">{posts.filter((p)=>p.author_id===activeProfile.id).length} posts</span>}>{activeProfile.display_name}</PanelTitle>
+        <PanelTitle onBack={()=>navigate("home")} extra={<span className="mini-post-count">{posts.filter(p=>p.author_id===activeProfile.id).length} posts</span>}>{activeProfile.display_name}</PanelTitle>
         <div className="profile-banner"><span className="banner-glow"/></div>
-        <div className="profile-summary">
-          <div className="profile-top"><Avatar profile={activeProfile} size="large"/>{activeProfile.id===me.id?<button className="outline-btn" onClick={openEdit}>Edit profile</button>:<button className={"outline-btn "+(followed.includes(activeProfile.id)?"outline-active":"")} onClick={()=>toggleFollow(activeProfile.id)}>{followed.includes(activeProfile.id)?"Following":"Follow"}</button>}</div>
-          <h2><Name profile={activeProfile}/></h2><span className="profile-handle">@{activeProfile.username}</span>
+        <section className="profile-summary">
+          <div className="profile-identity">
+            <Avatar profile={activeProfile} size="large"/>
+            <div className="profile-identity-name"><h2><Name profile={activeProfile}/></h2><span className="profile-handle">@{activeProfile.username}</span></div>
+          </div>
+          <div className="profile-button-bar">
+            {activeProfile.id===me.id?
+              <><button className="profile-action-primary" onClick={openEdit}><UserRound size={17}/> Edit Profile</button>
+                <button className="profile-action-secondary" onClick={()=>void shareProfile(activeProfile)}><Share2 size={17}/> Share</button>
+                <button className="profile-action-secondary" onClick={openEdit}><Handshake size={17}/> Collaborate</button></>
+              : <>
+                <button className="profile-action-primary" onClick={()=>toggleFollow(activeProfile.id)}><UserRoundPlus size={17}/>{followed.includes(activeProfile.id)?"Following":"Follow"}</button>
+                <button className="profile-action-secondary" onClick={()=>openMessagePreview(activeProfile)}><Mail size={17}/> Message</button>
+                <button className="profile-action-secondary" onClick={()=>openCollab(activeProfile)}><Handshake size={17}/> Collaborate</button>
+                <button className="profile-action-icon" onClick={()=>void shareProfile(activeProfile)} aria-label="Share profile" title="Share profile"><Share2 size={19}/></button></>
+            }
+            <div className="profile-more-wrap">
+              <button className="profile-action-icon" aria-label="More profile options" aria-expanded={profileMore} onClick={()=>setProfileMore(v=>!v)}><MoreHorizontal size={21}/></button>
+              {profileMore&&<div className="profile-more-panel" role="group" aria-label="Profile actions">
+                <button onClick={()=>void shareProfile(activeProfile)}><Share2 size={17}/> Share profile</button>
+                {activeProfile.id===me.id?
+                  <><button onClick={()=>{setProfileMore(false);openEdit();}}><UserRound size={17}/> Edit profile</button>
+                    <button onClick={()=>navigate("settings")}><Settings size={17}/> Settings & privacy</button></>
+                  : <>
+                    <button onClick={()=>toggleProfileAlerts(activeProfile)}><Bell size={17}/>{profileAlerts.includes(activeProfile.id)?"Turn off alerts (preview)":"Post alerts (preview)"}</button>
+                    <button onClick={()=>{mute(activeProfile.id);setProfileMore(false);}}><Bell size={17}/> Mute @{activeProfile.username}</button>
+                    <button onClick={()=>{setBlockTarget(activeProfile);setProfileMore(false);}}><Ban size={17}/>{blockedAuthors.includes(activeProfile.id)?"Unhide account":"Block (device preview)"}</button>
+                    <button onClick={()=>{setReportReason("Spam");setProfileReport(activeProfile);setProfileMore(false);}}><Flag size={17}/> Report account (beta)</button>
+                  </>
+                }
+              </div>}
+            </div>
+          </div>
+          {blockedAuthors.includes(activeProfile.id)&&activeProfile.id!==me.id&&<div className="profile-info-note"><Ban size={18}/><span>Hidden on your device only. This is not an account-level block.</span><button onClick={()=>toggleHidden(activeProfile)}>Unhide</button></div>}
+          {activeProfile.open_to_collab&&<div className="profile-collab-status"><Handshake size={17}/> Open to collaboration</div>}
           {activeProfile.headline&&<p className="profile-headline">{activeProfile.headline}</p>}
           <p className="profile-bio">{activeProfile.bio || "Here to share, learn, and connect."}</p>
           {Boolean(activeProfile.skills?.length)&&<div className="profile-skills">{activeProfile.skills?.map(s=><span key={s}>{s}</span>)}</div>}
           {activeProfile.portfolio_url?.startsWith("https://")&&<a className="profile-portfolio" href={activeProfile.portfolio_url} target="_blank" rel="noopener noreferrer">View portfolio ↗</a>}
           <div className="profile-extra"><Compass size={15}/>{activeProfile.location || "Blumbook community"}</div>
-          <div className="follow-stats"><span><b>{activeProfile.id===me.id?followed.length:156}</b> Following</span><span><b>{activeProfile.id===me.id?0:shortCount(2840)}</b> Followers</span></div>
-        </div>
-        <div className="feed-tabs"><button className="selected">Posts</button><button onClick={()=>notify("Replies tab is coming soon")}>Replies</button><button onClick={()=>notify("Media tab is coming soon")}>Media</button><button onClick={()=>notify("Likes are private")}>Likes</button></div>
-        {posts.filter((p)=>p.author_id===activeProfile.id).length===0?<div className="empty-state"><Feather size={30}/><h3>No posts yet</h3><p>When this person posts, it will appear here.</p></div>:posts.filter((p)=>p.author_id===activeProfile.id).map((p)=><PostCard {...postProps(p)}/>)}
+          <div className="follow-stats">
+            <span><b>{activeProfile.id===me.id?followed.length:followCounts[activeProfile.id]?.following??0}</b> Following</span>
+            <span><b>{followCounts[activeProfile.id]?.followers??0}</b> Followers</span>
+          </div>
+        </section>
+        <div className="feed-tabs"><button className="selected">Posts</button><button onClick={()=>notify("Replies tab is coming soon")}>Replies</button><button onClick={()=>notify("Media tab is coming soon")}>Media</button><button onClick={()=>notify("Project portfolios are being developed")}>Projects</button></div>
+        {posts.filter(p=>p.author_id===activeProfile.id).length===0?<div className="empty-state"><Feather size={30}/><h3>No posts yet</h3><p>When this person posts, it will appear here.</p></div>:posts.filter(p=>p.author_id===activeProfile.id).map(p=><PostCard {...postProps(p)}/>)}
       </>}
 
       {view === "thread" && selectedPost && <>
@@ -679,7 +818,39 @@ export default function BlumbookApp() {
       <button className="auth-switch" onClick={()=>setSignUp(!signUp)}>{signUp?"Already have an account? Log in":"New to Blumbook? Sign up"}</button></div>
     </Modal>}
 
-    {editProfile&&<Modal close={()=>setEditProfile(false)}><div className="dialog-head"><button className="icon-button" onClick={()=>setEditProfile(false)}><X size={22}/></button><strong>Edit profile</strong><button form="edit-profile-form" className="primary-btn" disabled={busy}>Save</button></div><form id="edit-profile-form" onSubmit={saveProfile} className="edit-form"><div className="edit-banner"/><Avatar profile={me} size="large"/><label>Name<input required maxLength={50} value={editName} onChange={(e)=>setEditName(e.target.value)}/></label><label>Bio<textarea maxLength={160} rows={3} value={editBio} onChange={(e)=>setEditBio(e.target.value)}/></label><label>Professional headline<input maxLength={90} placeholder="Designer · Entrepreneur · Educator" value={editHeadline} onChange={e=>setEditHeadline(e.target.value)}/></label><label>Skills (comma separated)<input maxLength={230} placeholder="Product design, Robotics, Content creation" value={editSkills} onChange={e=>setEditSkills(e.target.value)}/></label><label>Portfolio link (https://)<input maxLength={300} inputMode="url" value={editPortfolio} onChange={e=>setEditPortfolio(e.target.value)}/></label></form></Modal>}
+
+    {collabTarget&&<Modal close={()=>setCollabTarget(null)}>
+      <div className="dialog-head"><button className="icon-button" onClick={()=>setCollabTarget(null)} aria-label="Close"><X size={20}/></button><strong>Collaborate with {collabTarget.display_name}</strong></div>
+      <form className="profile-dialog-body" onSubmit={sendCollab}>
+        <div className="profile-dialog-emblem"><Handshake size={26}/></div>
+        <h3>Start something meaningful.</h3>
+        <p>Invite this member to work on an idea, project, or mentorship opportunity.</p>
+        {!collabTarget.open_to_collab&&<div className="profile-info-note">This member has not enabled collaboration requests. You can preview the form, but cannot deliver a request.</div>}
+        {!isCloudEnabled&&<div className="profile-info-note">Demo only: this request will not be delivered to anyone.</div>}
+        <label>I'm interested in<select value={collabKind} onChange={e=>setCollabKind(e.target.value)}>{["Project","Mentorship","Business","Creative work"].map(k=><option key={k}>{k}</option>)}</select></label>
+        <label>Message<textarea required rows={5} minLength={10} maxLength={500} placeholder="Introduce yourself and describe how you'd like to collaborate..." value={collabMessage} onChange={e=>setCollabMessage(e.target.value)}/></label>
+        <button disabled={busy||collabMessage.trim().length<10||(isCloudEnabled&&!collabTarget.open_to_collab)} className="primary-btn">{!isCloudEnabled?"Preview request":"Send collaboration request"}</button>
+      </form>
+    </Modal>}
+    {profileReport&&<Modal close={()=>setProfileReport(null)}>
+      <div className="dialog-head"><button className="icon-button" onClick={()=>setProfileReport(null)} aria-label="Close"><X size={21}/></button><strong>Report @{profileReport.username}</strong></div>
+      <form className="profile-dialog-body" onSubmit={submitProfileReport}>
+        <div className="profile-dialog-emblem"><Flag size={25}/></div>
+        <h3>Help keep Blumbook safe.</h3>
+        <p>Choose the main reason. Reports are private, but a staffed review team is not operational yet.</p>
+        <label>Reason<select value={reportReason} onChange={e=>setReportReason(e.target.value)}>{["Spam","Harassment","Hate","Violence","Impersonation","Other"].map(x=><option key={x}>{x}</option>)}</select></label>
+        {(!isCloudEnabled||!cloudUserId)&&<div className="profile-info-note">Reporting requires a signed-in account and the Phase 3 database migration.</div>}
+        <button className="primary-btn" disabled={busy||!isCloudEnabled||!cloudUserId}>Submit report</button>
+      </form>
+    </Modal>}
+    {blockTarget&&<Modal close={()=>setBlockTarget(null)}>
+      <div className="dialog-head"><button className="icon-button" onClick={()=>setBlockTarget(null)} aria-label="Close"><X size={21}/></button><strong>{blockedAuthors.includes(blockTarget.id)?"Unhide account":"Hide account"}</strong></div>
+      <div className="profile-dialog-body"><div className="profile-dialog-emblem"><Ban size={25}/></div><h3>{blockedAuthors.includes(blockTarget.id)?"Show this account?":"Hide this account from your feed?"}</h3>
+        <p>This is a <strong>device-only preview</strong>. It does not prevent this person from seeing your public posts or contacting you. Account-level blocking will require additional backend safeguards.</p>
+        <div className="profile-dialog-controls"><button className="profile-action-secondary" onClick={()=>setBlockTarget(null)}>Cancel</button><button className="primary-btn" onClick={()=>toggleHidden(blockTarget)}>{blockedAuthors.includes(blockTarget.id)?"Unhide":"Hide locally"}</button></div>
+      </div>
+    </Modal>}
+    {editProfile&&<Modal close={()=>setEditProfile(false)}><div className="dialog-head"><button className="icon-button" onClick={()=>setEditProfile(false)}><X size={22}/></button><strong>Edit profile</strong><button form="edit-profile-form" className="primary-btn" disabled={busy}>Save</button></div><form id="edit-profile-form" onSubmit={saveProfile} className="edit-form"><div className="edit-banner"/><Avatar profile={me} size="large"/><label>Name<input required maxLength={50} value={editName} onChange={(e)=>setEditName(e.target.value)}/></label><label>Bio<textarea maxLength={160} rows={3} value={editBio} onChange={(e)=>setEditBio(e.target.value)}/></label><label>Professional headline<input maxLength={90} placeholder="Designer · Entrepreneur · Educator" value={editHeadline} onChange={e=>setEditHeadline(e.target.value)}/></label><label>Skills (comma separated)<input maxLength={230} placeholder="Product design, Robotics, Content creation" value={editSkills} onChange={e=>setEditSkills(e.target.value)}/></label><label>Portfolio link (https://)<input maxLength={300} inputMode="url" value={editPortfolio} onChange={e=>setEditPortfolio(e.target.value)}/></label><label className="profile-collab-edit"><input type="checkbox" checked={editAvailable} onChange={e=>setEditAvailable(e.target.checked)}/><span><strong>Open to collaboration</strong><small>Allow signed-in members to send you a collaboration request.</small></span></label></form></Modal>}
   </div>;
 
   function personRow(p: Profile) {

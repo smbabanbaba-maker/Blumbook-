@@ -1,7 +1,7 @@
 export type Profile = {
   id: string; username: string; display_name: string; bio: string;
   verified?: boolean; avatar_url?: string | null; location?: string;
-  headline?: string; skills?: string[]; portfolio_url?: string;
+  headline?: string; skills?: string[]; portfolio_url?: string; open_to_collab?: boolean;
 };
 export type Post = {
   id: string; author_id: string; body: string; image_url: string | null;
@@ -15,10 +15,10 @@ export const DEMO_ME: Profile = {
   location: "Your world",
 };
 export const DEMO_PEOPLE: Profile[] = [
-  { id: "amina", username: "aminacreates", display_name: "Amina Yusuf", bio: "Creative storyteller • Art & technology 🎨", verified: true },
+  { id: "amina", username: "aminacreates", display_name: "Amina Yusuf", bio: "Creative storyteller • Art & technology 🎨", verified: true, open_to_collab: true },
   { id: "daniel", username: "danielkim", display_name: "Daniel Kim", bio: "Designer. Builder. Exploring new ideas." },
   { id: "zara", username: "zaralawal", display_name: "Zara Lawal", bio: "Digital creator | Learning every day ✨", verified: true },
-  { id: "ibrahim", username: "ibrahimmusa", display_name: "Ibrahim Musa", bio: "Software engineer and tech enthusiast." },
+  { id: "ibrahim", username: "ibrahimmusa", display_name: "Ibrahim Musa", bio: "Software engineer and tech enthusiast.", open_to_collab: true },
   { id: "sarah", username: "sarahchen", display_name: "Sarah Chen", bio: "Educator • Learning for everyone.", verified: true },
   { id: "alex", username: "alexj", display_name: "Alex Johnson", bio: "Let's build a brighter community together." },
 ];
