@@ -9,10 +9,10 @@ const stories=fs.readFileSync(new URL("../components/StoriesRail.tsx",import.met
 const demoRoute=fs.readFileSync(new URL("../app/demo/page.tsx",import.meta.url),"utf8");
 const count=(text,regex)=>Array.from(text.matchAll(regex)).length;
 const tests={
- "Showroom has at least 30 fictional posts":count(showcase,/\\{id:"showcase-\\d+",author_id:/g)>=30,
- "Showroom has at least 120 seeded real-looking comments":count(showcase,/\\{id:"showcase-\\d+-reply-\\d+"/g)>=120,
- "Showroom has 8 sample 24h stories":count(showcase,/id:"demo-story-\\d+"/g)===8,
- "Showroom has playable video and photo content":count(showcase,/video_url:"https:\\/\\//g)>=3&&count(showcase,/image_url:"https:\\/\\/images\\.unsplash\\.com/g)>=12,
+ "Showroom has at least 30 fictional posts":count(showcase,/id:"showcase-[0-9]+",author_id:/g)>=30,
+ "Showroom has at least 120 seeded comments":count(showcase,/id:"showcase-[0-9]+-reply-[0-9]+"/g)>=120,
+ "Showroom has 8 sample 24h stories":count(showcase,/id:"demo-story-[0-9]+"/g)===8,
+ "Showroom has playable video and photo content":showcase.split('video_url:"https://').length-1>=3&&showcase.split('image_url:"https://images.unsplash.com').length-1>=12,
  "Showroom route is noindex and replaces live backend":demoRoute.includes('robots:{index:false,follow:false}')&&demoRoute.includes('<BlumbookApp forceDemo/>')&&app.includes('const supabase=forceDemo?null:configuredSupabase')&&stories.includes('if(!supabase||forceDemo)return'),
  "Showroom initializes posts, profiles and comments together":app.includes('useState<Post[]>(SHOWCASE_POSTS)')&&app.includes('useState<Profile[]>(SHOWCASE_PEOPLE)')&&app.includes('useState<Record<string, Comment[]>>(SHOWCASE_COMMENTS_BY_POST)'),
 
