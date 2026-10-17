@@ -2,11 +2,12 @@
 
 import {useEffect,useRef,useState} from "react";
 import {
-  ArrowLeft,Bookmark,CheckCircle2,Heart,Maximize2,MessageCircle,Minimize2,
+  ArrowLeft,Bookmark,CheckCircle2,Maximize2,MessageCircle,Minimize2,
   MoreVertical,Pause,PictureInPicture2,Play,Repeat2,Share2,Volume2,VolumeX
 } from "lucide-react";
 import type {Post,Profile} from "@/lib/demo";
 import {shortCount} from "@/lib/demo";
+import LikeBurst from "@/components/LikeBurst";
 
 type Props={
   post:Post;
@@ -181,7 +182,7 @@ export default function ImmersiveVideoViewer({
           <div className="cinematic-video-reactions" role="group" aria-label="Video reactions">
             <button onClick={onReply} aria-label={"Comments "+shortCount(post.replies)}><MessageCircle size={20}/><span>{shortCount(post.replies)}</span></button>
             <button onClick={onRepost} className={post.reposted?"is-active":""} aria-label={post.reposted?"Undo repost":"Repost video"}><Repeat2 size={20}/><span>{shortCount(post.reposts)}</span></button>
-            <button onClick={onLike} className={post.liked?"is-active":""} aria-label={post.liked?"Unlike video":"Like video"}><Heart size={20} fill={post.liked?"currentColor":"none"}/><span>{shortCount(post.likes)}</span></button>
+            <button onClick={onLike} className={post.liked?"is-active cinematic-like-action":"cinematic-like-action"} aria-label={post.liked?"Unlike video":"Like video"}><LikeBurst liked={post.liked} size={20}/><span>{shortCount(post.likes)}</span></button>
             <button onClick={onBookmark} className={post.bookmarked?"is-active":""} aria-label={post.bookmarked?"Remove bookmark":"Bookmark video"}><Bookmark size={20} fill={post.bookmarked?"currentColor":"none"}/></button>
             <button onClick={onShare} aria-label="Share video"><Share2 size={20}/></button>
           </div>
