@@ -1719,3 +1719,21 @@ button.settings-detail-row:hover { background:var(--hover); }
  .cinematic-video-transport-actions button{min-width:35px;}
 }
 @media(prefers-reduced-motion:reduce){.cinematic-video-round{transition:none;}}
+
+/* Instagram-inspired prominent circular stories: responsive, consistent sizes. */
+.home-status-strip .blum-stories,.stories-destination .blum-stories{padding:15px 13px 12px;background:transparent;}
+.home-status-strip .stories-row,.stories-destination .stories-row{display:flex;gap:16px;align-items:flex-start;padding:4px 2px 9px;overflow-x:auto;scrollbar-width:none;}
+.home-status-strip .story-tile,.stories-destination .story-tile{flex:0 0 84px;width:84px;min-height:115px;gap:8px;overflow:visible;}
+.home-status-strip .story-circle,.stories-destination .story-circle{position:relative;overflow:visible;display:grid;place-items:center;width:82px;height:82px;padding:4px;border-radius:50%;background:var(--bg);border:2px solid transparent;flex-shrink:0;}
+.home-status-strip .story-circle-active,.stories-destination .story-circle-active{background:linear-gradient(var(--bg),var(--bg)) padding-box,linear-gradient(40deg,#ffcf35,#ff8038,#ee2c83,#a929d4) border-box;}
+.home-status-strip .story-circle>img,.stories-destination .story-circle>img{display:block;width:100%;height:100%;object-fit:cover;border-radius:50%;background:var(--surface2);}
+.home-status-strip .story-create .story-circle,.stories-destination .story-create .story-circle{border:2px solid transparent;padding:4px;background:transparent;}
+.story-create-avatar{width:100%;height:100%;display:grid;place-items:center;overflow:hidden;border-radius:50%;background:var(--surface2);color:var(--text);font-weight:800;font-size:24px;}
+.story-create-avatar img{width:100%;height:100%;object-fit:cover;}
+.story-create-plus{position:absolute;right:0;bottom:0;width:26px;height:26px;display:grid;place-items:center;background:#fff;color:#000;border-radius:50%;border:2px solid var(--bg);box-shadow:0 1px 4px #0005;}
+.home-status-strip .story-tile small,.stories-destination .story-tile small{display:block;width:84px;max-width:84px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;font-size:12px;line-height:1.35;color:var(--text);}
+@media(min-width:768px){
+ .home-status-strip .story-tile,.stories-destination .story-tile{flex-basis:94px;width:94px;}
+ .home-status-strip .story-circle,.stories-destination .story-circle{width:88px;height:88px;}
+ .home-status-strip .story-tile small,.stories-destination .story-tile small{width:94px;max-width:94px;}
+}
