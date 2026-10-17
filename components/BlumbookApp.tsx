@@ -194,7 +194,7 @@ export default function BlumbookApp({forceDemo=false}:{forceDemo?:boolean}={}) {
   const [query, setQuery] = useState("");
   const [posts, setPosts] = useState<Post[]>(SHOWCASE_POSTS);
   const [feedLimit,setFeedLimit]=useState(18);
-  const [people, setPeople] = useState<Profile[]>(forceDemo?SHOWCASE_PEOPLE:[]);
+  const [people, setPeople] = useState<Profile[]>(forceDemo||!configuredCloudEnabled?SHOWCASE_PEOPLE:[]);
   const [member, setMember] = useState<Profile | null>(null);
   const [cloudUserId, setCloudUserId] = useState<string | null>(null);
   const [demoSignedIn, setDemoSignedIn] = useState(false);
