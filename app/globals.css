@@ -703,18 +703,38 @@ button.settings-detail-row:hover { background:var(--hover); }
 .profile-dialog-body select,.profile-dialog-body textarea{border:1px solid var(--line);border-radius:11px;background:var(--surface2);color:var(--text);padding:13px;font-size:14px;resize:vertical;}
 .profile-dialog-body>.primary-btn{align-self:flex-end;}
 .profile-dialog-controls{display:flex;justify-content:flex-end;gap:10px;}
+/* Mobile profile actions: let every button stay visible and tappable. */
 @media(max-width:700px){
 .profile-identity{align-items:flex-end;min-height:75px;}
 .profile-identity .avatar-large{margin-top:-39px;}
 .profile-identity-name{padding:0 0 8px;}
-.profile-button-bar{gap:6px;flex-wrap:nowrap;justify-content:space-between;}
-.profile-action-primary,.profile-action-secondary{padding:9px 10px;min-width:0;font-size:11.5px;gap:5px;}
-.profile-action-primary svg,.profile-action-secondary svg{width:15px;height:15px;}
-.profile-action-icon{width:37px;height:41px;min-height:41px;flex-shrink:0;}
-.profile-more-panel{right:0;}
+.profile-button-bar{
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:flex-start;
+  align-items:stretch;
+  gap:9px;
+  width:100%;
+  margin:18px 0 22px;
+}
+.profile-action-primary,.profile-action-secondary{
+  flex:1 1 calc(50% - 10px);
+  min-width:130px;
+  min-height:46px;
+  padding:11px 12px;
+  font-size:13px;
+  gap:7px;
+  white-space:normal;
+  text-align:center;
+}
+.profile-action-primary svg,.profile-action-secondary svg{width:17px;height:17px;flex-shrink:0;}
+.profile-action-icon{width:46px;height:46px;min-height:46px;flex-shrink:0;}
+.profile-more-wrap{display:flex;align-items:stretch;}
+.profile-more-wrap>.profile-action-icon{height:46px;}
+.profile-more-panel{right:0;top:51px;}
 .profile-dialog-body{padding:8px 18px 30px;}
 }
 @media(max-width:360px){
-.profile-button-bar{flex-wrap:wrap;}
-.profile-action-primary,.profile-action-secondary{flex:1;}
+.profile-action-primary,.profile-action-secondary{flex-basis:calc(50% - 10px);min-width:0;font-size:12px;padding:10px 6px;}
+.profile-action-icon{width:44px;height:44px;min-height:44px;}
 }
