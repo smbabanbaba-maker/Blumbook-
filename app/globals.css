@@ -851,3 +851,49 @@ button.settings-detail-row:hover { background:var(--hover); }
 @media (prefers-reduced-motion:reduce) {
   .bb-nav-item,.bb-drawer-dismiss {transition:none;}
 }
+
+
+/* Simple navigation — one clear home, profile, and more flow */
+.bb-mobile-profile-heading {display:none;}
+@media(max-width:700px) {
+ .bb-mobile-profile-heading {display:flex;flex:1;min-width:0;flex-direction:column;gap:3px;}
+ .bb-mobile-profile-heading strong {font-size:17px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+ .bb-mobile-profile-heading small {color:var(--muted);font-size:12px;}
+ .bb-easy-drawer {display:flex;flex-direction:column;height:100%;min-height:0;}
+ .sidebar.sidebar-open {width:min(84vw,345px);overflow:hidden;z-index:65;}
+ .menu-shade {z-index:60;background:rgba(0,0,0,.72);}
+ .bb-easy-header {flex-shrink:0;display:flex;justify-content:space-between;align-items:center;padding:20px 23px;border-bottom:1px solid var(--line);}
+ .bb-easy-header>div {display:flex;flex-direction:column;gap:4px;}
+ .bb-easy-header strong {font-size:19px;letter-spacing:-.5px;}
+ .bb-easy-header small {font-size:10px;letter-spacing:.08em;color:var(--muted);}
+ .bb-easy-header>button {display:grid;place-items:center;width:36px;height:36px;}
+ .bb-easy-scroll {flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;padding-bottom:35px;}
+ .bb-easy-persona {position:relative;padding:22px 22px 20px;}
+ .bb-easy-persona>button:first-child {padding:0;}
+ .bb-easy-persona>button:first-child .avatar {width:58px;height:58px;font-size:19px;}
+ .bb-easy-account {position:absolute;top:23px;right:26px;}
+ .bb-easy-name {display:block;padding:13px 0 0;font-weight:810;letter-spacing:-.55px;font-size:22px;text-align:left;max-width:100%;overflow-wrap:anywhere;}
+ .bb-easy-persona>p {color:var(--muted);margin:4px 0 16px;font-size:14px;}
+ .bb-easy-persona>div:last-child {display:flex;gap:17px;flex-wrap:wrap;font-size:13px;color:var(--muted);}
+ .bb-easy-persona b {color:var(--text);}
+ .bb-easy-links {border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:11px 0;}
+ .bb-easy-links button {display:flex;align-items:center;gap:22px;width:100%;padding:14px 24px;min-height:56px;text-align:left;font-size:17px;font-weight:750;}
+ .bb-easy-links button:hover,.bb-easy-extra>button:hover {background:var(--hover);}
+ .bb-easy-links button span {flex:1;}
+ .bb-easy-extra {padding:17px 0;}
+ .bb-easy-extra>button {display:flex;align-items:center;gap:16px;width:100%;padding:12px 24px;min-height:48px;text-align:left;font-size:14px;}
+ .bb-easy-theme {display:flex;align-items:center;gap:7px;padding:12px 21px;border-top:1px solid var(--line);margin-top:13px;}
+ .bb-easy-theme>span {flex:1;font-size:13px;color:var(--muted);}
+ .bb-easy-theme button {display:flex;gap:5px;align-items:center;padding:8px 9px;font-size:11px;border-radius:8px;border:1px solid var(--line);}
+ .bb-easy-theme button.selected {background:var(--text);color:var(--ink);}
+ .bb-easy-extra .bb-easy-more {border-top:1px solid var(--line);justify-content:flex-start;margin-top:8px;}
+ .bb-easy-more>svg:last-child {margin-left:auto;}
+ .bb-easy-hidden {background:var(--surface2);margin:0 16px;border-radius:12px;display:flex;flex-direction:column;padding:6px;}
+ .bb-easy-hidden button {text-align:left;padding:11px 15px;font-size:13px;}
+ .bb-easy-footer {font-size:11px;text-align:center;color:var(--muted);padding:12px 16px;}
+ .mobile-bottom button {height:55px;}
+ .mobile-bottom button.active {color:var(--text);}
+ .mobile-bottom {z-index:40;}
+ .bb-behind-menu {visibility:hidden!important;opacity:0!important;pointer-events:none!important;}
+ .floating-compose {bottom:80px;}
+}
