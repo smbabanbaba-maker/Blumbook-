@@ -16,6 +16,8 @@ jobs:
           node-version: "22"
       - name: Install dependencies
         run: npm install --no-audit --no-fund
+      - name: Audit navigation
+        run: npm run audit:navigation
       - name: Typecheck
         run: npm run typecheck
       - name: Build

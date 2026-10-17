@@ -1371,3 +1371,9 @@ button.settings-detail-row:hover { background:var(--hover); }
  .creation-choice{transition:none}
  .creation-choice:hover{transform:none}
 }
+
+/* Focus and active destination: unobtrusive monochrome indicators */
+@media(max-width:700px){
+ .simple-drawer-links>button[aria-current="page"],.simple-drawer-account[aria-current="page"]{background:var(--surface2);box-shadow:inset 3px 0 var(--text);}
+ .simple-drawer-links>button:focus-visible,.simple-drawer-account:focus-visible,.avatar-action:focus-visible,.top-more-button:focus-visible{outline:2px solid var(--text);outline-offset:2px;}
+}
