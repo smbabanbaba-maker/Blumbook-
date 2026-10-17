@@ -1,4 +1,4 @@
-import type {Post,Profile} from "./demo";
+import {DEMO_ME,type Post,type Profile} from "./demo";
 
 /**
  * Fictional interface-testing fixtures. Never upload these to real Supabase tables.
@@ -6,6 +6,9 @@ import type {Post,Profile} from "./demo";
  * Demo data is intentionally separated from real user content and the production database.
  */
 export type ShowcaseComment={id:string;post_id:string;author_id:string;body:string;created_at:string;parent_comment_id?:string|null};
+
+/** Illustrative profile picture so the Your Story circle can be tested with a real thumbnail. */
+export const SHOWCASE_ME:Profile={...DEMO_ME,avatar_url:"https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=160&h=160&fit=crop&crop=faces&auto=format&q=75"};
 
 export const SHOWCASE_PEOPLE:Profile[]=[
   {id:"amina",username:"aminacreates",display_name:"Amina Yusuf",avatar_url:"https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=160&h=160&fit=crop&crop=faces&auto=format&q=75",bio:"Creative storyteller • Art & technology",location:"Kano, Nigeria",open_to_collab:true},
