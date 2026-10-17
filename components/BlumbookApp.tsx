@@ -1053,6 +1053,7 @@ export default function BlumbookApp({forceDemo=false}:{forceDemo?:boolean}={}) {
             <button className="thread-author-avatar" aria-label={"View "+lookup(selectedPost.author_id).display_name+" profile"} onClick={()=>openProfile(selectedPost.author_id)}><Avatar profile={lookup(selectedPost.author_id)}/></button>
             <button className="thread-author-info" onClick={()=>openProfile(selectedPost.author_id)}>
               <Name profile={lookup(selectedPost.author_id)}/>
+              {SAMPLE_POST_IDS.has(selectedPost.id)&&<span className="post-sample-chip">Sample</span>}
               <small>@{lookup(selectedPost.author_id).username}</small>
             </button>
             {selectedPost.author_id!==me.id&&<button className="thread-follow" onClick={()=>void toggleFollow(selectedPost.author_id)}>{followed.includes(selectedPost.author_id)?"Following":"Follow"}</button>}
