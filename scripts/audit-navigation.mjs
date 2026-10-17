@@ -10,6 +10,8 @@ const tests={
  "Home has no decorative banners or duplicated composer":!["premium-home-intro","premium-publisher","premium-feed-heading","premium-home-onboarding"].some(x=>app.includes(x)),
  "Home contains only feed tabs, demo disclosure and posts":app.includes('className="clean-home"')&&app.includes('className="feed-tabs clean-home-tabs"')&&!app.includes('YOUR TIMELINE'),
  "Stories has dedicated destination":app.includes('view === "stories"')&&app.includes('navigate("stories");setStoryLaunch')&&app.includes('onClick={()=>navigate("stories")}'),
+ "Home status rail appears before the feed tabs":app.includes('view === "home" ? "home-status-strip" : "stories-destination"')&&app.indexOf('className={view === "home" ? "home-status-strip"')<app.indexOf('className="feed-tabs clean-home-tabs"'),
+ "Home status rail uses compact mode":app.includes('<StoriesRail compact={view === "home"}'),
  "Stories rail mounted once":count(app,/<StoriesRail\b/g)===1,
  "Create menu mounted once":count(app,/<CreateMenu\b/g)===1,
  "Bottom navigation mounted once":count(app,/<nav className=\{"mobile-bottom/g)===1,
