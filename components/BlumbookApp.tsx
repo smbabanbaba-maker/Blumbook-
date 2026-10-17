@@ -663,7 +663,7 @@ export default function BlumbookApp() {
           <button aria-label="Close menu" className="simple-drawer-close" onClick={()=>setMenuOpen(false)}><X size={23}/></button>
         </header>
         <div className="simple-drawer-body">
-          <button className="simple-drawer-account" onClick={()=>openProfile(me.id)}>
+          <button className="simple-drawer-account" aria-label="View your profile" aria-current={view==="profile"&&activeProfile.id===me.id?"page":undefined} onClick={()=>openProfile(me.id)}>
             <Avatar profile={me}/>
             <span><strong>{me.display_name}</strong><small>@{me.username}</small></span>
             <ArrowRight size={18}/>
@@ -674,14 +674,14 @@ export default function BlumbookApp() {
           </div>
           <div className="simple-drawer-divider"/>
           <nav className="simple-drawer-links" aria-label="More places">
-            <button onClick={()=>navigate("bookmarks")}><Bookmark size={23}/><span>{tr("Bookmarks")}</span></button>
-            <button onClick={()=>navigate("communities")}><UsersRound size={23}/><span>Bloom Circles</span></button>
-            <button onClick={()=>navigate("opportunities")}><Handshake size={23}/><span>Bloom Opportunities</span></button>
-            <button onClick={()=>navigate("creator")}><ChartNoAxesCombined size={23}/><span>{tr("Creator Studio")}</span></button>
-            <button onClick={()=>navigate("polls")}><ChartNoAxesCombined size={23}/><span>Polls</span></button>
-            <button onClick={()=>navigate("live")}><Radio size={23}/><span>Live Sessions</span></button>
-            <button onClick={()=>navigate("settings")}><Settings size={23}/><span>{tr("Settings")}</span></button>
-            <button onClick={()=>navigate("help")}><CircleHelp size={23}/><span>{tr("Help Center")}</span></button>
+            <button aria-current={view==="bookmarks"?"page":undefined} onClick={()=>navigate("bookmarks")}><Bookmark size={23}/><span>{tr("Bookmarks")}</span></button>
+            <button aria-current={view==="communities"?"page":undefined} onClick={()=>navigate("communities")}><UsersRound size={23}/><span>Bloom Circles</span></button>
+            <button aria-current={view==="opportunities"?"page":undefined} onClick={()=>navigate("opportunities")}><Handshake size={23}/><span>Bloom Opportunities</span></button>
+            <button aria-current={view==="creator"?"page":undefined} onClick={()=>navigate("creator")}><ChartNoAxesCombined size={23}/><span>{tr("Creator Studio")}</span></button>
+            <button aria-current={view==="polls"?"page":undefined} onClick={()=>navigate("polls")}><ChartNoAxesCombined size={23}/><span>Polls</span></button>
+            <button aria-current={view==="live"?"page":undefined} onClick={()=>navigate("live")}><Radio size={23}/><span>Live Sessions</span></button>
+            <button aria-current={view==="settings"?"page":undefined} onClick={()=>navigate("settings")}><Settings size={23}/><span>{tr("Settings")}</span></button>
+            <button aria-current={view==="help"?"page":undefined} onClick={()=>navigate("help")}><CircleHelp size={23}/><span>{tr("Help Center")}</span></button>
           </nav>
           <section className="simple-drawer-preferences">
             <div className="simple-drawer-preference-title"><Moon size={19}/><span>{tr("Appearance")}</span></div>
