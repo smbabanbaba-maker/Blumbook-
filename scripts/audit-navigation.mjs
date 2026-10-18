@@ -9,11 +9,21 @@ const showcase=fs.readFileSync(new URL("../lib/demo-showcase.ts",import.meta.url
 const stories=fs.readFileSync(new URL("../components/StoriesRail.tsx",import.meta.url),"utf8");
 const demoRoute=fs.readFileSync(new URL("../app/demo/page.tsx",import.meta.url),"utf8");
 const commentCard=fs.readFileSync(new URL("../components/CommentCard.tsx",import.meta.url),"utf8");
+const composer=fs.readFileSync(new URL("../components/PremiumPostComposer.tsx",import.meta.url),"utf8");
 const likeBurst=fs.readFileSync(new URL("../components/LikeBurst.tsx",import.meta.url),"utf8");
 const expanded=fs.readFileSync(new URL("../lib/demo-expanded.ts",import.meta.url),"utf8");
 const extraPosts=JSON.parse(expanded.match(/^const SAMPLE_MESSAGES=(.+);$/m)?.[1]||"[]");
 const count=(text,regex)=>Array.from(text.matchAll(regex)).length;
 const tests={
+ "Premium post composer replaces old post dialog":app.includes('<PremiumPostComposer')&&!app.includes('{compose && <Modal close={()=>setCompose(false)}>')&&composer.includes('className="premium-composer-overlay"'),
+ "Premium composer has working Post, close and native full-screen layout":composer.includes('onSubmit={onSubmit}')&&composer.includes('disabled={busy||!hasContent||text.length>500}')&&composer.includes('onClick={requestExit}')&&stylesheet.includes('height:100dvh'),
+ "Drafts persist locally and restore as editable text":composer.includes('blumbook-composer-drafts-v1')&&composer.includes('localStorage.setItem(DRAFT_KEY')&&composer.includes('const restoreDraft=')&&composer.includes('setText(draft.text)'),
+ "Photos camera and video recording use the existing media handlers":composer.includes('capture="environment"')&&composer.includes('onChange={onImage}')&&composer.includes('onChange={onVideo}')&&composer.includes('onRemoveImage')&&composer.includes('onRemoveVideo'),
+ "GIF emoji location and polls have functional tools":composer.includes('accept="image/gif"')&&composer.includes('const insert=')&&composer.includes('const addPlace=')&&composer.includes('onPoll')&&composer.includes('onAI'),
+ "Premium composer never fabricates audience restrictions":composer.includes('Replies are currently open to everyone.')&&composer.includes('More audience controls are coming later.'),
+ "Media-only posts can publish without requiring placeholder text":app.includes('(!postText.trim()&&!imageFile&&!videoFile)')&&composer.includes('Boolean(text.trim()||imageFile||videoFile)'),
+ "Premium editor respects keyboard, responsive screens and reduced motion":composer.includes('event.key!=="Escape"')&&stylesheet.includes('@media(max-width:520px)')&&stylesheet.includes('.premium-composer-overlay')&&stylesheet.includes('@media(prefers-reduced-motion:reduce)'),
+
  "Showroom has at least 128 posts, including new fictional content":extraPosts.length>=96&&count(showcase,/\{id:"showcase-[0-9]+",author_id:/g)>=30&&showcase.includes("...EXTRA_DEMO_POSTS"),
  "Showroom exposes 35 videos and 63 photos":extraPosts.filter((_,i)=>[2,4].includes(i%6)).length>=32&&extraPosts.filter((_,i)=>[0,1,3].includes(i%6)).length>=48&&showcase.includes("...EXTRA_DEMO_POSTS"),
  "Showroom has 525 comment replies and at least 24 people":expanded.includes("EXTRA_DEMO_COMMENTS")&&expanded.includes("EXTRA_DEMO_PEOPLE")&&showcase.includes("...EXTRA_DEMO_COMMENTS")&&showcase.includes("...EXTRA_DEMO_PEOPLE")&&extraPosts.length*4>=384,

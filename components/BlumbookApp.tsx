@@ -16,6 +16,7 @@ import NotificationsPanel from "@/components/NotificationsPanel";
 import CreatorStudioPlus from "@/components/CreatorStudioPlus";
 import BlumClips from "@/components/BlumClips";
 import ImmersiveVideoViewer from "@/components/ImmersiveVideoViewer";
+import PremiumPostComposer from "@/components/PremiumPostComposer";
 import CommentCard from "@/components/CommentCard";
 import LikeBurst from "@/components/LikeBurst";
 import StoriesRail from "@/components/StoriesRail";
@@ -535,7 +536,7 @@ export default function BlumbookApp({forceDemo=false}:{forceDemo?:boolean}={}) {
     setBusy(false);
   };
   const submitPost=async(e:FormEvent)=>{
-    e.preventDefault();if(!postText.trim()||postText.length>500||!requireAccount()||busy)return;
+    e.preventDefault();if((!postText.trim()&&!imageFile&&!videoFile)||postText.length>500||!requireAccount()||busy)return;
     setBusy(true);let imageUrl:string|null=imageFile?imagePreview:null;let videoUrl:string|null=videoFile?videoPreview:null;
     try {
       if(supabase&&cloudUserId){
@@ -788,7 +789,7 @@ export default function BlumbookApp({forceDemo=false}:{forceDemo?:boolean}={}) {
   const pickImage = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (!f) return;
-    if (!f.type.startsWith("image/") || f.size > 5 * 1024 * 1024) { notify("Choose an image under 5 MB"); return; }
+    if (!["image/jpeg","image/png","image/webp","image/gif"].includes(f.type) || f.size > 5 * 1024 * 1024) { notify("Choose a JPG, PNG, WebP or GIF under 5 MB"); return; }
     setVideoFile(null);setVideoPreview("");setImageFile(f);setImagePreview(URL.createObjectURL(f));
   };
   const pickVideo=(e:React.ChangeEvent<HTMLInputElement>)=>{
@@ -1236,11 +1237,25 @@ export default function BlumbookApp({forceDemo=false}:{forceDemo?:boolean}={}) {
       onNext={()=>nextVideo(1)}
       onPrevious={()=>nextVideo(-1)}
     />}
-    {compose && <Modal close={()=>setCompose(false)}>
-      <div className="dialog-head"><button className="icon-button" onClick={()=>setCompose(false)} aria-label="Close"><X size={22}/></button><strong>{composeMode==="video"?"Create video / clip":composeMode==="photo"?"Share a photo":"Create post"}</strong><button form="compose-form" className="primary-btn" disabled={busy||!postText.trim()||postText.length>500}>{busy?"Posting...":"Post"}</button></div>
-      <form id="compose-form" onSubmit={submitPost}><div className="compose-body"><Avatar profile={me}/><div className="compose-fields"><span className="audience">🌐 Everyone</span><textarea autoFocus aria-label="Write a post" placeholder={composeMode==="video"?"Add a caption to your clip...":composeMode==="photo"?"Describe your photo...":"What\u0027s happening?"} rows={5} maxLength={500} value={postText} onChange={(e)=>setPostText(e.target.value)}/>{imagePreview&&<div className="preview-wrap"><img src={imagePreview} alt="Image preview"/><button type="button" onClick={()=>{setImageFile(null);setImagePreview("");}} aria-label="Remove image"><X size={19}/></button></div>}
-      {videoPreview&&<div className="preview-wrap"><video src={videoPreview} controls playsInline/><button type="button" onClick={()=>{setVideoFile(null);setVideoPreview("");}} aria-label="Remove video"><X size={19}/></button></div>}</div></div><div className="compose-bottom"><button type="button" className="upload-action" title="Get AI writing help" onClick={()=>{setAiSeed(postText);setAiTask("caption");setCompose(false);navigate("ai");}}><Sparkles size={22}/></button><label className="upload-action" title="Attach photo"><ImagePlus size={22}/><input type="file" accept="image/*" onChange={pickImage} hidden/></label><label className="upload-action" title="Attach video"><Video size={22}/><input type="file" accept="video/mp4,video/webm" onChange={pickVideo} hidden/></label><span>500 chars · Images 5MB / Videos 30MB</span><strong className={postText.length>460?"warn-count":""}>{500-postText.length}</strong></div></form>
-    </Modal>}
+    {compose&&<PremiumPostComposer
+      author={me}
+      text={postText}
+      setText={setPostText}
+      imagePreview={imagePreview}
+      videoPreview={videoPreview}
+      imageFile={imageFile}
+      videoFile={videoFile}
+      busy={busy}
+      mode={composeMode}
+      onImage={pickImage}
+      onVideo={pickVideo}
+      onRemoveImage={()=>{if(imagePreview.startsWith("blob:"))URL.revokeObjectURL(imagePreview);setImageFile(null);setImagePreview("");}}
+      onRemoveVideo={()=>{if(videoPreview.startsWith("blob:"))URL.revokeObjectURL(videoPreview);setVideoFile(null);setVideoPreview("");}}
+      onSubmit={submitPost}
+      onClose={()=>setCompose(false)}
+      onPoll={()=>{setCompose(false);navigate("polls");setPollLaunch(k=>k+1);}}
+      onAI={()=>{setAiSeed(postText);setAiTask("caption");setCompose(false);navigate("ai");}}
+    />}
 
     {authOpen&&<Modal close={()=>setAuthOpen(false)}>
       <div className="auth-dialog"><button className="auth-close icon-button" aria-label="Close" onClick={()=>setAuthOpen(false)}><X size={22}/></button><img src="/logo.svg" alt="Blumbook"/><h2>{signUp?"Join Blumbook":"Welcome back"}</h2><p>{signUp?"Every story belongs here.":"Your community is waiting for you."}</p>
